@@ -79,28 +79,68 @@ CREATE POLICY "public_write_products"   ON products FOR ALL USING (true) WITH CH
 CREATE POLICY "public_read_shopping"    ON shopping_items FOR SELECT USING (true);
 CREATE POLICY "public_write_shopping"   ON shopping_items FOR ALL USING (true) WITH CHECK (true);
 
--- 6. Seed: productos iniciales
+-- 6. Seed: todos los productos de la despensa Chedraui
 INSERT INTO products (name, category_id, ref_price, unit, ref_qty, in_stock) VALUES
-  ('Agua Ciel garrafon 10 L',        1, 44.50, 'pz', 1, false),
-  ('Agua mineral Penafiel 2 L',      1, 29.50, 'pz', 1, false),
-  ('Pasta La Moderna spaghetti 450g', 2, 42.00, 'pz', 2, false),
-  ('Pan Bimbo Cero 610g',            2, 73.00, 'pz', 1, false),
-  ('Tortilla de harina',             2, 27.00, 'pz', 1, false),
-  ('Tortillas de maiz',              2, 27.00, 'pz', 1, false),
-  ('Avena Granvita bolsa',           2, 19.90, 'pz', 1, false),
-  ('Cafe Portales tostado 203g',     3, 203.00,'pz', 1, false),
-  ('Mermelada McCormick fresa 270g', 3, 28.00, 'pz', 1, false),
-  ('Atun Dora aceite 130g (x7)',     4, 112.00,'pz', 1, false),
-  ('Huevo blanco SJ 18 pzas',       5, 49.90, 'pz', 1, false),
-  ('Limon Colima 1kg',               6, 51.90, 'kg', 1, false),
-  ('Manzana red delicious',          6, 48.00, 'kg', 1, false),
-  ('Tomate saladet 640g',            6, 34.94, 'kg', 1, false),
-  ('Cebolla blanca 355g',            6, 8.09,  'kg', 1, false),
-  ('Pechuga de pavo natural 425g',   7, 172.55,'kg', 1, false),
-  ('Queso parmesano Galbani 190g',   8, 97.47, 'kg', 1, false),
-  ('Leche entera 1L',                8, 28.50, 'pz', 2, true),
-  ('Yoghurt Yoplait Grandes (x2)',   8, 214.00,'pz', 1, false),
-  ('Mix mora congelada 450g (x2)',   9, 184.00,'pz', 1, false),
-  ('Fabuloso 2L',                    10, 60.00,'pz', 1, false),
-  ('Servilletas Fancy',              10, 37.00,'pz', 1, false),
-  ('Jabon liquido Nivea',            11, 110.00,'pz',1, false);
+  -- Agua y bebidas (1)
+  ('Agua Ciel garrafón 10 L',               1,  44.50, 'pz', 1, false),
+  ('Agua mineral Peñafiel 2 L',             1,  29.50, 'pz', 1, false),
+  -- Despensa seca (2)
+  ('Pasta La Moderna spaghetti ~450 g (×2)', 2,  42.00, 'pz', 2, false),
+  ('Galletas Gamesa sal',                    2,  41.00, 'pz', 1, false),
+  ('Pan Bimbo Cero ~610 g',                 2,  73.00, 'pz', 1, false),
+  ('Cereal Kellogg''s',                      2,  69.50, 'pz', 1, false),
+  ('Cereal Nestlé Corn Flakes',             2,  63.00, 'pz', 1, false),
+  ('Sopa pasta La Moderna (×2)',             2,  42.00, 'pz', 2, false),
+  ('Tortilla de harina',                    2,  27.00, 'pz', 1, false),
+  ('Tortillas de maíz',                     2,  27.00, 'pz', 1, false),
+  ('Harina 3 Estrellas',                    2,  30.00, 'pz', 1, false),
+  ('Avena Granvita bolsa',                  2,  19.90, 'pz', 1, false),
+  -- Café, dulce y aderezos (3)
+  ('Café Portales tostado ~203 g',          3, 203.00, 'pz', 1, false),
+  ('Jarabe tipo maple ~951 g',              3, 116.00, 'pz', 1, false),
+  ('Mermelada McCormick fresa ~270 g',      3,  28.00, 'pz', 1, false),
+  ('Salsa First Street',                    3,  85.00, 'pz', 1, false),
+  ('Aceite Nutriolio ~180 ml',              3,  57.50, 'pz', 1, false),
+  ('Saborizante vainilla',                  3,  25.00, 'pz', 1, false),
+  -- Conservas (4)
+  ('Atún "Dora" aceite ~130 g (×7)',        4, 112.00, 'pz', 1, false),
+  ('Ensalada campesina (×2)',               4,  28.00, 'pz', 2, false),
+  -- Aves (5)
+  ('Huevo blanco SJ 18 pzas',              5,  49.90, 'pz', 1, false),
+  -- Frutas y verduras (6)
+  ('Calabaza italiana ~0.575 kg',           6,  19.49, 'kg', 1, false),
+  ('Zanahoria granel ~0.765 kg',            6,  12.70, 'kg', 1, false),
+  ('Limón Colima / agrio ~1.040 kg',        6,  51.90, 'kg', 1, false),
+  ('Nopal cambray',                         6,  76.37, 'kg', 1, false),
+  ('Piña ~1.545 kg',                        6,  34.30, 'kg', 1, false),
+  ('Cebolla blanca ~0.355 kg',              6,   8.09, 'kg', 1, false),
+  ('Mango ataulfo ~0.730 kg',               6,  35.70, 'kg', 1, false),
+  ('Tomate saladet ~0.640 kg',              6,  34.94, 'kg', 1, false),
+  ('Pepino verde ~0.755 kg',                6,  43.71, 'kg', 1, false),
+  -- Salchichonería (7)
+  ('Pechuga de pavo natural ~0.425 kg',     7, 172.55, 'kg', 1, false),
+  ('Salchicha Lala Pley',                   7,  51.00, 'pz', 1, false),
+  -- Lácteos refrigerados (8)
+  ('Queso parmesano Galbani ~0.190 kg',     8,  97.47, 'kg', 1, false),
+  ('Queso crema Lala 190 g (×4)',           8, 128.00, 'pz', 4, false),
+  ('Crema para batir Lyon 500 ml',          8,  68.00, 'pz', 1, false),
+  ('Mantequilla Gloria 90 g',               8,  22.00, 'pz', 1, false),
+  ('Yoghurt Yoplait "Grandes" (×2)',        8, 214.00, 'pz', 2, false),
+  -- Congelados (9)
+  ('Mix mora congelada ~450 g (×2)',        9, 184.00, 'pz', 2, false),
+  ('Fresas congeladas Vima ~450 g',         9,  59.00, 'pz', 1, false),
+  -- Aseo hogar (10)
+  ('Fabuloso ~2 L',                        10,  60.00, 'pz', 1, false),
+  ('Servilletas Fancy',                    10,  37.00, 'pz', 1, false),
+  ('Toalla de papel Chedraui (×2 rolls)',  10,  51.00, 'pz', 2, false),
+  ('Bolsa basura jumbo (×2)',              10,  76.00, 'pz', 2, false),
+  -- Higiene y farmacia (11)
+  ('Jabón líquido Nivea',                  11, 110.00, 'pz', 1, false),
+  ('Body mist Chupa Chups',               11,  75.00, 'pz', 1, false),
+  ('Fragancia tipo Juicy',                 11, 229.00, 'pz', 1, false),
+  ('Algodón facial',                       11, 157.00, 'pz', 1, false),
+  ('Lubricante íntimo',                    11, 105.00, 'pz', 1, false),
+  ('Preservativos Caribbean (promo)',      11, 400.00, 'pz', 1, false),
+  -- Otros (12)
+  ('Portabolsas / organizador',            12,  49.00, 'pz', 1, false),
+  ('Tapete mascotas Smilepets',            12, 159.00, 'pz', 1, false);
