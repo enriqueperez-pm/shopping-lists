@@ -1,0 +1,47 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { -webkit-tap-highlight-color: transparent; }
+  body {
+    @apply font-sans text-slate-900 antialiased;
+    overscroll-behavior: none;
+  }
+  input, select, textarea { @apply font-sans; }
+}
+
+/* PWA-style viewport */
+@supports (height: 100dvh) {
+  .h-screen-safe { height: 100dvh; }
+}
+@supports not (height: 100dvh) {
+  .h-screen-safe { height: 100vh; }
+}
+
+/* Tab bar glass */
+.glass {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: saturate(180%) blur(16px);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
+}
+
+/* Subtle background gradient */
+.bg-app {
+  background:
+    radial-gradient(ellipse 90% 60% at 85% -15%, rgba(99,102,241,.07), transparent 55%),
+    radial-gradient(ellipse 70% 50% at -5% 105%, rgba(6,182,212,.06), transparent 50%),
+    #f8fafc;
+}
+
+/* Hide scrollbar but keep scrollable */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* Touch target minimum */
+.touch-target { min-height: 44px; min-width: 44px; }
+
+/* Price input */
+input[type="number"]::-webkit-inner-spin-button { opacity: 0.6; }
+input[type="number"] { -moz-appearance: textfield; }
