@@ -12,7 +12,7 @@ import {
 } from "react";
 import { useCategories, useProducts, useShopping, usePurchaseHistory } from "@/lib/hooks";
 import type { Product, ShoppingItem, ShoppingStatus } from "@/lib/types";
-import { itemStatus } from "@/lib/purchase";
+import { itemStatus, recordPurchaseTrip } from "@/lib/purchase";
 import { showToast, showUndoToast } from "@/components/Toast";
 import {
   groupProductsByCategory,
@@ -454,8 +454,20 @@ export default function ShoppingProvider({ children }: { children: ReactNode }) 
 
   const handleArchiveTrip = async () => {
     if (listPurchasedCount === 0) return;
+    const purchased = shopping.filter((s) => itemStatus(s) === "purchased");
+    const count = purchased.length;
+    const result = await recordPurchaseTrip(purchased);
     await archivePurchasedTrip();
-    showToast(`Visita guardada (${listPurchasedCount} productos)`);
+    showUndoToast({
+      message: `Visita guardada (${count} productos)`,
+      durationMs: 10000,
+      onUndo: async () => {
+        if (result?.undo) await result.undo();
+        refetchShopping();
+        refetchHistory();
+        showToast("Visita revertida");
+      },
+    });
     refetchHistory();
   };
 

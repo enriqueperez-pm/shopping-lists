@@ -19,6 +19,7 @@ import {
 import { fetchUserFinancialPayload, upsertUserFinancialPayload } from "./financialSupabaseSync";
 import { ensureBaselineBudgetTaxonomy } from "./finance-linking";
 import { setFinanceDb } from "./finance-bridge";
+import { resolveCloudPayloadUserId } from "@/lib/household";
 import { getBrowserSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
 
 type FinanceContextValue = {
@@ -76,12 +77,13 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
     if (cloudSyncInFlightRef.current) return false;
     const d = dbRef.current;
     const uid = userIdRef.current;
-    if (!d || !uid || !isSupabaseConfigured()) return false;
+    const payloadUserId = resolveCloudPayloadUserId(uid);
+    if (!d || !payloadUserId || !isSupabaseConfigured()) return false;
     cloudSyncInFlightRef.current = true;
     try {
       d.captureModuleDataFromLocalStorage({ persist: true });
       const payload = d.exportFullStateObject() as unknown as Record<string, unknown>;
-      const ok = await upsertUserFinancialPayload(uid, payload);
+      const ok = await upsertUserFinancialPayload(payloadUserId, payload);
       if (!ok) {
         cloudSyncDirtyRef.current = true;
         return false;
@@ -101,8 +103,9 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
     const supabase = getBrowserSupabase();
     const mergeRemote = async (uid: string) => {
       const d = dbRef.current;
-      if (!d) return;
-      const row = await fetchUserFinancialPayload(uid);
+      const payloadUserId = resolveCloudPayloadUserId(uid);
+      if (!d || !payloadUserId) return;
+      const row = await fetchUserFinancialPayload(payloadUserId);
       const localMs = d.getLastUpdateMs();
       const remoteMs = row?.updated_at ? new Date(row.updated_at).getTime() : 0;
       const remotePayload = row?.payload;
