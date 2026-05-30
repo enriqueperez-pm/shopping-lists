@@ -9,6 +9,7 @@ const config: Config = {
       },
       fontSize: {
         title: ["1.0625rem", { lineHeight: "1.35", letterSpacing: "-0.02em", fontWeight: "600" }],
+        product: ["0.9875rem", { lineHeight: "1.35", letterSpacing: "0", fontWeight: "500" }],
         body: ["0.875rem", { lineHeight: "1.45", fontWeight: "500" }],
         caption: ["0.75rem", { lineHeight: "1.4", fontWeight: "500" }],
         micro: ["0.6875rem", { lineHeight: "1", letterSpacing: "0.02em", fontWeight: "500" }],

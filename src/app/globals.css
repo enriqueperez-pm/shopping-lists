@@ -51,6 +51,9 @@
   .text-title {
     @apply text-[1.0625rem] font-semibold leading-snug tracking-tight text-ink;
   }
+  .text-product-name {
+    @apply text-[0.9875rem] font-medium leading-snug tracking-normal text-ink;
+  }
   .text-body {
     @apply text-sm font-medium leading-normal text-ink-muted;
   }

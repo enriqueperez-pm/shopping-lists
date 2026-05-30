@@ -149,14 +149,14 @@ export default function ShopItem({
 
           <div className="flex-1 min-w-0 flex items-baseline gap-2">
             <h3
-              className={`min-w-0 truncate text-title ${
-                status === "purchased" ? "line-through text-ink-faint font-medium" : "font-bold"
+              className={`min-w-0 truncate text-product-name ${
+                status === "purchased" ? "line-through text-ink-faint" : ""
               }`}
             >
               {name}
             </h3>
             {isCompact && !detailsOpen && (
-              <span className="shrink-0 text-caption font-semibold tabular-nums text-ink-faint">
+              <span className="shrink-0 text-caption font-medium tabular-nums text-ink-faint">
                 {money(lineTotal)}
               </span>
             )}

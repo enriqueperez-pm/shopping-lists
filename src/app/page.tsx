@@ -24,6 +24,9 @@ import {
 import { resolveProductStage, buildStatusMap, nextStage, type ProductStage } from "@/lib/productStage";
 import { useCardLayout } from "@/lib/useCardLayout";
 import { useItemDensity } from "@/lib/useItemDensity";
+import { useTripBudget } from "@/lib/useTripBudget";
+import { money } from "@/lib/money";
+import TripTotalBar from "@/components/TripTotalBar";
 
 type Filter = "all" | "pantry" | "needed" | "in_cart" | "purchased";
 const STORAGE_KEY = "shopping-ui-state-v1";
@@ -58,10 +61,6 @@ function readUiState(): UiState | null {
   }
 }
 
-function money(n: number) {
-  return "$" + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
-
 export default function Home() {
   const initialUi = useMemo(() => readUiState(), []);
   const [tab, setTab] = useState<Tab>(initialUi?.tab ?? "despensa");
@@ -72,6 +71,7 @@ export default function Home() {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(initialUi?.collapsed ?? {});
   const { actionsSide, toggleActionsSide } = useCardLayout();
   const { density, toggleDensity, isCompact } = useItemDensity();
+  const { budget, setBudget } = useTripBudget();
 
   const categories = useCategories();
   const {
@@ -563,7 +563,7 @@ export default function Home() {
             px-[var(--pad,1rem)] pt-3 space-y-2"
             style={{
               "--pad": "clamp(14px, 3.5vw, 22px)",
-              paddingBottom: "calc(3.8rem + 4rem + env(safe-area-inset-bottom, 0px) + .5rem)",
+              paddingBottom: "calc(3.8rem + 5.5rem + env(safe-area-inset-bottom, 0px) + .5rem)",
             } as React.CSSProperties}>
             {sLoading ? (
               <div className="flex items-center justify-center py-16">
@@ -626,25 +626,14 @@ export default function Home() {
             )}
           </div>
 
-          {/* Total bar */}
-          <div
-            className="fixed inset-x-0 glass border-t border-[var(--border-hairline)] z-30
-              flex items-center justify-between px-[var(--pad,1rem)] py-3 gap-4"
-            style={{
-              bottom: "calc(3.75rem + env(safe-area-inset-bottom, 0px))",
-              "--pad": "clamp(14px, 3.5vw, 22px)",
-            } as React.CSSProperties}
-          >
-            <div>
-              <p className="text-micro uppercase tracking-wider text-ink-faint">Visita</p>
-              <p className="text-lg font-bold text-brand-600 tabular-nums tracking-tight">{money(tripTotal)}</p>
-            </div>
-            <div className="text-right text-caption tabular-nums space-y-0.5 text-ink-faint">
-              <p>Comprado {money(totalPurchased)}</p>
-              <p>Carrito {money(totalInCart)}</p>
-              <p>Pendiente {money(totalNeeded)}</p>
-            </div>
-          </div>
+          <TripTotalBar
+            tripTotal={tripTotal}
+            totalNeeded={totalNeeded}
+            totalInCart={totalInCart}
+            totalPurchased={totalPurchased}
+            budget={budget}
+            onBudgetChange={setBudget}
+          />
 
           {/* FAB */}
           <button
@@ -652,7 +641,7 @@ export default function Home() {
             className="fixed right-4 z-30 w-11 h-11 rounded-full
               bg-brand-500 text-white shadow-float flex items-center justify-center
               transition-all duration-fast active:scale-[0.98] hover:bg-brand-600"
-            style={{ bottom: "calc(7.25rem + env(safe-area-inset-bottom, 0px))" }}
+            style={{ bottom: "calc(8.75rem + env(safe-area-inset-bottom, 0px))" }}
             aria-label="Agregar producto"
           >
             <Plus size={20} strokeWidth={2.5} />

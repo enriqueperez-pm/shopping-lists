@@ -141,10 +141,10 @@ export default function ProductCard({
             type="text"
             onCommit={(name) => onUpdate({ name: String(name) })}
             ariaLabel="Nombre del producto"
-            displayClassName={`flex-1 min-w-0 text-left text-ink justify-start truncate ${
-              isCompact ? "text-title !font-bold" : "text-title"
-            } ${isCompact ? "edit-display-compact !min-h-[2rem]" : ""}`}
-            inputClassName="flex-1 min-w-0 text-title"
+            displayClassName={`flex-1 min-w-0 text-left text-ink justify-start truncate text-product-name ${
+              isCompact ? "edit-display-compact !min-h-[2rem]" : ""
+            }`}
+            inputClassName="flex-1 min-w-0 text-product-name font-medium"
             className="flex-1 min-w-0"
           />
 
