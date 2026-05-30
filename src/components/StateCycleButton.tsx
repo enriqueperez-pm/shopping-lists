@@ -75,14 +75,14 @@ export default function StateCycleButton({
             onCycle();
           }
         }}
-        className="p-1 touch-target flex items-center justify-center rounded-lg
-          transition-transform active:scale-95 motion-reduce:transition-none
-          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pantry/40
-          focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-surface)]"
+        className="touch-target flex items-center justify-center rounded-lg p-1
+          transition-transform duration-fast active:scale-[0.96] motion-reduce:transition-none
+          focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-pantry/30
+          focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--bg-surface)]"
       >
         <Icon
-          size={22}
-          strokeWidth={2.5}
+          size={20}
+          strokeWidth={2.25}
           fill="none"
           className={ACTIVE[color === "saved" ? "saved" : color]}
           aria-hidden

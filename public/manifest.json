@@ -3,7 +3,7 @@
   "short_name": "Despensa",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f8fafc",
-  "theme_color": "#6366f1",
+  "background_color": "#faf7f2",
+  "theme_color": "#faf7f2",
   "icons": []
 }

@@ -17,12 +17,12 @@ export default function ItemDensityToggle({
     <button
       type="button"
       onClick={onToggle}
-      className="shrink-0 p-1.5 rounded-md text-ink-faint hover:text-ink hover:bg-[rgba(21,49,49,0.06)] transition-colors"
+      className="btn-ghost !p-1.5"
       aria-label={nextLabel}
       aria-pressed={isCompact}
       title={nextLabel}
     >
-      {isCompact ? <LayoutList size={16} /> : <AlignJustify size={16} />}
+      {isCompact ? <LayoutList size={15} /> : <AlignJustify size={15} />}
     </button>
   );
 }

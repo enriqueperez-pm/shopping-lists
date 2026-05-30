@@ -21,28 +21,19 @@ function moneyPlain(n: number) {
 }
 
 function accentClass(status: ShoppingStatus) {
-  if (status === "purchased") return "border-l-saved";
-  if (status === "in_cart") return "border-l-cart";
-  return "border-l-list";
+  if (status === "purchased") return "accent-saved";
+  if (status === "in_cart") return "accent-cart";
+  return "accent-list";
 }
 
 function statusBadge(status: ShoppingStatus) {
   if (status === "in_cart") {
-    return {
-      label: "Carrito",
-      className: "text-cart bg-amber-50 border border-amber-200",
-    };
+    return { label: "Carrito", className: "text-cart bg-cart-light border border-amber-200/60" };
   }
   if (status === "purchased") {
-    return {
-      label: "Comprado",
-      className: "text-saved bg-saved-bg border border-sky-200",
-    };
+    return { label: "Comprado", className: "text-saved bg-saved-bg border border-sky-200/60" };
   }
-  return {
-    label: "Pendiente",
-    className: "text-list bg-slate-100 border border-slate-200",
-  };
+  return { label: "Pendiente", className: "text-list bg-[rgba(21,49,49,0.04)] border border-[var(--border-hairline)]" };
 }
 
 function ShopDetails({
@@ -52,6 +43,7 @@ function ShopDetails({
   onUpdateQty,
   onUpdatePrice,
   onUpdateUnit,
+  compact,
 }: {
   item: ShoppingItem;
   unitLabel: string;
@@ -59,10 +51,11 @@ function ShopDetails({
   onUpdateQty: (qty: number) => void;
   onUpdatePrice: (price: number) => void;
   onUpdateUnit: (unit: string) => void;
+  compact: boolean;
 }) {
   return (
     <div
-      className="flex flex-wrap items-center gap-2 mt-2 pt-2 border-t border-[rgba(21,49,49,0.06)] text-sm text-ink-muted font-medium"
+      className={`surface-inset px-2.5 py-2 flex flex-wrap items-center gap-2 ${compact ? "" : "mt-2"}`}
       data-no-swipe
     >
       <QtyStepper
@@ -81,16 +74,14 @@ function ShopDetails({
         onCommit={(price) => onUpdatePrice(price as number)}
         ariaLabel="Precio"
         prefix="$"
-        displayClassName="min-w-[4rem] justify-center tabular-nums text-cart"
+        displayClassName={`min-w-[3.5rem] justify-center tabular-nums text-cart ${compact ? "edit-display-compact" : ""}`}
         inputClassName="w-20 text-center"
       />
-
-      <span className="text-ink-faint hidden sm:inline">·</span>
 
       <select
         value={unitLabel}
         onChange={(e) => onUpdateUnit(e.target.value)}
-        className="edit-select min-w-[3rem] text-center"
+        className="edit-select !min-h-[32px] text-caption"
         aria-label="Unidad"
       >
         <option value="pz">pz</option>
@@ -100,7 +91,7 @@ function ShopDetails({
         <option value="ml">ml</option>
       </select>
 
-      <span className="ml-auto text-sm font-bold text-ink tabular-nums">
+      <span className="ml-auto text-sm font-semibold text-ink tabular-nums tracking-tight">
         {money(lineTotal)}
       </span>
     </div>
@@ -150,34 +141,29 @@ export default function ShopItem({
   return (
     <SwipeableRow onDelete={onRemove} onCycleState={onCycleState}>
       <article
-        className={`surface rounded-lg border-l-[3px] ${accentClass(status)} ${
-          isCompact ? "px-2.5 py-1.5" : "px-3 py-2.5"
-        }`}
+        className={`surface-soft ${accentClass(status)} ${isCompact ? "px-2.5 py-2" : "px-3 py-2.5"}`}
         aria-label={`${name}, ${status}`}
       >
-        <div className="flex items-center gap-1.5 min-h-[2.25rem]">
+        <div className="flex items-center gap-1.5 min-h-[2rem]">
           {actionsSide === "left" && stateButton}
 
           <div className="flex-1 min-w-0 flex items-baseline gap-2">
             <h3
-              className={`min-w-0 truncate font-bold text-ink ${
-                isCompact ? "text-[1.02rem] leading-snug" : "text-base font-semibold"
-              } ${status === "purchased" ? "line-through text-ink-faint" : ""}`}
+              className={`min-w-0 truncate text-title ${
+                status === "purchased" ? "line-through text-ink-faint font-medium" : "font-bold"
+              }`}
             >
               {name}
             </h3>
             {isCompact && !detailsOpen && (
-              <span className="shrink-0 text-[.68rem] font-semibold text-ink-faint tabular-nums">
+              <span className="shrink-0 text-caption font-semibold tabular-nums text-ink-faint">
                 {money(lineTotal)}
               </span>
             )}
           </div>
 
           {!isCompact && (
-            <span
-              className={`px-2 py-0.5 rounded-full text-[11px] leading-none font-semibold shrink-0 ${badge.className}`}
-              aria-label={`Estado: ${badge.label}`}
-            >
+            <span className={`badge-mini ${badge.className}`} aria-label={`Estado: ${badge.label}`}>
               {badge.label}
             </span>
           )}
@@ -193,7 +179,21 @@ export default function ShopItem({
           )}
         </div>
 
-        {showDetails && (
+        {isCompact ? (
+          <div className="details-panel" data-open={showDetails ? "true" : "false"}>
+            {showDetails && (
+              <ShopDetails
+                item={item}
+                unitLabel={unitLabel}
+                lineTotal={lineTotal}
+                onUpdateQty={onUpdateQty}
+                onUpdatePrice={onUpdatePrice}
+                onUpdateUnit={onUpdateUnit}
+                compact={isCompact}
+              />
+            )}
+          </div>
+        ) : (
           <ShopDetails
             item={item}
             unitLabel={unitLabel}
@@ -201,6 +201,7 @@ export default function ShopItem({
             onUpdateQty={onUpdateQty}
             onUpdatePrice={onUpdatePrice}
             onUpdateUnit={onUpdateUnit}
+            compact={false}
           />
         )}
       </article>

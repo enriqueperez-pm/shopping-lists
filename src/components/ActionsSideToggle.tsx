@@ -16,11 +16,11 @@ export default function ActionsSideToggle({
     <button
       type="button"
       onClick={onToggle}
-      className="shrink-0 p-1.5 rounded-md text-ink-faint hover:text-ink hover:bg-[rgba(21,49,49,0.06)] transition-colors"
+      className="btn-ghost !p-1.5"
       aria-label={`Mover botones a la ${nextSide}`}
       title={`Botones a la ${nextSide}`}
     >
-      {side === "right" ? <PanelLeft size={16} /> : <PanelRight size={16} />}
+      {side === "right" ? <PanelLeft size={15} /> : <PanelRight size={15} />}
     </button>
   );
 }

@@ -10,10 +10,12 @@ export default function EmptyState({
   description: string;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center text-center py-16 px-6">
-      <span className="text-5xl mb-4 opacity-80" role="img" aria-hidden>{icon}</span>
-      <h2 className="text-lg font-extrabold text-slate-800 mb-2 tracking-tight">{title}</h2>
-      <p className="text-sm text-slate-500 max-w-[20rem] leading-relaxed">{description}</p>
+    <div className="flex flex-col items-center justify-center text-center py-20 px-8">
+      <span className="text-4xl mb-5 opacity-70" role="img" aria-hidden>
+        {icon}
+      </span>
+      <h2 className="text-title text-lg font-bold mb-2">{title}</h2>
+      <p className="text-body text-ink-faint max-w-[18rem] leading-relaxed">{description}</p>
     </div>
   );
 }

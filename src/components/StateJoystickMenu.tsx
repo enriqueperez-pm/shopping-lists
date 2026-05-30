@@ -6,16 +6,15 @@ import {
   stageColor,
   stageIcon,
   stageLabel,
-  type CycleContext,
   type ProductStage,
 } from "@/lib/productStage";
 import type { ShoppingStatus } from "@/lib/types";
 
 const ACTIVE: Record<string, string> = {
-  pantry: "text-pantry bg-pantry-light ring-pantry/40",
-  list: "text-list bg-slate-100 ring-list/30",
-  cart: "text-cart bg-amber-50 ring-cart/40",
-  saved: "text-saved bg-saved-bg ring-saved/40",
+  pantry: "text-pantry bg-pantry-light ring-1 ring-pantry/25",
+  list: "text-list bg-[rgba(21,49,49,0.05)] ring-1 ring-list/20",
+  cart: "text-cart bg-cart-light ring-1 ring-cart/25",
+  saved: "text-saved bg-saved-bg ring-1 ring-saved/25",
 };
 
 type Stage = ProductStage | ShoppingStatus;
@@ -62,15 +61,15 @@ export default function StateJoystickMenu({
   return createPortal(
     <>
       <div
-        className="fixed inset-0 z-[100] bg-ink/10"
+        className="fixed inset-0 z-[100] bg-ink/[0.04] backdrop-blur-[2px]"
         style={{ touchAction: "none" }}
         aria-hidden
       />
       <div
         role="menu"
         aria-label="Elegir estado"
-        className="fixed z-[101] flex flex-col gap-1 p-2 min-w-[10.5rem] rounded-2xl
-          bg-[var(--bg-surface)] shadow-xl border border-[rgba(21,49,49,0.12)]
+        className="fixed z-[101] flex flex-col gap-0.5 p-1.5 min-w-[11rem] rounded-2xl
+          bg-[var(--bg-surface)] shadow-float border border-[var(--border-hairline)]
           pointer-events-none select-none"
         style={{
           left: anchor.x,
@@ -94,11 +93,11 @@ export default function StateJoystickMenu({
               aria-label={stageLabel(stage)}
               aria-current={active ? "true" : undefined}
               className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl
-                transition-all ring-2 ring-transparent
-                ${active ? ACTIVE[color] : "text-ink-faint opacity-70"}`}
+                transition-all duration-fast
+                ${active ? ACTIVE[color] : "text-ink-faint opacity-75"}`}
             >
-              <Icon size={22} strokeWidth={active ? 2.5 : 1.75} fill="none" aria-hidden />
-              <span className={`text-sm font-medium ${active ? "" : "text-ink-muted"}`}>
+              <Icon size={20} strokeWidth={active ? 2.25 : 1.75} fill="none" aria-hidden />
+              <span className={`text-body ${active ? "font-semibold text-ink" : "text-ink-muted"}`}>
                 {stageLabel(stage)}
               </span>
             </div>

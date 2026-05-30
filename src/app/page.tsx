@@ -15,8 +15,7 @@ import AddProductModal from "@/components/AddProductModal";
 import EmptyState from "@/components/EmptyState";
 import Toast, { showToast, showUndoToast } from "@/components/Toast";
 import type { Product, ShoppingItem } from "@/lib/types";
-import ActionsSideToggle from "@/components/ActionsSideToggle";
-import ItemDensityToggle from "@/components/ItemDensityToggle";
+import AppHeader from "@/components/AppHeader";
 import {
   groupProductsByCategory,
   groupShoppingByCategory,
@@ -402,33 +401,25 @@ export default function Home() {
       {/* ═══ DESPENSA VIEW ═══ */}
       {tab === "despensa" && (
         <>
-          <header
-            className="shrink-0 glass border-b border-[rgba(21,49,49,0.08)] px-[var(--pad,1rem)] py-3"
-            style={{ paddingTop: "max(.6rem, env(safe-area-inset-top))" }}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <h1 className="text-base font-semibold text-ink">Despensa</h1>
-              <div className="flex items-center gap-2">
-                <p className="text-xs text-ink-faint tabular-nums">
-                  {pantryCount} despensa · {neededCount} pendiente · {cartCount} carrito · {purchasedCount} comprado
-                </p>
-                <ActionsSideToggle side={actionsSide} onToggle={toggleActionsSide} />
-                <ItemDensityToggle density={density} onToggle={toggleDensity} />
-              </div>
-            </div>
-          </header>
+          <AppHeader
+            title="Despensa"
+            subtitle={`${pantryCount} despensa · ${neededCount} pendiente · ${cartCount} carrito · ${purchasedCount} comprado`}
+            actionsSide={actionsSide}
+            onToggleActionsSide={toggleActionsSide}
+            density={density}
+            onToggleDensity={toggleDensity}
+          />
 
           {/* Scrollable content */}
-          <div className="flex-1 min-h-0 overflow-y-auto pb-20
-            px-[var(--pad,1rem)] pt-2 space-y-2"
+          <div className="flex-1 min-h-0 overflow-y-auto pb-20 view-fade
+            px-[var(--pad,1rem)] pt-3 space-y-3"
             style={{ "--pad": "clamp(14px, 3.5vw, 22px)" } as React.CSSProperties}>
             <SearchBar value={search} onChange={setSearch} />
             <FilterChips active={filter} onChange={setFilter} />
 
             {pLoading ? (
               <div className="flex items-center justify-center py-16">
-                <div className="w-8 h-8 border-[3px] border-brand-200 border-t-brand-500
-                  rounded-full animate-spin" />
+                <div className="w-7 h-7 border-2 border-brand-200 border-t-brand-500 rounded-full animate-spin" />
               </div>
             ) : grouped.length === 0 ? (
               <EmptyState
@@ -482,13 +473,13 @@ export default function Home() {
           {/* FAB */}
           <button
             onClick={() => setShowAdd(true)}
-            className="fixed right-4 z-30 w-12 h-12 rounded-full
-              bg-brand-500 text-white shadow-md flex items-center justify-center
-              transition-all active:scale-95"
-            style={{ bottom: "calc(3.8rem + env(safe-area-inset-bottom, 0px) + .6rem)" }}
+            className="fixed right-4 z-30 w-11 h-11 rounded-full
+              bg-brand-500 text-white shadow-float flex items-center justify-center
+              transition-all duration-fast active:scale-[0.98] hover:bg-brand-600"
+            style={{ bottom: "calc(3.75rem + env(safe-area-inset-bottom, 0px) + .65rem)" }}
             aria-label="Agregar producto"
           >
-            <Plus size={22} strokeWidth={2.5} />
+            <Plus size={20} strokeWidth={2.5} />
           </button>
         </>
       )}
@@ -496,21 +487,14 @@ export default function Home() {
       {/* ═══ LISTA VIEW ═══ */}
       {tab === "lista" && (
         <>
-          <header
-            className="shrink-0 glass border-b border-[rgba(21,49,49,0.08)] px-[var(--pad,1rem)] py-3"
-            style={{ paddingTop: "max(.6rem, env(safe-area-inset-top))" }}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <h1 className="text-base font-semibold text-ink">Lista</h1>
-              <div className="flex items-center gap-2">
-                <p className="text-[.68rem] text-slate-400 tabular-nums">
-                  {listNeededCount} pendiente{listNeededCount !== 1 ? "s" : ""} · {listCartCount} carrito
-                </p>
-                <ActionsSideToggle side={actionsSide} onToggle={toggleActionsSide} />
-                <ItemDensityToggle density={density} onToggle={toggleDensity} />
-              </div>
-            </div>
-          </header>
+          <AppHeader
+            title="Lista"
+            subtitle={`${listNeededCount} pendiente${listNeededCount !== 1 ? "s" : ""} · ${listCartCount} carrito · ${listPurchasedCount} comprado`}
+            actionsSide={actionsSide}
+            onToggleActionsSide={toggleActionsSide}
+            density={density}
+            onToggleDensity={toggleDensity}
+          />
 
           <div
             className="shrink-0 px-[var(--pad,1rem)] pt-2 pb-1"
@@ -525,61 +509,49 @@ export default function Home() {
 
           <div
             className="shrink-0 flex gap-1.5 overflow-x-auto no-scrollbar
-              px-[var(--pad,1rem)] py-2 border-b border-slate-50"
+              px-[var(--pad,1rem)] py-2.5 border-b border-[var(--border-hairline)]"
             style={{ "--pad": "clamp(14px, 3.5vw, 22px)" } as React.CSSProperties}
           >
-            <button
-              onClick={handleShareList}
-              className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-md
-                bg-brand-500 text-white text-[.72rem] font-medium active:scale-[.97]"
-            >
+            <button type="button" onClick={handleShareList} className="btn-primary shrink-0">
               <Share2 size={13} />
               Compartir
             </button>
-            <button
-              onClick={handleShareReceipt}
-              className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-md
-                text-brand-600 text-[.72rem] font-medium active:scale-[.97]"
-            >
+            <button type="button" onClick={handleShareReceipt} className="btn-soft shrink-0 text-brand-600">
               <ReceiptText size={13} />
               Ticket
             </button>
             <button
+              type="button"
               onClick={handleMoveAllToCart}
               disabled={listNeededCount === 0}
-              className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-md
-                text-list text-[.72rem] font-medium active:scale-[.97]
-                disabled:opacity-30 disabled:cursor-not-allowed"
+              className="btn-soft shrink-0 text-list"
             >
               <ShoppingCart size={13} />
               Todo al carrito
             </button>
             <button
+              type="button"
               onClick={handleConfirmCartPurchase}
               disabled={listCartCount === 0}
-              className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-md
-                bg-cart text-white text-[.72rem] font-medium active:scale-[.97]
-                disabled:opacity-30 disabled:cursor-not-allowed"
+              className="btn-soft shrink-0 !bg-cart !text-white !border-transparent hover:!bg-cart/90"
             >
               <CheckCircle2 size={13} />
-              Comprar del carrito
+              Comprar
             </button>
             <button
+              type="button"
               onClick={handleArchiveTrip}
               disabled={listPurchasedCount === 0}
-              className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-md
-                text-ink-muted text-[.72rem] font-medium active:scale-[.97]
-                disabled:opacity-30 disabled:cursor-not-allowed"
+              className="btn-soft shrink-0"
             >
               <Archive size={13} />
-              Guardar visita
+              Guardar
             </button>
             <button
+              type="button"
               onClick={handleMovePurchasedToPantry}
               disabled={listPurchasedCount === 0}
-              className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-md
-                text-slate-400 text-[.72rem] font-medium active:scale-[.97]
-                disabled:opacity-30 disabled:cursor-not-allowed"
+              className="btn-soft shrink-0"
             >
               <CheckCircle2 size={13} />
               A despensa
@@ -587,16 +559,15 @@ export default function Home() {
           </div>
 
           {/* Scrollable content */}
-          <div className="flex-1 min-h-0 overflow-y-auto
-            px-[var(--pad,1rem)] pt-2 space-y-1.5"
+          <div className="flex-1 min-h-0 overflow-y-auto view-fade
+            px-[var(--pad,1rem)] pt-3 space-y-2"
             style={{
               "--pad": "clamp(14px, 3.5vw, 22px)",
               paddingBottom: "calc(3.8rem + 4rem + env(safe-area-inset-bottom, 0px) + .5rem)",
             } as React.CSSProperties}>
             {sLoading ? (
               <div className="flex items-center justify-center py-16">
-                <div className="w-8 h-8 border-[3px] border-pink-200 border-t-pink-500
-                  rounded-full animate-spin" />
+                <div className="w-7 h-7 border-2 border-brand-200 border-t-brand-500 rounded-full animate-spin" />
               </div>
             ) : shopping.length === 0 ? (
               <EmptyState
@@ -657,34 +628,34 @@ export default function Home() {
 
           {/* Total bar */}
           <div
-            className="fixed inset-x-0 glass border-t border-slate-100 z-30
-              flex items-center justify-between px-[var(--pad,1rem)] py-2.5 gap-4"
+            className="fixed inset-x-0 glass border-t border-[var(--border-hairline)] z-30
+              flex items-center justify-between px-[var(--pad,1rem)] py-3 gap-4"
             style={{
-              bottom: "calc(3.8rem + env(safe-area-inset-bottom, 0px))",
+              bottom: "calc(3.75rem + env(safe-area-inset-bottom, 0px))",
               "--pad": "clamp(14px, 3.5vw, 22px)",
             } as React.CSSProperties}
           >
             <div>
-              <p className="text-[.62rem] text-slate-400">Visita</p>
-              <p className="text-lg font-bold text-brand-600 tabular-nums">{money(tripTotal)}</p>
+              <p className="text-micro uppercase tracking-wider text-ink-faint">Visita</p>
+              <p className="text-lg font-bold text-brand-600 tabular-nums tracking-tight">{money(tripTotal)}</p>
             </div>
-            <div className="text-right text-[.62rem] text-slate-400 tabular-nums space-y-0.5">
-              <p>✓ {money(totalPurchased)}</p>
-              <p>🛒 {money(totalInCart)}</p>
-              <p>… {money(totalNeeded)}</p>
+            <div className="text-right text-caption tabular-nums space-y-0.5 text-ink-faint">
+              <p>Comprado {money(totalPurchased)}</p>
+              <p>Carrito {money(totalInCart)}</p>
+              <p>Pendiente {money(totalNeeded)}</p>
             </div>
           </div>
 
           {/* FAB */}
           <button
             onClick={() => setShowAdd(true)}
-            className="fixed right-4 z-30 w-12 h-12 rounded-full
-              bg-brand-500 text-white shadow-md flex items-center justify-center
-              transition-all active:scale-95"
-            style={{ bottom: "calc(7.5rem + env(safe-area-inset-bottom, 0px))" }}
+            className="fixed right-4 z-30 w-11 h-11 rounded-full
+              bg-brand-500 text-white shadow-float flex items-center justify-center
+              transition-all duration-fast active:scale-[0.98] hover:bg-brand-600"
+            style={{ bottom: "calc(7.25rem + env(safe-area-inset-bottom, 0px))" }}
             aria-label="Agregar producto"
           >
-            <Plus size={22} strokeWidth={2.5} />
+            <Plus size={20} strokeWidth={2.5} />
           </button>
         </>
       )}
@@ -692,16 +663,14 @@ export default function Home() {
       {/* ═══ HISTORIAL VIEW ═══ */}
       {tab === "historial" && (
         <>
-          <header
-            className="shrink-0 glass border-b border-[rgba(21,49,49,0.08)] px-[var(--pad,1rem)] py-3"
-            style={{ paddingTop: "max(.6rem, env(safe-area-inset-top))" }}
-          >
-            <h1 className="text-base font-semibold text-ink">Historial</h1>
-            <p className="text-[.68rem] text-ink-faint mt-0.5">Compras archivadas</p>
-          </header>
+          <AppHeader
+            title="Historial"
+            subtitle="Compras archivadas"
+            showControls={false}
+          />
 
           <div
-            className="flex-1 min-h-0 overflow-y-auto pb-20 px-[var(--pad,1rem)] pt-2"
+            className="flex-1 min-h-0 overflow-y-auto pb-20 view-fade px-[var(--pad,1rem)] pt-3"
             style={{ "--pad": "clamp(14px, 3.5vw, 22px)" } as React.CSSProperties}
           >
             <PurchaseHistory

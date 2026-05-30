@@ -78,27 +78,27 @@ export default function SwipeableRow({
   }, [onDelete, onCycleState]);
 
   return (
-    <div className="relative overflow-hidden rounded-lg">
+    <div className="relative overflow-hidden rounded-xl">
       <div
-        className="absolute inset-y-0 right-0 flex items-center justify-end gap-1.5 px-3 bg-danger-bg"
+        className="absolute inset-y-0 right-0 flex items-center justify-end gap-1.5 px-3 bg-danger-bg/90"
         style={{ width: MAX_SWIPE }}
         aria-hidden
       >
-        <Trash2 size={16} className="text-danger" aria-hidden />
-        <span className="text-xs font-semibold text-danger">{deleteLabel}</span>
+        <Trash2 size={15} className="text-danger" aria-hidden />
+        <span className="text-caption font-semibold text-danger">{deleteLabel}</span>
       </div>
       {onCycleState && (
         <div
-          className="absolute inset-y-0 left-0 flex items-center justify-start gap-1.5 px-3 bg-pantry-light"
+          className="absolute inset-y-0 left-0 flex items-center justify-start gap-1.5 px-3 bg-pantry-light/95"
           style={{ width: MAX_SWIPE }}
           aria-hidden
         >
-          <ArrowRightLeft size={16} className="text-pantry" aria-hidden />
-          <span className="text-xs font-semibold text-pantry">{cycleLabel}</span>
+          <ArrowRightLeft size={15} className="text-pantry" aria-hidden />
+          <span className="text-caption font-semibold text-pantry">{cycleLabel}</span>
         </div>
       )}
       <div
-        className="relative transition-transform duration-150 ease-out motion-reduce:transition-none"
+        className="relative transition-transform duration-fast ease-out motion-reduce:transition-none"
         style={{ transform: `translateX(${offset}px)` }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}

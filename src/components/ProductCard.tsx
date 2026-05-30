@@ -12,42 +12,27 @@ import type { ItemDensity } from "@/lib/useItemDensity";
 import { clampQty, formatQty, QTY_MIN } from "@/lib/qty";
 
 function accentClass(stage: ProductStage) {
-  if (stage === "pantry") return "border-l-pantry";
-  if (stage === "in_cart") return "border-l-cart";
-  if (stage === "purchased") return "border-l-saved";
-  if (stage === "needed") return "border-l-list";
-  return "border-l-transparent";
+  if (stage === "pantry") return "accent-pantry";
+  if (stage === "in_cart") return "accent-cart";
+  if (stage === "purchased") return "accent-saved";
+  if (stage === "needed") return "accent-list";
+  return "accent-none";
 }
 
 function stageBadge(stage: ProductStage) {
   if (stage === "pantry") {
-    return {
-      label: "Despensa",
-      className: "text-pantry bg-pantry-light border border-emerald-200",
-    };
+    return { label: "Despensa", className: "text-pantry bg-pantry-light border border-emerald-200/60" };
   }
   if (stage === "in_cart") {
-    return {
-      label: "Carrito",
-      className: "text-cart bg-amber-50 border border-amber-200",
-    };
+    return { label: "Carrito", className: "text-cart bg-cart-light border border-amber-200/60" };
   }
   if (stage === "purchased") {
-    return {
-      label: "Comprado",
-      className: "text-saved bg-saved-bg border border-sky-200",
-    };
+    return { label: "Comprado", className: "text-saved bg-saved-bg border border-sky-200/60" };
   }
   if (stage === "off_list") {
-    return {
-      label: "Sin lista",
-      className: "text-ink-muted bg-slate-100 border border-slate-200",
-    };
+    return { label: "Sin lista", className: "text-ink-muted bg-[rgba(21,49,49,0.04)] border border-[var(--border-hairline)]" };
   }
-  return {
-    label: "Pendiente",
-    className: "text-list bg-slate-100 border border-slate-200",
-  };
+  return { label: "Pendiente", className: "text-list bg-[rgba(21,49,49,0.04)] border border-[var(--border-hairline)]" };
 }
 
 function money(n: number) {
@@ -57,14 +42,16 @@ function money(n: number) {
 function ProductDetails({
   product,
   onUpdate,
+  compact,
 }: {
   product: Product;
   onUpdate: (updates: Partial<Product>) => void;
+  compact: boolean;
 }) {
   const p = product;
   return (
     <div
-      className="flex flex-wrap items-center gap-2 mt-2 pt-2 border-t border-[rgba(21,49,49,0.06)] text-sm text-ink-muted font-medium"
+      className={`surface-inset px-2.5 py-2 flex flex-wrap items-center gap-2 ${compact ? "" : "mt-2"}`}
       data-no-swipe
     >
       <EditField
@@ -74,10 +61,10 @@ function ProductDetails({
         parse={(s) => clampQty(Number(s) || QTY_MIN)}
         onCommit={(qty) => onUpdate({ ref_qty: qty as number })}
         ariaLabel="Cantidad"
-        displayClassName="min-w-[2.5rem] justify-center tabular-nums"
+        displayClassName={`min-w-[2.25rem] justify-center tabular-nums ${compact ? "edit-display-compact" : ""}`}
         inputClassName="w-16 text-center"
       />
-      <span className="text-ink-faint hidden sm:inline">·</span>
+      <span className="text-ink-faint/50 hidden sm:inline text-caption">·</span>
       <EditField
         value={p.ref_price}
         type="number"
@@ -86,14 +73,14 @@ function ProductDetails({
         onCommit={(price) => onUpdate({ ref_price: price as number })}
         ariaLabel="Precio"
         prefix="$"
-        displayClassName="min-w-[4rem] justify-center tabular-nums text-cart"
+        displayClassName={`min-w-[3.5rem] justify-center tabular-nums text-cart ${compact ? "edit-display-compact" : ""}`}
         inputClassName="w-20 text-center"
       />
-      <span className="text-ink-faint hidden sm:inline">·</span>
+      <span className="text-ink-faint/50 hidden sm:inline text-caption">·</span>
       <select
         value={p.unit}
         onChange={(e) => onUpdate({ unit: e.target.value })}
-        className="edit-select min-w-[3rem] text-center"
+        className="edit-select !min-h-[32px] text-caption"
         aria-label="Unidad"
       >
         <option value="pz">pz</option>
@@ -143,12 +130,10 @@ export default function ProductCard({
   return (
     <SwipeableRow onDelete={onDelete} onCycleState={onCycleState}>
       <article
-        className={`surface rounded-lg border-l-[3px] ${accentClass(stage)} ${
-          isCompact ? "px-2.5 py-1.5" : "px-3 py-2.5"
-        }`}
+        className={`surface-soft ${accentClass(stage)} ${isCompact ? "px-2.5 py-2" : "px-3 py-2.5"}`}
         aria-label={`${p.name}, ${stage}`}
       >
-        <div className="flex items-center gap-1.5 min-h-[2.25rem]">
+        <div className="flex items-center gap-1.5 min-h-[2rem]">
           {actionsSide === "left" && stateButton}
 
           <EditField
@@ -157,17 +142,14 @@ export default function ProductCard({
             onCommit={(name) => onUpdate({ name: String(name) })}
             ariaLabel="Nombre del producto"
             displayClassName={`flex-1 min-w-0 text-left text-ink justify-start truncate ${
-              isCompact ? "text-[1.02rem] font-bold leading-snug" : "text-base font-semibold"
-            }`}
-            inputClassName={`flex-1 min-w-0 ${isCompact ? "text-[1.02rem] font-bold" : "text-base font-semibold"}`}
+              isCompact ? "text-title !font-bold" : "text-title"
+            } ${isCompact ? "edit-display-compact !min-h-[2rem]" : ""}`}
+            inputClassName="flex-1 min-w-0 text-title"
             className="flex-1 min-w-0"
           />
 
           {!isCompact && (
-            <span
-              className={`px-2 py-0.5 rounded-full text-[11px] leading-none font-semibold shrink-0 ${badge.className}`}
-              aria-label={`Estado: ${badge.label}`}
-            >
+            <span className={`badge-mini ${badge.className}`} aria-label={`Estado: ${badge.label}`}>
               {badge.label}
             </span>
           )}
@@ -183,8 +165,14 @@ export default function ProductCard({
           )}
         </div>
 
-        {showDetails && (
-          <ProductDetails product={p} onUpdate={onUpdate} />
+        {isCompact ? (
+          <div className="details-panel" data-open={showDetails ? "true" : "false"}>
+            {showDetails && (
+              <ProductDetails product={p} onUpdate={onUpdate} compact={isCompact} />
+            )}
+          </div>
+        ) : (
+          <ProductDetails product={p} onUpdate={onUpdate} compact={false} />
         )}
       </article>
     </SwipeableRow>

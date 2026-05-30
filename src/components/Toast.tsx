@@ -68,13 +68,13 @@ export default function Toast() {
     <div
       role="status"
       aria-live="polite"
-      className={`fixed bottom-[calc(4rem+env(safe-area-inset-bottom,0px)+.5rem)] left-1/2
-        -translate-x-1/2 z-50 px-4 py-3 rounded-xl text-sm font-semibold text-white
-        bg-slate-800 shadow-lg max-w-[calc(100vw-2rem)]
-        transition-all duration-300 ${
+      className={`fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px)+.5rem)] left-1/2
+        -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl text-body font-semibold text-white
+        max-w-[calc(100vw-2rem)] shadow-float
+        transition-all duration-toast ease-out ${
           visible
-            ? "opacity-100 translate-y-0 pointer-events-auto"
-            : "opacity-0 translate-y-3 pointer-events-none"
+            ? "opacity-100 translate-y-0 pointer-events-auto bg-[color-mix(in_srgb,var(--ink)_92%,transparent)] backdrop-blur-md"
+            : "opacity-0 translate-y-2 pointer-events-none"
         }`}
     >
       <div className="flex items-center gap-3 justify-center flex-wrap">
@@ -83,8 +83,8 @@ export default function Toast() {
           <button
             type="button"
             onClick={handleUndo}
-            className="shrink-0 px-3 py-1 rounded-lg bg-white/15 hover:bg-white/25
-              text-white font-bold text-xs uppercase tracking-wide transition-colors"
+            className="shrink-0 px-2.5 py-1 rounded-full bg-white/15 hover:bg-white/25
+              text-white font-semibold text-micro uppercase tracking-wide transition-colors duration-fast"
           >
             Deshacer
           </button>
