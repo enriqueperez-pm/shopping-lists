@@ -16,6 +16,7 @@ import EmptyState from "@/components/EmptyState";
 import Toast, { showToast, showUndoToast } from "@/components/Toast";
 import type { Product, ShoppingItem } from "@/lib/types";
 import ActionsSideToggle from "@/components/ActionsSideToggle";
+import ItemDensityToggle from "@/components/ItemDensityToggle";
 import {
   groupProductsByCategory,
   groupShoppingByCategory,
@@ -23,6 +24,7 @@ import {
 } from "@/lib/grouping";
 import { resolveProductStage, buildStatusMap, nextStage, type ProductStage } from "@/lib/productStage";
 import { useCardLayout } from "@/lib/useCardLayout";
+import { useItemDensity } from "@/lib/useItemDensity";
 
 type Filter = "all" | "pantry" | "needed" | "in_cart" | "purchased";
 const STORAGE_KEY = "shopping-ui-state-v1";
@@ -70,6 +72,7 @@ export default function Home() {
   const [showAdd, setShowAdd] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(initialUi?.collapsed ?? {});
   const { actionsSide, toggleActionsSide } = useCardLayout();
+  const { density, toggleDensity, isCompact } = useItemDensity();
 
   const categories = useCategories();
   const {
@@ -410,6 +413,7 @@ export default function Home() {
                   {pantryCount} despensa · {neededCount} pendiente · {cartCount} carrito · {purchasedCount} comprado
                 </p>
                 <ActionsSideToggle side={actionsSide} onToggle={toggleActionsSide} />
+                <ItemDensityToggle density={density} onToggle={toggleDensity} />
               </div>
             </div>
           </header>
@@ -454,7 +458,7 @@ export default function Home() {
                   </button>
 
                   {!collapsed[`despensa:${cat}`] && (
-                    <div className="space-y-1.5">
+                    <div className={isCompact ? "space-y-1" : "space-y-1.5"}>
                       {prods.map((p) => (
                         <ProductCard
                           key={p.id}
@@ -465,6 +469,7 @@ export default function Home() {
                           onUpdate={(updates) => updateProduct(p.id, updates)}
                           onDelete={() => handleDeleteProduct(p)}
                           actionsSide={actionsSide}
+                          density={density}
                         />
                       ))}
                     </div>
@@ -502,6 +507,7 @@ export default function Home() {
                   {listNeededCount} pendiente{listNeededCount !== 1 ? "s" : ""} · {listCartCount} carrito
                 </p>
                 <ActionsSideToggle side={actionsSide} onToggle={toggleActionsSide} />
+                <ItemDensityToggle density={density} onToggle={toggleDensity} />
               </div>
             </div>
           </header>
@@ -624,7 +630,7 @@ export default function Home() {
                   </button>
 
                   {!collapsed[`lista:${cat}`] && (
-                    <div className="space-y-1.5">
+                    <div className={isCompact ? "space-y-1" : "space-y-1.5"}>
                       {items.map((s) => (
                         <ShopItem
                           key={s.id}
@@ -639,6 +645,7 @@ export default function Home() {
                           }}
                           onRemove={() => handleRemoveFromList(s)}
                           actionsSide={actionsSide}
+                          density={density}
                         />
                       ))}
                     </div>
