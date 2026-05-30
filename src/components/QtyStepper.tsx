@@ -1,45 +1,70 @@
 "use client";
 
 import { Minus, Plus } from "lucide-react";
+import EditField from "./EditField";
+import { clampQty, clampQtyInt, formatQty, QTY_MIN, QTY_MAX, QTY_STEP } from "@/lib/qty";
 
 export default function QtyStepper({
   value,
   onChange,
-  min = 0.25,
-  step = 1,
+  min = QTY_MIN,
+  step = QTY_STEP,
   label,
+  compact = false,
+  integer = false,
 }: {
   value: number;
   onChange: (n: number) => void;
   min?: number;
   step?: number;
   label?: string;
+  compact?: boolean;
+  integer?: boolean;
 }) {
+  const btn = compact ? "w-9 h-9" : "w-10 h-10";
+  const icon = compact ? 14 : 18;
+  const resolvedStep = integer ? 1 : step;
+  const clamp = integer ? clampQtyInt : clampQty;
+  const resolvedMin = integer ? 1 : min;
+
   return (
-    <div className="inline-flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-1"
-      role="group" aria-label={label || "Cantidad"}>
+    <div
+      className={`inline-flex items-center gap-0.5 ${compact ? "" : "bg-white border border-slate-200 rounded-lg p-1"}`}
+      role="group"
+      aria-label={label || "Cantidad"}
+      data-no-swipe
+    >
       <button
-        onClick={() => onChange(Math.max(min, value - step))}
-        disabled={value <= min}
-        className="w-10 h-10 rounded-lg flex items-center justify-center
-          bg-slate-50 text-slate-700 font-bold transition hover:bg-slate-100
-          active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed touch-target"
+        type="button"
+        onClick={() => onChange(clamp(value - resolvedStep))}
+        disabled={value <= resolvedMin}
+        className={`${btn} rounded-md flex items-center justify-center
+          text-ink-faint transition hover:text-ink active:scale-95
+          disabled:opacity-30 disabled:cursor-not-allowed`}
         aria-label="Menos"
       >
-        <Minus size={18} />
+        <Minus size={icon} />
       </button>
-      <span className="min-w-[2.2rem] text-center font-bold text-sm tabular-nums select-none">
-        {Number.isInteger(value) ? value : value.toFixed(2)}
-      </span>
+      <EditField
+        value={value}
+        type="number"
+        format={formatQty}
+        parse={(s) => clamp(Number(s) || resolvedMin)}
+        onCommit={(qty) => onChange(qty as number)}
+        ariaLabel="Cantidad"
+        displayClassName="min-w-[2.25rem] justify-center tabular-nums px-1"
+        inputClassName="w-14 text-center"
+      />
       <button
-        onClick={() => onChange(Math.min(99, value + step))}
-        disabled={value >= 99}
-        className="w-10 h-10 rounded-lg flex items-center justify-center
-          bg-slate-50 text-slate-700 font-bold transition hover:bg-slate-100
-          active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed touch-target"
+        type="button"
+        onClick={() => onChange(clamp(value + resolvedStep))}
+        disabled={value >= QTY_MAX}
+        className={`${btn} rounded-md flex items-center justify-center
+          text-ink-faint transition hover:text-ink active:scale-95
+          disabled:opacity-30 disabled:cursor-not-allowed`}
         aria-label="Mas"
       >
-        <Plus size={18} />
+        <Plus size={icon} />
       </button>
     </div>
   );

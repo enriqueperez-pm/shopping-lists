@@ -1,109 +1,15 @@
 -- ============================================================
--- Shopping Lists — Supabase schema
--- Ejecutar en SQL Editor de tu proyecto Supabase
+-- Sync directo desde lista-chedraui-pendiente.html (DEFAULT_PRODUCTS)
+-- Uso: ejecutar en SQL Editor cuando quieras reemplazar la despensa
 -- ============================================================
 
--- 1. Categorias
-CREATE TABLE IF NOT EXISTS categories (
-  id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL UNIQUE,
-  sort_order INT NOT NULL DEFAULT 0
-);
+BEGIN;
 
-INSERT INTO categories (name, sort_order) VALUES
-  ('Agua y bebidas', 1),
-  ('Despensa seca', 2),
-  ('Café, dulce y aderezos', 3),
-  ('Conservas', 4),
-  ('Aves', 5),
-  ('Frutas y verduras', 6),
-  ('Salchichonería', 7),
-  ('Lácteos refrigerados', 8),
-  ('Congelados', 9),
-  ('Aseo hogar', 10),
-  ('Higiene y farmacia', 11),
-  ('Otros', 12)
-ON CONFLICT (name) DO NOTHING;
+-- Limpia lista y despensa actual
+DELETE FROM shopping_items;
+DELETE FROM products;
 
--- 2. Productos (despensa / inventario)
-CREATE TABLE IF NOT EXISTS products (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  name TEXT NOT NULL,
-  category_id INT REFERENCES categories(id) ON DELETE SET NULL,
-  ref_price NUMERIC(10,2) NOT NULL DEFAULT 0,
-  unit TEXT NOT NULL DEFAULT 'pz',
-  ref_qty NUMERIC(10,3) NOT NULL DEFAULT 1 CHECK (ref_qty >= 0.1 AND ref_qty <= 99),
-  in_stock BOOLEAN NOT NULL DEFAULT false,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- 3. Items de la lista de compras
-CREATE TABLE IF NOT EXISTS shopping_items (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-  qty NUMERIC(10,3) NOT NULL DEFAULT 1,
-  price NUMERIC(10,2) NOT NULL DEFAULT 0,
-  status TEXT NOT NULL DEFAULT 'needed',
-  checked BOOLEAN NOT NULL DEFAULT false,
-  weight_grams NUMERIC(10,1),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (product_id)
-);
-
-ALTER TABLE shopping_items
-  ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'needed';
-
-ALTER TABLE shopping_items
-  DROP CONSTRAINT IF EXISTS shopping_items_status_check;
-
-ALTER TABLE shopping_items
-  ADD CONSTRAINT shopping_items_status_check
-  CHECK (status IN ('needed', 'in_cart', 'purchased'));
-
--- Backfill for old rows
-UPDATE shopping_items
-SET status = CASE WHEN checked THEN 'purchased' ELSE 'needed' END
-WHERE status IS NULL OR status NOT IN ('needed', 'in_cart', 'purchased');
-
--- 4. Trigger para updated_at
-CREATE OR REPLACE FUNCTION set_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS trg_products_updated ON products;
-CREATE TRIGGER trg_products_updated
-  BEFORE UPDATE ON products
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-
-DROP TRIGGER IF EXISTS trg_shopping_updated ON shopping_items;
-CREATE TRIGGER trg_shopping_updated
-  BEFORE UPDATE ON shopping_items
-  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-
--- 5. Row Level Security (public read/write por ahora — sin auth)
-ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE shopping_items ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS public_read_categories ON categories;
-DROP POLICY IF EXISTS public_read_products ON products;
-DROP POLICY IF EXISTS public_write_products ON products;
-DROP POLICY IF EXISTS public_read_shopping ON shopping_items;
-DROP POLICY IF EXISTS public_write_shopping ON shopping_items;
-
-CREATE POLICY "public_read_categories"  ON categories FOR SELECT USING (true);
-CREATE POLICY "public_read_products"    ON products FOR SELECT USING (true);
-CREATE POLICY "public_write_products"   ON products FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "public_read_shopping"    ON shopping_items FOR SELECT USING (true);
-CREATE POLICY "public_write_shopping"   ON shopping_items FOR ALL USING (true) WITH CHECK (true);
-
--- 6. Seed: espejo de DEFAULT_PRODUCTS de lista-chedraui-pendiente.html
+-- Inserta catálogo actualizado de Despensa
 INSERT INTO products (name, category_id, ref_price, unit, ref_qty, in_stock) VALUES
   ('Agua Ciel garrafón 10 L',                 1,  44.50, 'pz', 1, false),
   ('Agua mineral Peñafiel 2 L',               1,  29.50, 'pz', 1, false),
@@ -156,3 +62,5 @@ INSERT INTO products (name, category_id, ref_price, unit, ref_qty, in_stock) VAL
   ('Preservativos Caribbean (promo)',        11, 400.00, 'pz', 1, false),
   ('Portabolsas / organizador',              12,  49.00, 'pz', 1, false),
   ('Tapete mascotas Smilepets',              12, 159.00, 'pz', 1, false);
+
+COMMIT;

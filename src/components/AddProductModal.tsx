@@ -3,6 +3,7 @@
 import { X, Plus } from "lucide-react";
 import { useState } from "react";
 import type { Category } from "@/lib/types";
+import { clampQty, clampQtyInt, QTY_MIN } from "@/lib/qty";
 
 export default function AddProductModal({
   categories,
@@ -17,9 +18,14 @@ export default function AddProductModal({
   const [categoryId, setCategoryId] = useState(categories[0]?.id ?? 1);
   const [price, setPrice] = useState(0);
   const [unit, setUnit] = useState("pz");
-  const [qty, setQty] = useState(1);
+  const [qtyInput, setQtyInput] = useState("1");
 
   const valid = name.trim().length > 0;
+  const normalizeQty = (raw: string, unitValue: string) => {
+    const parsed = Number(raw.replace(",", "."));
+    if (unitValue === "pz") return clampQtyInt(Number.isFinite(parsed) ? parsed : 1);
+    return clampQty(Number.isFinite(parsed) ? parsed : QTY_MIN);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
@@ -93,7 +99,7 @@ export default function AddProductModal({
                 <input
                   type="number"
                   value={price || ""}
-                  step="0.50"
+                  step="0.01"
                   min={0}
                   onChange={(e) => setPrice(Number(e.target.value) || 0)}
                   className="w-full bg-transparent text-sm font-semibold text-slate-800
@@ -109,7 +115,11 @@ export default function AddProductModal({
               </label>
               <select
                 value={unit}
-                onChange={(e) => setUnit(e.target.value)}
+                onChange={(e) => {
+                  const nextUnit = e.target.value;
+                  setUnit(nextUnit);
+                  setQtyInput((prev) => String(normalizeQty(prev, nextUnit)));
+                }}
                 className="w-full border-[1.5px] border-slate-200 rounded-xl px-3 py-3
                   text-sm font-semibold text-center text-slate-800 outline-none
                   focus:border-brand-400 touch-target appearance-none bg-white"
@@ -127,11 +137,11 @@ export default function AddProductModal({
                 Cant.
               </label>
               <input
-                type="number"
-                value={qty}
-                min={1}
-                max={99}
-                onChange={(e) => setQty(Math.max(1, Math.min(99, Number(e.target.value) || 1)))}
+                type="text"
+                inputMode={unit === "pz" ? "numeric" : "decimal"}
+                value={qtyInput}
+                onChange={(e) => setQtyInput(e.target.value)}
+                onBlur={() => setQtyInput(String(normalizeQty(qtyInput, unit)))}
                 className="w-full border-[1.5px] border-slate-200 rounded-xl px-3 py-3
                   text-sm font-semibold text-center text-slate-800 outline-none
                   focus:border-brand-400 tabular-nums touch-target"
@@ -142,7 +152,11 @@ export default function AddProductModal({
         </div>
 
         <button
-          onClick={() => { if (valid) onAdd({ name: name.trim(), category_id: categoryId, ref_price: price, unit, ref_qty: qty }); }}
+          onClick={() => {
+            if (!valid) return;
+            const normalizedQty = normalizeQty(qtyInput, unit);
+            onAdd({ name: name.trim(), category_id: categoryId, ref_price: price, unit, ref_qty: normalizedQty });
+          }}
           disabled={!valid}
           className="mt-6 w-full flex items-center justify-center gap-2
             bg-gradient-to-r from-brand-500 to-brand-600 text-white

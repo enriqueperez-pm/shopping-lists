@@ -6,7 +6,7 @@ import { useRef } from "react";
 export default function SearchBar({
   value,
   onChange,
-  placeholder = "Buscar producto...",
+  placeholder = "Buscar...",
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -15,10 +15,9 @@ export default function SearchBar({
   const ref = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="flex items-center gap-2.5 bg-white border-[1.5px] border-slate-200
-      rounded-xl px-3.5 py-2.5 shadow-card focus-within:border-brand-400
-      focus-within:ring-2 focus-within:ring-brand-100 transition-all">
-      <Search size={16} className="text-slate-400 shrink-0" />
+    <div className="flex items-center gap-2 surface rounded-lg px-3 py-2
+      focus-within:border-brand-200 transition-colors">
+      <Search size={15} className="text-slate-300 shrink-0" />
       <input
         ref={ref}
         type="search"
@@ -27,17 +26,17 @@ export default function SearchBar({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 bg-transparent text-sm text-slate-800 placeholder:text-slate-400
+        className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-300
           outline-none min-w-0"
         aria-label={placeholder}
       />
       {value && (
         <button
           onClick={() => { onChange(""); ref.current?.focus(); }}
-          className="text-slate-400 hover:text-slate-600 touch-target flex items-center justify-center"
+          className="text-slate-300 hover:text-slate-500 flex items-center justify-center w-7 h-7"
           aria-label="Limpiar busqueda"
         >
-          <X size={16} />
+          <X size={14} />
         </button>
       )}
     </div>

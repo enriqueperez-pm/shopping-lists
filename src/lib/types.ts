@@ -20,17 +20,42 @@ export interface Product {
   category?: Category;
 }
 
+export type ShoppingStatus = "needed" | "in_cart" | "purchased";
+
 export interface ShoppingItem {
   id: string;
   product_id: string;
   qty: number;
   price: number;
-  checked: boolean;
+  checked?: boolean;
+  status?: ShoppingStatus;
   weight_grams: number | null;
   created_at: string;
   updated_at: string;
   // joined
   product?: Product;
+}
+
+export interface PurchaseTrip {
+  id: string;
+  total: number;
+  item_count: number;
+  note: string | null;
+  purchased_at: string;
+  created_at: string;
+  items?: PurchaseTripItem[];
+}
+
+export interface PurchaseTripItem {
+  id: string;
+  trip_id: string;
+  product_id: string | null;
+  product_name: string;
+  category_name: string | null;
+  qty: number;
+  unit: string;
+  price: number;
+  line_total: number;
 }
 
 /* Supabase Database helper — typed enough for supabase-js generics */
@@ -51,6 +76,16 @@ export type Database = {
         Row: ShoppingItem;
         Insert: Omit<ShoppingItem, "id" | "created_at" | "updated_at" | "product"> & { id?: string };
         Update: Partial<Omit<ShoppingItem, "id" | "created_at" | "updated_at" | "product">>;
+      };
+      purchase_trips: {
+        Row: PurchaseTrip;
+        Insert: Omit<PurchaseTrip, "id" | "created_at" | "items"> & { id?: string };
+        Update: Partial<Omit<PurchaseTrip, "id" | "created_at" | "items">>;
+      };
+      purchase_trip_items: {
+        Row: PurchaseTripItem;
+        Insert: Omit<PurchaseTripItem, "id"> & { id?: string };
+        Update: Partial<Omit<PurchaseTripItem, "id">>;
       };
     };
     Views: Record<string, never>;

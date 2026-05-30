@@ -8,22 +8,47 @@ const config: Config = {
         sans: ['"Plus Jakarta Sans"', "system-ui", "-apple-system", "sans-serif"],
       },
       colors: {
+        ink: {
+          DEFAULT: "#153131",
+          muted: "#2a4545",
+          faint: "#3d5555",
+        },
+        pantry: {
+          DEFAULT: "#047857",
+          light: "#d1fae5",
+        },
+        list: {
+          DEFAULT: "#334155",
+        },
+        cart: {
+          DEFAULT: "#92400e",
+        },
+        saved: {
+          DEFAULT: "#075985",
+          bg: "#e0f2fe",
+        },
+        trust: {
+          DEFAULT: "#153131",
+        },
         brand: {
-          50: "#eef2ff",
-          100: "#e0e7ff",
-          200: "#c7d2fe",
-          300: "#a5b4fc",
-          400: "#818cf8",
-          500: "#6366f1",
-          600: "#4f46e5",
-          700: "#4338ca",
-          800: "#3730a3",
-          900: "#312e81",
+          50: "#f6eff5",
+          100: "#ecdae8",
+          200: "#d7b6cf",
+          300: "#c08eb2",
+          400: "#a76893",
+          500: "#5e2e55",
+          600: "#54294c",
+          700: "#4a2443",
+          800: "#3b1d36",
+          900: "#2f172c",
+        },
+        danger: {
+          DEFAULT: "#b91c1c",
+          bg: "#fef2f2",
         },
       },
       boxShadow: {
-        card: "0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04)",
-        float: "0 8px 28px rgba(99,102,241,.25)",
+        card: "0 1px 3px rgba(21,49,49,.06), 0 1px 2px rgba(21,49,49,.04)",
       },
       borderRadius: {
         xl: "14px",
