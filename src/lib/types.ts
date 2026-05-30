@@ -41,6 +41,7 @@ export interface PurchaseTrip {
   total: number;
   item_count: number;
   note: string | null;
+  budget_tx_id?: string | null;
   purchased_at: string;
   created_at: string;
   items?: PurchaseTripItem[];

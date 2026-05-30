@@ -2,10 +2,10 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Lista de compras",
-  description: "Tu despensa y lista del super, siempre a la mano",
+  title: "Administración",
+  description: "Despensa, presupuesto y gastos del hogar en un solo lugar",
   manifest: "/manifest.json",
-  appleWebApp: { capable: true, title: "Despensa", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Admin", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

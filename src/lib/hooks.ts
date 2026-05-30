@@ -1,21 +1,27 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "./supabase";
+import { getBrowserSupabase } from "@/lib/supabase/client";
 import { itemStatus, recordPurchaseTrip } from "./purchase";
 import { clampQty, clampQtyInt } from "./qty";
 import type { Category, Product, PurchaseTrip, ShoppingItem, ShoppingStatus } from "./types";
+
+const supabase = () => getBrowserSupabase();
+
+async function authUserId() {
+  const { data: { user } } = await supabase().auth.getUser();
+  return user?.id ?? null;
+}
 
 /* ── Categories ── */
 export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
-    supabase
-      .from("categories")
+    supabase().from("categories")
       .select("*")
       .order("sort_order")
-      .then(({ data }) => setCategories(data ?? []));
+      .then(({ data }: { data: Category[] | null }) => setCategories(data ?? []));
   }, []);
 
   return categories;
@@ -27,7 +33,7 @@ export function useProducts() {
   const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
-    const { data } = await supabase
+    const { data } = await supabase()
       .from("products")
       .select("*, category:categories(*)")
       .order("name");
@@ -44,9 +50,11 @@ export function useProducts() {
     unit: string;
     ref_qty: number;
   }) => {
-    const { data, error } = await supabase.from("products").insert({
+    const uid = await authUserId();
+    const { data, error } = await supabase().from("products").insert({
       ...p,
       in_stock: false,
+      ...(uid ? { user_id: uid } : {}),
     }).select("*, category:categories(*)").single();
     if (!error && data) {
       setProducts((prev) => [...prev, data as Product]);
@@ -56,10 +64,11 @@ export function useProducts() {
         price: p.ref_price,
         status: "needed" as ShoppingStatus,
         checked: false,
+        ...(uid ? { user_id: uid } : {}),
       };
-      const insertRes = await supabase.from("shopping_items").insert(insertPayload);
+      const insertRes = await supabase().from("shopping_items").insert(insertPayload);
       if (insertRes.error) {
-        await supabase.from("shopping_items").insert({
+        await supabase().from("shopping_items").insert({
           product_id: data.id,
           qty: p.ref_qty,
           price: p.ref_price,
@@ -71,7 +80,7 @@ export function useProducts() {
   };
 
   const updateProduct = async (id: string, updates: Partial<Product>) => {
-    const { error } = await supabase.from("products").update(updates).eq("id", id);
+    const { error } = await supabase().from("products").update(updates).eq("id", id);
     if (!error) {
       setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
     }
@@ -79,19 +88,19 @@ export function useProducts() {
   };
 
   const setPantry = async (id: string, inStock: boolean) => {
-    const productRes = await supabase.from("products").update({ in_stock: inStock }).eq("id", id);
+    const productRes = await supabase().from("products").update({ in_stock: inStock }).eq("id", id);
     if (productRes.error) {
       await fetch();
       return { error: productRes.error };
     }
-    const { data: product } = await supabase
+    const { data: product } = await supabase()
       .from("products")
       .select("ref_qty, ref_price")
       .eq("id", id)
       .single();
 
     if (inStock) {
-      const delRes = await supabase.from("shopping_items").delete().eq("product_id", id);
+      const delRes = await supabase().from("shopping_items").delete().eq("product_id", id);
       if (delRes.error) {
         await fetch();
         return { error: delRes.error };
@@ -104,11 +113,11 @@ export function useProducts() {
         status: "needed" as ShoppingStatus,
         checked: false,
       };
-      const upsertRes = await supabase
+      const upsertRes = await supabase()
         .from("shopping_items")
         .upsert(upsertPayload, { onConflict: "product_id" });
       if (upsertRes.error) {
-        const legacyRes = await supabase.from("shopping_items").upsert(
+        const legacyRes = await supabase().from("shopping_items").upsert(
           { product_id: id, qty: product.ref_qty, price: product.ref_price, checked: false },
           { onConflict: "product_id" },
         );
@@ -125,14 +134,14 @@ export function useProducts() {
   const setShoppingStatusForProduct = async (id: string, status: ShoppingStatus) => {
     setProducts((prev) => prev.map((x) => (x.id === id ? { ...x, in_stock: false } : x)));
 
-    const { data: product } = await supabase
+    const { data: product } = await supabase()
       .from("products")
       .select("ref_qty, ref_price")
       .eq("id", id)
       .single();
     if (!product) return;
 
-    const productRes = await supabase.from("products").update({ in_stock: false }).eq("id", id);
+    const productRes = await supabase().from("products").update({ in_stock: false }).eq("id", id);
     if (productRes.error) {
       await fetch();
       return { error: productRes.error };
@@ -144,11 +153,11 @@ export function useProducts() {
       status,
       checked: status === "purchased",
     };
-    const upsertRes = await supabase
+    const upsertRes = await supabase()
       .from("shopping_items")
       .upsert(payload, { onConflict: "product_id" });
     if (upsertRes.error) {
-      const legacyRes = await supabase.from("shopping_items").upsert(
+      const legacyRes = await supabase().from("shopping_items").upsert(
         {
           product_id: id,
           qty: product.ref_qty,
@@ -168,7 +177,7 @@ export function useProducts() {
 
   const restoreProduct = async (product: Product) => {
     const { category: _cat, ...row } = product;
-    const { data, error } = await supabase
+    const { data, error } = await supabase()
       .from("products")
       .insert(row)
       .select("*, category:categories(*)")
@@ -184,7 +193,7 @@ export function useProducts() {
   };
 
   const deleteProduct = async (id: string) => {
-    await supabase.from("products").delete().eq("id", id);
+    await supabase().from("products").delete().eq("id", id);
     setProducts((prev) => prev.filter((p) => p.id !== id));
   };
 
@@ -208,7 +217,7 @@ export function useShopping() {
   const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
-    const { data } = await supabase
+    const { data } = await supabase()
       .from("shopping_items")
       .select("*, product:products(*, category:categories(*))")
       .order("created_at");
@@ -265,7 +274,7 @@ export function useShopping() {
       ),
     );
     if (id.startsWith("optimistic-")) {
-      const upsertRes = await supabase.from("shopping_items").upsert(
+      const upsertRes = await supabase().from("shopping_items").upsert(
         {
           product_id: current.product_id,
           qty: current.qty,
@@ -278,13 +287,13 @@ export function useShopping() {
       if (upsertRes.error) await fetch();
       return;
     }
-    const updateRes = await supabase
+    const updateRes = await supabase()
       .from("shopping_items")
       .update({ status, checked: status === "purchased" })
       .eq("id", id)
       .select("id");
     if (updateRes.error || !updateRes.data || updateRes.data.length === 0) {
-      const upsertRes = await supabase.from("shopping_items").upsert(
+      const upsertRes = await supabase().from("shopping_items").upsert(
         {
           product_id: current.product_id,
           qty: current.qty,
@@ -295,7 +304,7 @@ export function useShopping() {
         { onConflict: "product_id" },
       );
       if (upsertRes.error) {
-        const legacyRes = await supabase.from("shopping_items").update({ checked: status === "purchased" }).eq("id", id);
+        const legacyRes = await supabase().from("shopping_items").update({ checked: status === "purchased" }).eq("id", id);
         if (legacyRes.error) await fetch();
       }
     }
@@ -304,18 +313,18 @@ export function useShopping() {
   const setStatusBatch = async (ids: string[], status: ShoppingStatus) => {
     if (ids.length === 0) return;
     const targets = items.filter((s) => ids.includes(s.id));
-    const updateRes = await supabase
+    const updateRes = await supabase()
       .from("shopping_items")
       .update({ status, checked: status === "purchased" })
       .in("id", ids);
     if (updateRes.error) {
-      const legacyRes = await supabase
+      const legacyRes = await supabase()
         .from("shopping_items")
         .update({ checked: status === "purchased" })
         .in("id", ids);
       if (legacyRes.error) {
         for (const s of targets) {
-          await supabase.from("shopping_items").upsert(
+          await supabase().from("shopping_items").upsert(
             {
               product_id: s.product_id,
               qty: s.qty,
@@ -338,7 +347,7 @@ export function useShopping() {
   const updateQty = async (id: string, qty: number) => {
     const item = items.find((s) => s.id === id);
     const clamped = item?.product?.unit === "pz" ? clampQtyInt(qty) : clampQty(qty);
-    const updateRes = await supabase.from("shopping_items").update({ qty: clamped }).eq("id", id);
+    const updateRes = await supabase().from("shopping_items").update({ qty: clamped }).eq("id", id);
     if (updateRes.error) {
       await fetch();
       return;
@@ -347,7 +356,7 @@ export function useShopping() {
   };
 
   const updatePrice = async (id: string, price: number) => {
-    const updateRes = await supabase.from("shopping_items").update({ price }).eq("id", id);
+    const updateRes = await supabase().from("shopping_items").update({ price }).eq("id", id);
     if (updateRes.error) {
       await fetch();
       return;
@@ -356,7 +365,7 @@ export function useShopping() {
   };
 
   const updateUnit = async (id: string, productId: string, unit: string) => {
-    const updateRes = await supabase.from("products").update({ unit }).eq("id", productId);
+    const updateRes = await supabase().from("products").update({ unit }).eq("id", productId);
     if (updateRes.error) {
       await fetch();
       return;
@@ -371,13 +380,13 @@ export function useShopping() {
   };
 
   const removeItem = async (id: string, productId: string) => {
-    await supabase.from("shopping_items").delete().eq("id", id);
-    await supabase.from("products").update({ in_stock: false }).eq("id", productId);
+    await supabase().from("shopping_items").delete().eq("id", id);
+    await supabase().from("products").update({ in_stock: false }).eq("id", productId);
     setItems((prev) => prev.filter((s) => s.id !== id));
   };
 
   const removeFromList = async (productId: string) => {
-    const deleteRes = await supabase.from("shopping_items").delete().eq("product_id", productId);
+    const deleteRes = await supabase().from("shopping_items").delete().eq("product_id", productId);
     if (deleteRes.error) {
       await fetch();
       return;
@@ -395,14 +404,14 @@ export function useShopping() {
       checked: row.checked ?? false,
       weight_grams: row.weight_grams,
     };
-    const insertRes = await supabase
+    const insertRes = await supabase()
       .from("shopping_items")
       .insert(payload)
       .select("*, product:products(*, category:categories(*))")
       .single();
     if (insertRes.error) {
       const { status: _st, ...legacy } = payload;
-      const legacyRes = await supabase
+      const legacyRes = await supabase()
         .from("shopping_items")
         .insert(legacy)
         .select("*, product:products(*, category:categories(*))")
@@ -427,10 +436,10 @@ export function useShopping() {
   const confirmCartPurchase = async () => {
     const inCart = items.filter((s) => itemStatus(s) === "in_cart");
     if (inCart.length === 0) return null;
-    await recordPurchaseTrip(inCart);
+    const result = await recordPurchaseTrip(inCart);
     const ids = inCart.map((s) => s.id);
     await setStatusBatch(ids, "purchased");
-    return inCart;
+    return { items: inCart, undo: result.undo };
   };
 
   const movePurchasedToPantry = async (opts?: { ids?: string[]; productIds?: string[] }) => {
@@ -440,19 +449,19 @@ export function useShopping() {
     if (ids.length === 0) return [];
     let moved = purchased.filter((s) => ids.includes(s.id));
     if (moved.length === 0) {
-      const snapshotRes = await supabase
+      const snapshotRes = await supabase()
         .from("shopping_items")
         .select("id, product_id, qty, price")
         .in("id", ids);
       if (!snapshotRes.error && snapshotRes.data) {
-        moved = snapshotRes.data.map((row) => ({
+        moved = snapshotRes.data.map((row: Pick<ShoppingItem, "id" | "product_id" | "qty" | "price">) => ({
           ...row,
           checked: true,
           status: "purchased",
         })) as ShoppingItem[];
       }
     }
-    const deleteRes = await supabase.from("shopping_items").delete().in("id", ids);
+    const deleteRes = await supabase().from("shopping_items").delete().in("id", ids);
     if (deleteRes.error) {
       await fetch();
       return [];
@@ -460,7 +469,7 @@ export function useShopping() {
     if (moved.length > 0) {
       await Promise.all(
         moved.map((s) =>
-          supabase
+          supabase()
             .from("products")
             .update({
               in_stock: true,
@@ -472,7 +481,7 @@ export function useShopping() {
         ),
       );
     } else {
-      await supabase.from("products").update({ in_stock: true }).in("id", productIds);
+      await supabase().from("products").update({ in_stock: true }).in("id", productIds);
     }
     setItems((prev) => prev.filter((s) => !ids.includes(s.id)));
     return moved;
@@ -482,7 +491,7 @@ export function useShopping() {
     const purchased = items.filter((s) => itemStatus(s) === "purchased");
     if (purchased.length === 0) return null;
     const ids = purchased.map((s) => s.id);
-    await supabase.from("shopping_items").delete().in("id", ids);
+    await supabase().from("shopping_items").delete().in("id", ids);
     setItems((prev) => prev.filter((s) => !ids.includes(s.id)));
     return purchased;
   };
@@ -513,7 +522,7 @@ export function usePurchaseHistory() {
   const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
-    const { data } = await supabase
+    const { data } = await supabase()
       .from("purchase_trips")
       .select("*, items:purchase_trip_items(*)")
       .order("purchased_at", { ascending: false });
@@ -524,9 +533,10 @@ export function usePurchaseHistory() {
   useEffect(() => { fetch(); }, [fetch]);
 
   const deleteTrip = async (id: string) => {
-    await supabase.from("purchase_trips").delete().eq("id", id);
+    await supabase().from("purchase_trips").delete().eq("id", id);
     setTrips((prev) => prev.filter((t) => t.id !== id));
   };
 
   return { trips, loading, refetch: fetch, deleteTrip };
 }
+

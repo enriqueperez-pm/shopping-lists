@@ -5,6 +5,8 @@ import { Pencil } from "lucide-react";
 import EditField from "@/components/EditField";
 import { clampPercent, money } from "@/lib/money";
 import { DEFAULT_TRIP_BUDGET } from "@/lib/useTripBudget";
+import { useFinance } from "@/features/finance/FinancialDbProvider";
+import { getGroceriesAnalysis } from "@/features/finance/finance-linking";
 
 type TripTotalBarProps = {
   tripTotal: number;
@@ -41,6 +43,16 @@ export default function TripTotalBar({
   budget,
   onBudgetChange,
 }: TripTotalBarProps) {
+  const { db, transactions, selectedPeriod } = useFinance();
+  const groceries = getGroceriesAnalysis(db, selectedPeriod, transactions);
+  const groceriesRemaining = groceries
+    ? Math.max(0, groceries.budgeted - groceries.actual)
+    : null;
+  const suggestedCap = useMemo(() => {
+    if (groceriesRemaining === null) return DEFAULT_TRIP_BUDGET;
+    return Math.min(DEFAULT_TRIP_BUDGET, groceriesRemaining);
+  }, [groceriesRemaining]);
+
   const hasBudget = budget !== null && budget > 0;
   const listEstimate = tripTotal + totalNeeded;
   const ratio = hasBudget ? tripTotal / budget! : 0;
@@ -57,8 +69,7 @@ export default function TripTotalBar({
 
   return (
     <div
-      className="fixed inset-x-0 glass border-t border-[var(--border-hairline)] z-30
-        px-[var(--pad,1rem)] py-3 gap-3"
+      className="fixed inset-x-0 glass border-t border-[var(--border-hairline)] z-30 px-[var(--pad,1rem)] py-3 gap-3"
       style={{
         bottom: "calc(3.75rem + env(safe-area-inset-bottom, 0px))",
         "--pad": "clamp(14px, 3.5vw, 22px)",
@@ -74,6 +85,15 @@ export default function TripTotalBar({
           >
             {money(tripTotal)}
           </p>
+
+          {groceries && (
+            <p className="text-micro text-ink-faint mt-0.5">
+              Despensa mes: {money(groceries.actual)} / {money(groceries.budgeted)}
+              {groceriesRemaining !== null && (
+                <span className="text-pantry"> · {money(groceriesRemaining)} libre</span>
+              )}
+            </p>
+          )}
 
           {hasBudget && (
             <div className="mt-2 space-y-1.5">
@@ -107,7 +127,9 @@ export default function TripTotalBar({
                   ariaLabel="Presupuesto de visita"
                 />
                 <Pencil size={11} className="text-ink-faint/70 shrink-0" aria-hidden />
-                <span className={`text-micro tabular-nums truncate ${overBy > 0 ? "text-danger" : "text-ink-faint"}`}>
+                <span
+                  className={`text-micro tabular-nums truncate ${overBy > 0 ? "text-danger" : "text-ink-faint"}`}
+                >
                   · {budgetHint}
                 </span>
                 <button
@@ -125,10 +147,10 @@ export default function TripTotalBar({
           {!hasBudget && (
             <button
               type="button"
-              onClick={() => onBudgetChange(DEFAULT_TRIP_BUDGET)}
+              onClick={() => onBudgetChange(suggestedCap)}
               className="mt-1 text-micro text-pantry font-medium"
             >
-              + Fijar tope de visita
+              + Fijar tope ({money(suggestedCap)})
             </button>
           )}
         </div>
@@ -138,9 +160,7 @@ export default function TripTotalBar({
           <p>Carrito {money(totalInCart)}</p>
           <p>Pendiente {money(totalNeeded)}</p>
           {totalNeeded > 0 && (
-            <p className="pt-0.5 text-micro text-ink-faint/80">
-              Est. lista {money(listEstimate)}
-            </p>
+            <p className="pt-0.5 text-micro text-ink-faint/80">Est. lista {money(listEstimate)}</p>
           )}
         </div>
       </div>
