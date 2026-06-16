@@ -129,25 +129,48 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
     cloudSyncInFlightRef.current = true;
     try {
       d.captureModuleDataFromLocalStorage({ persist: true });
-      const payload = d.exportFullStateObject() as FinancialPersistedData;
-      const now = new Date().toISOString();
+      const localPayload = d.exportFullStateObject() as FinancialPersistedData;
+
+      const [{ row: remoteRow, error: remoteError }, { row: brainRow }] = await Promise.all([
+        fetchUserFinancialPayload(payloadUserId),
+        fetchBrainSnapshot(),
+      ]);
+
+      if (remoteError) {
+        setCloudSyncError(remoteError);
+        return false;
+      }
+
+      const remotePayload =
+        remoteRow?.payload && isFinancialPersistedData(remoteRow.payload)
+          ? remoteRow.payload
+          : null;
+      const brainPayload =
+        brainRow?.payload && isFinancialPersistedData(brainRow.payload)
+          ? brainRow.payload
+          : null;
+
+      const merged = reconcileFinancialState(localPayload, remotePayload, brainPayload);
+
+      if (!payloadsEqual(localPayload, merged)) {
+        d.importFullState(merged, { skipCloudHook: true });
+        repairBudgetHierarchyInDb(d);
+        refresh();
+      }
 
       const payloadOk = await upsertUserFinancialPayload(
         payloadUserId,
-        payload as unknown as Record<string, unknown>,
+        merged as unknown as Record<string, unknown>,
       );
-      const snapshotOk = await upsertBrainSnapshot(payload, "app");
 
-      if (!payloadOk || !snapshotOk) {
+      if (!payloadOk) {
         cloudSyncDirtyRef.current = true;
-        if (!snapshotOk) setBrainSyncError("No se pudo actualizar el brain en la nube.");
         return false;
       }
 
       cloudSyncDirtyRef.current = false;
       lastLocalPushMsRef.current = Date.now();
-      setLastCloudSyncAt(now);
-      setBrainSnapshotUpdatedAt(now);
+      setLastCloudSyncAt(new Date().toISOString());
       setBrainSyncError(null);
       return true;
     } catch (error) {
@@ -157,7 +180,7 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
     } finally {
       cloudSyncInFlightRef.current = false;
     }
-  }, []);
+  }, [refresh]);
 
   const refreshBrainSnapshotMeta = useCallback(async () => {
     const { row, error } = await fetchBrainSnapshot();

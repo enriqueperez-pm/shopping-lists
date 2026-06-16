@@ -1,4 +1,5 @@
 import type { EnhancedTransaction, FinancialPersistedData } from "./FinancialDatabase";
+import { dedupeTransactionFingerprints } from "./transaction-dedupe";
 
 type BudgetConcept = {
   id: string;
@@ -87,7 +88,9 @@ export function mergeTransactions(
   }
 
   return dedupeMonthlyIncome(
-    [...byId.values()].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    dedupeTransactionFingerprints(
+      [...byId.values()].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    ),
   );
 }
 
