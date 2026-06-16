@@ -1,4 +1,4 @@
-import type { BudgetConcept } from "./types";
+﻿import type { BudgetConcept } from "./types";
 import type { EnhancedTransaction, FinancialDatabase } from "./FinancialDatabase";
 import { buildBudgetAnalytics } from "./budget-analytics";
 
@@ -153,7 +153,7 @@ export function ensureCategoryPath(
       type: input.type,
       icon: 'tag',
       color: 'bg-slate-100 text-slate-700',
-      description: `Categoría ${input.type === 'income' ? 'de ingreso' : 'de gasto'}`,
+      description: `CategorÃ­a ${input.type === 'income' ? 'de ingreso' : 'de gasto'}`,
       isActive: true,
       createdAt: nowIso(),
     };
@@ -179,7 +179,7 @@ export function ensureCategoryPath(
         parentId,
         icon: 'tag',
         color: 'bg-slate-100 text-slate-700',
-        description: `Subcategoría de ${category}`,
+        description: `SubcategorÃ­a de ${category}`,
         isActive: true,
         createdAt: nowIso(),
       });
@@ -234,7 +234,7 @@ export function buildTransactionTrace(db: FinancialDatabase, tx: EnhancedTransac
   const bank = account ? banks.find((row) => row.id === account.bankId) : undefined;
   const concept = concepts.find((row) => row.id === tx.budgetConceptId);
 
-  let categoryPath = tx.category || 'Sin categoría';
+  let categoryPath = tx.category || 'Sin categorÃ­a';
   if (concept) {
     if (concept.subcategory) {
       categoryPath = `${concept.category} / ${concept.subcategory}`;
@@ -378,7 +378,7 @@ export function ensureBaselineIncomeConcepts(db: FinancialDatabase, period: stri
         existing.budgetedAmount = seed.amount;
         existing.isFixed = seed.fixed ?? false;
         existing.name =
-          seed.subcategory === 'Main Job' ? 'Nómina principal' : existing.name || seed.subcategory;
+          seed.subcategory === 'Main Job' ? 'NÃ³mina principal' : existing.name || seed.subcategory;
         existing.updatedAt = nowIso();
         changed = true;
       }
@@ -396,7 +396,7 @@ export function ensureBaselineIncomeConcepts(db: FinancialDatabase, period: stri
 
     next.push({
       id: createConceptId(),
-      name: seed.subcategory === 'Main Job' ? 'Nómina principal' : 'Freelance / proyectos',
+      name: seed.subcategory === 'Main Job' ? 'NÃ³mina principal' : 'Freelance / proyectos',
       category: seed.category,
       subcategory: seed.subcategory,
       budgetedAmount: seed.amount,
@@ -643,3 +643,262 @@ export function ensureMay2026BudgetSnapshot(db: FinancialDatabase): void {
   }
 }
 
+export function getDistinctCategories(
+  db: FinancialDatabase,
+  type: 'income' | 'expense',
+): string[] {
+  const fromTree = getCategoryTree(db)
+    .filter((row) => row.type === type && !row.parentId)
+    .map((row) => row.name);
+  const fromConcepts = getBudgetConcepts(db)
+    .filter((row) => row.type === type)
+    .map((row) => row.category);
+  return [...new Set([...fromTree, ...fromConcepts])].sort((a, b) => a.localeCompare(b, 'es'));
+}
+
+export function getDistinctSubcategories(
+  db: FinancialDatabase,
+  type: 'income' | 'expense',
+  category: string,
+): string[] {
+  const categoryLower = normalizeValue(category);
+  const fromTree = getCategoryTree(db);
+  const parent = fromTree.find(
+    (row) => row.type === type && !row.parentId && normalizeValue(row.name) === categoryLower,
+  );
+  const fromTreeSubs = parent
+    ? fromTree
+        .filter((row) => row.parentId === parent.id && row.isActive !== false)
+        .map((row) => row.name)
+    : [];
+  const fromConcepts = getBudgetConcepts(db)
+    .filter(
+      (row) => row.type === type && normalizeValue(row.category) === categoryLower && row.subcategory,
+    )
+    .map((row) => row.subcategory as string);
+  return [...new Set([...fromTreeSubs, ...fromConcepts])].sort((a, b) => a.localeCompare(b, 'es'));
+}
+
+export function groupBudgetConceptsByCategory(
+  concepts: BudgetConcept[],
+): Array<{ category: string; concepts: BudgetConcept[] }> {
+  const map = new Map<string, BudgetConcept[]>();
+  for (const concept of concepts) {
+    const list = map.get(concept.category) ?? [];
+    list.push(concept);
+    map.set(concept.category, list);
+  }
+  return [...map.entries()]
+    .sort(([a], [b]) => a.localeCompare(b, 'es'))
+    .map(([category, rows]) => ({
+      category,
+      concepts: rows.sort((a, b) => a.name.localeCompare(b.name, 'es')),
+    }));
+}
+
+export function ensurePeriodConceptHierarchy(db: FinancialDatabase, period: string) {
+  const concepts = getBudgetConcepts(db);
+  const defaultCurrency = db.getTrackerConfig().defaultCurrency;
+  const parentByKey = new Map<string, BudgetConcept>();
+  const next = [...concepts];
+  let changed = false;
+
+  next.forEach((concept) => {
+    if (concept.isParent && concept.period === period && !concept.parentId) {
+      parentByKey.set(getParentConceptKey(concept.type, concept.category), concept);
+    }
+  });
+
+  for (let i = 0; i < next.length; i++) {
+    const leaf = next[i];
+    if (leaf.isParent || leaf.period !== period || leaf.parentId) continue;
+
+    const key = getParentConceptKey(leaf.type, leaf.category);
+    let parent = parentByKey.get(key);
+    if (!parent) {
+      parent = {
+        id: createConceptId(),
+        name: leaf.category,
+        category: leaf.category,
+        budgetedAmount: 0,
+        actualAmount: 0,
+        currency: defaultCurrency,
+        period,
+        type: leaf.type,
+        isFixed: false,
+        description: `Parent ${leaf.category}`,
+        isParent: true,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      };
+      next.push(parent);
+      parentByKey.set(key, parent);
+      changed = true;
+    }
+
+    next[i] = { ...leaf, parentId: parent.id, updatedAt: nowIso() };
+    changed = true;
+  }
+
+  if (changed) {
+    db.setModuleData('budgetConcepts', next);
+  }
+}
+
+function findOrCreateParentConcept(
+  concepts: BudgetConcept[],
+  period: string,
+  type: 'income' | 'expense',
+  category: string,
+  defaultCurrency: BudgetConcept['currency'],
+): { concepts: BudgetConcept[]; parent: BudgetConcept; changed: boolean } {
+  const key = getParentConceptKey(type, category);
+  const existing = concepts.find(
+    (row) =>
+      row.isParent &&
+      row.period === period &&
+      !row.parentId &&
+      getParentConceptKey(row.type, row.category) === key,
+  );
+  if (existing) return { concepts, parent: existing, changed: false };
+
+  const parent: BudgetConcept = {
+    id: createConceptId(),
+    name: category,
+    category,
+    budgetedAmount: 0,
+    actualAmount: 0,
+    currency: defaultCurrency,
+    period,
+    type,
+    isFixed: false,
+    description: `Parent ${category}`,
+    isParent: true,
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  };
+  return { concepts: [...concepts, parent], parent, changed: true };
+}
+
+export function createBudgetConcept(
+  db: FinancialDatabase,
+  input: {
+    period: string;
+    type: 'income' | 'expense';
+    category: string;
+    subcategory?: string;
+    name: string;
+    budgetedAmount?: number;
+    isFixed?: boolean;
+    description?: string;
+  },
+): BudgetConcept {
+  const category = input.category.trim();
+  const subcategory = input.subcategory?.trim() || undefined;
+  const name = input.name.trim();
+  if (!category || !name) {
+    throw new Error('La categorÃ­a y el nombre son obligatorios');
+  }
+
+  ensureCategoryPath(db, { type: input.type, category, subcategory });
+  ensurePeriodConceptHierarchy(db, input.period);
+
+  let concepts = getBudgetConcepts(db);
+  const defaultCurrency = db.getTrackerConfig().defaultCurrency;
+
+  const duplicate = concepts.find(
+    (row) =>
+      !row.isParent &&
+      row.period === input.period &&
+      row.type === input.type &&
+      normalizeValue(row.category) === normalizeValue(category) &&
+      normalizeValue(row.subcategory || '') === normalizeValue(subcategory || '') &&
+      normalizeValue(row.name) === normalizeValue(name),
+  );
+  if (duplicate) return duplicate;
+
+  const parentResult = findOrCreateParentConcept(
+    concepts,
+    input.period,
+    input.type,
+    category,
+    defaultCurrency,
+  );
+  concepts = parentResult.concepts;
+
+  const child: BudgetConcept = {
+    id: createConceptId(),
+    name,
+    category,
+    subcategory,
+    budgetedAmount: input.budgetedAmount ?? 0,
+    actualAmount: 0,
+    currency: defaultCurrency,
+    period: input.period,
+    type: input.type,
+    isFixed: input.isFixed ?? false,
+    description: input.description,
+    parentId: parentResult.parent.id,
+    isParent: false,
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  };
+
+  db.setModuleData('budgetConcepts', [...concepts, child]);
+  return child;
+}
+
+export function copyBudgetConceptsFromPeriod(
+  db: FinancialDatabase,
+  fromPeriod: string,
+  toPeriod: string,
+) {
+  ensurePeriodConceptHierarchy(db, fromPeriod);
+  ensurePeriodConceptHierarchy(db, toPeriod);
+
+  let concepts = getBudgetConcepts(db);
+  const defaultCurrency = db.getTrackerConfig().defaultCurrency;
+  const prevLeaves = concepts.filter((row) => !row.isParent && row.period === fromPeriod);
+  if (prevLeaves.length === 0) return;
+
+  let changed = false;
+  for (const src of prevLeaves) {
+    const exists = concepts.some(
+      (row) =>
+        row.period === toPeriod &&
+        !row.isParent &&
+        row.type === src.type &&
+        normalizeValue(row.category) === normalizeValue(src.category) &&
+        normalizeValue(row.subcategory || '') === normalizeValue(src.subcategory || '') &&
+        normalizeValue(row.name) === normalizeValue(src.name),
+    );
+    if (exists) continue;
+
+    const parentResult = findOrCreateParentConcept(
+      concepts,
+      toPeriod,
+      src.type,
+      src.category,
+      defaultCurrency,
+    );
+    if (parentResult.changed) {
+      concepts = parentResult.concepts;
+      changed = true;
+    }
+
+    concepts.push({
+      ...src,
+      id: createConceptId(),
+      period: toPeriod,
+      parentId: parentResult.parent.id,
+      actualAmount: 0,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    });
+    changed = true;
+  }
+
+  if (changed) {
+    db.setModuleData('budgetConcepts', concepts);
+  }
+}

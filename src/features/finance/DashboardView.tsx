@@ -13,6 +13,7 @@ import { useShopping } from "@/lib/hooks";
 import { itemStatus } from "@/lib/purchase";
 import { money } from "@/lib/money";
 import QuickExpenseModal from "./QuickExpenseModal";
+import EditMovementModal from "./EditMovementModal";
 import AdjustBalanceModal from "./AdjustBalanceModal";
 import DisponibleHero from "./components/DisponibleHero";
 import CashflowBreakdown from "./components/CashflowBreakdown";
@@ -22,6 +23,7 @@ import CategorySpendChart from "./components/CategorySpendChart";
 import PageHeader from "@/components/ui/PageHeader";
 import AppFab from "@/components/ui/AppFab";
 import RecentMovements from "./components/RecentMovements";
+import type { EnhancedTransaction } from "./FinancialDatabase";
 
 function periodLabel(period: string) {
   const [y, m] = period.split("-").map(Number);
@@ -36,6 +38,7 @@ export default function DashboardView() {
   const { items: shopping } = useShopping();
   const [showExpense, setShowExpense] = useState(false);
   const [showAdjust, setShowAdjust] = useState(false);
+  const [editingTx, setEditingTx] = useState<EnhancedTransaction | null>(null);
 
   const alerts = useMemo(
     () =>
@@ -96,6 +99,7 @@ export default function DashboardView() {
       <RecentMovements
         movements={cashflow.recentMovements}
         onSeeAll={() => router.push("/gastos")}
+        onEditMovement={setEditingTx}
       />
 
       <Link
@@ -150,6 +154,7 @@ export default function DashboardView() {
       </AppFab>
 
       {showExpense && <QuickExpenseModal onClose={() => setShowExpense(false)} />}
+      {editingTx && <EditMovementModal tx={editingTx} onClose={() => setEditingTx(null)} />}
       {showAdjust && (
         <AdjustBalanceModal
           calculated={cashflow.calculated}

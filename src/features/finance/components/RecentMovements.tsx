@@ -6,9 +6,10 @@ import MovementRow from "./MovementRow";
 type Props = {
   movements: EnhancedTransaction[];
   onSeeAll?: () => void;
+  onEditMovement?: (tx: EnhancedTransaction) => void;
 };
 
-export default function RecentMovements({ movements, onSeeAll }: Props) {
+export default function RecentMovements({ movements, onSeeAll, onEditMovement }: Props) {
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between gap-2">
@@ -24,7 +25,7 @@ export default function RecentMovements({ movements, onSeeAll }: Props) {
       ) : (
         <div className="space-y-2">
           {movements.map((tx) => (
-            <MovementRow key={tx.id} tx={tx} />
+            <MovementRow key={tx.id} tx={tx} onEdit={onEditMovement} />
           ))}
         </div>
       )}

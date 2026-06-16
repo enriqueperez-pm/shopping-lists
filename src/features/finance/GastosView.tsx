@@ -8,7 +8,9 @@ import { useCashflow } from "./useCashflow";
 import MonthSelector from "./MonthSelector";
 import QuickExpenseModal from "./QuickExpenseModal";
 import QuickIncomeModal from "./QuickIncomeModal";
+import EditMovementModal from "./EditMovementModal";
 import MovementRow from "./components/MovementRow";
+import type { EnhancedTransaction } from "./FinancialDatabase";
 
 type MovFilter = "all" | "out" | "in";
 
@@ -17,6 +19,7 @@ export default function GastosView() {
   const [filter, setFilter] = useState<MovFilter>("all");
   const [showExpense, setShowExpense] = useState(false);
   const [showIncome, setShowIncome] = useState(false);
+  const [editingTx, setEditingTx] = useState<EnhancedTransaction | null>(null);
 
   const list = useMemo(() => {
     return cashflow.allMovements.filter((tx) => {
@@ -74,12 +77,13 @@ export default function GastosView() {
         {list.length === 0 ? (
           <p className="text-caption">Sin movimientos con este filtro.</p>
         ) : (
-          list.map((tx) => <MovementRow key={tx.id} tx={tx} />)
+          list.map((tx) => <MovementRow key={tx.id} tx={tx} onEdit={setEditingTx} />)
         )}
       </div>
 
       {showExpense && <QuickExpenseModal onClose={() => setShowExpense(false)} />}
       {showIncome && <QuickIncomeModal onClose={() => setShowIncome(false)} />}
+      {editingTx && <EditMovementModal tx={editingTx} onClose={() => setEditingTx(null)} />}
     </div>
   );
 }

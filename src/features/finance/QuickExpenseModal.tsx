@@ -1,21 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ModalShell from "@/components/ui/ModalShell";
 import { useFinance } from "./FinancialDbProvider";
-import { getBudgetConceptsForTypeAndDate, applyConceptCategoryToTransaction } from "./finance-linking";
+import {
+  getBudgetConceptsForTypeAndDate,
+  applyConceptCategoryToTransaction,
+  groupBudgetConceptsByCategory,
+} from "./finance-linking";
 
 export default function QuickExpenseModal({ onClose }: { onClose: () => void }) {
   const { db, refresh } = useFinance();
   const today = new Date().toISOString().slice(0, 10);
-  const concepts = getBudgetConceptsForTypeAndDate(db, "expense", today);
+  const [date, setDate] = useState(today);
+  const concepts = useMemo(
+    () => getBudgetConceptsForTypeAndDate(db, "expense", date),
+    [db, date],
+  );
+  const conceptGroups = useMemo(() => groupBudgetConceptsByCategory(concepts), [concepts]);
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [conceptId, setConceptId] = useState(concepts[0]?.id ?? "");
 
+  useEffect(() => {
+    if (!concepts.some((c) => c.id === conceptId)) {
+      setConceptId(concepts[0]?.id ?? "");
+    }
+  }, [concepts, conceptId]);
+
   const save = () => {
     const value = Number(amount);
-    if (!value || !description.trim()) return;
+    if (!value || !description.trim() || !date) return;
     const concept = concepts.find((c) => c.id === conceptId);
     const cats = applyConceptCategoryToTransaction(db, {
       type: "expense",
@@ -29,7 +44,7 @@ export default function QuickExpenseModal({ onClose }: { onClose: () => void }) 
       amount: value,
       category: cats.category || "Other",
       subcategory: cats.subcategory,
-      date: today,
+      date,
       currency: "MXN",
       originalAmount: value,
       originalCurrency: "MXN",
@@ -42,6 +57,15 @@ export default function QuickExpenseModal({ onClose }: { onClose: () => void }) 
 
   return (
     <ModalShell open onClose={onClose} title="Gasto rápido">
+      <label className="block space-y-1">
+        <span className="modal-label">Fecha</span>
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="modal-input"
+        />
+      </label>
       <label className="block space-y-1">
         <span className="modal-label">Descripción</span>
         <input
@@ -68,18 +92,27 @@ export default function QuickExpenseModal({ onClose }: { onClose: () => void }) 
           onChange={(e) => setConceptId(e.target.value)}
           className="modal-input bg-white"
         >
-          {concepts.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.category} / {c.subcategory || c.name}
-            </option>
-          ))}
+          {concepts.length === 0 ? (
+            <option value="">Sin conceptos este mes</option>
+          ) : (
+            conceptGroups.map(({ category, concepts: groupConcepts }) => (
+              <optgroup key={category} label={category}>
+                {groupConcepts.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.subcategory ? `${c.subcategory} — ` : ""}
+                    {c.name}
+                  </option>
+                ))}
+              </optgroup>
+            ))
+          )}
         </select>
       </label>
       <div className="flex gap-2 justify-end pt-1">
         <button type="button" className="btn-soft" onClick={onClose}>
           Cancelar
         </button>
-        <button type="button" className="btn-primary" onClick={save}>
+        <button type="button" className="btn-primary" onClick={save} disabled={!concepts.length}>
           Guardar
         </button>
       </div>

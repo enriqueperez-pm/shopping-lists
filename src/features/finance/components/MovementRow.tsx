@@ -4,12 +4,17 @@ import type { EnhancedTransaction } from "../FinancialDatabase";
 import { formatMovementDate, movementCategoryLabel } from "../cashflow-analytics";
 import { money } from "@/lib/money";
 
-export default function MovementRow({ tx }: { tx: EnhancedTransaction }) {
+type Props = {
+  tx: EnhancedTransaction;
+  onEdit?: (tx: EnhancedTransaction) => void;
+};
+
+export default function MovementRow({ tx, onEdit }: Props) {
   const tag = movementCategoryLabel(tx);
   const isIncome = tx.type === "income";
 
-  return (
-    <div className="surface-soft px-3 py-2.5 flex justify-between gap-3">
+  const content = (
+    <>
       <div className="min-w-0">
         <p className="text-sm font-medium truncate">{tx.description}</p>
         <p className="text-micro text-ink-faint">{formatMovementDate(tx.date)}</p>
@@ -32,6 +37,20 @@ export default function MovementRow({ tx }: { tx: EnhancedTransaction }) {
         {isIncome ? "+" : "−"}
         {money(tx.originalAmount ?? tx.amount)}
       </p>
-    </div>
+    </>
   );
+
+  if (onEdit) {
+    return (
+      <button
+        type="button"
+        onClick={() => onEdit(tx)}
+        className="surface-soft px-3 py-2.5 flex justify-between gap-3 w-full text-left hover:bg-[rgba(21,49,49,0.03)] transition-colors"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <div className="surface-soft px-3 py-2.5 flex justify-between gap-3">{content}</div>;
 }

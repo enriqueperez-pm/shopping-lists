@@ -19,7 +19,7 @@ import {
   type FinancialPersistedData,
 } from "./FinancialDatabase";
 import { fetchUserFinancialPayload, upsertUserFinancialPayload } from "./financialSupabaseSync";
-import { ensureBaselineBudgetTaxonomy, ensureBaselineIncomeConcepts, getBudgetConcepts } from "./finance-linking";
+import { ensureBaselineBudgetTaxonomy, ensureBaselineIncomeConcepts, ensurePeriodConceptHierarchy, getBudgetConcepts } from "./finance-linking";
 import { setFinanceDb } from "./finance-bridge";
 import { HOUSEHOLD_MEMBER_IDS, resolveCloudPayloadUserId } from "@/lib/household";
 import { getBrowserSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
@@ -82,6 +82,7 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
   const refresh = useCallback(() => {
     ensureBaselineBudgetTaxonomy(db, selectedPeriod);
     ensureBaselineIncomeConcepts(db, selectedPeriod);
+    ensurePeriodConceptHierarchy(db, selectedPeriod);
     setTransactions(db.getTransactions(selectedPeriod));
   }, [db, selectedPeriod]);
 

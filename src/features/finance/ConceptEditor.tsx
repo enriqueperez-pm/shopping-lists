@@ -40,6 +40,12 @@ export default function ConceptEditor({ concept, onClose, onSaved }: Props) {
 
   return (
     <ModalShell open onClose={onClose} title={concept?.name ?? "Concepto"} className="space-y-4">
+      {concept ? (
+        <p className="text-caption">
+          {concept.category}
+          {concept.subcategory ? ` · ${concept.subcategory}` : ""}
+        </p>
+      ) : null}
       <label className="block space-y-1">
         <span className="modal-label">Presupuesto (MXN)</span>
         <input
