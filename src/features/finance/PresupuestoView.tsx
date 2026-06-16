@@ -11,16 +11,23 @@ import PageHeader from "@/components/ui/PageHeader";
 import {
   copyBudgetConceptsFromPeriod,
   getBudgetCategoryOrder,
+  getBudgetConcepts,
   moveCategoryInOrder,
   sortGroupsByCategoryOrder,
 } from "./finance-linking";
 import { useBudgetAnalytics } from "./useBudget";
 import { readBudgetUiState, writeBudgetUiState, isActiveBudgetConcept } from "./budget-ui-state";
+import { listPendingPayments } from "./period-math";
 import { money } from "@/lib/money";
 import type { BudgetConcept } from "./types";
 import type { BudgetConceptAnalysis } from "./budget-analytics";
 
 type BudgetTab = "gastos" | "ingresos";
+
+function formatPeriodLabel(period: string) {
+  const [y, m] = period.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString("es-MX", { month: "short", year: "numeric" });
+}
 
 function usageTone(isIncome: boolean, pct: number) {
   if (isIncome) {
@@ -33,10 +40,12 @@ function BudgetConceptCard({
   row,
   onEdit,
   muted,
+  periodLabel,
 }: {
   row: BudgetConceptAnalysis;
   onEdit: (concept: BudgetConcept) => void;
   muted?: boolean;
+  periodLabel?: string;
 }) {
   const isIncome = row.concept.type === "income";
   const hasBudget = row.budgeted > 0;
@@ -54,7 +63,12 @@ function BudgetConceptCard({
           : "border-[var(--border-soft)] bg-white shadow-card hover:border-[rgba(21,49,49,0.14)]"
       }`}
     >
-      <p className="text-sm font-semibold text-ink truncate">{row.concept.name}</p>
+      <p className="text-sm font-semibold text-ink truncate">
+        {row.concept.name}
+        {periodLabel ? (
+          <span className="text-ink-faint font-medium"> · {periodLabel}</span>
+        ) : null}
+      </p>
 
       <div className="mt-2 flex items-baseline justify-between gap-2">
         <p className="text-base font-bold tabular-nums text-ink">
@@ -95,7 +109,7 @@ function BudgetConceptCard({
 }
 
 export default function PresupuestoView() {
-  const { db, selectedPeriod, refresh } = useFinance();
+  const { db, transactions, selectedPeriod, refresh } = useFinance();
   const analytics = useBudgetAnalytics();
   const [editing, setEditing] = useState<BudgetConcept | null>(null);
   const [creating, setCreating] = useState(false);
@@ -150,6 +164,33 @@ export default function PresupuestoView() {
       inactiveConcepts: inactive,
     };
   }, [analytics.parentAnalyses, analytics.leafAnalyses, conceptType, db, selectedPeriod]);
+
+  const priorPendingRows = useMemo(() => {
+    if (tab !== "gastos") return [];
+    const concepts = getBudgetConcepts(db);
+    return listPendingPayments(concepts, transactions, selectedPeriod)
+      .filter((item) => item.originPeriod !== selectedPeriod)
+      .map((item) => {
+        const concept = concepts.find((c) => c.id === item.conceptId);
+        if (!concept) return null;
+        return {
+          originPeriod: item.originPeriod,
+          row: {
+            concept,
+            actual: item.paid,
+            budgeted: item.budgeted,
+            variance: item.paid - item.budgeted,
+            variancePct:
+              item.budgeted > 0 ? ((item.paid - item.budgeted) / item.budgeted) * 100 : 0,
+            usagePct: item.budgeted > 0 ? (item.paid / item.budgeted) * 100 : 0,
+            txCount: 0,
+            status: "warning" as const,
+            isPositiveVariance: false,
+          },
+        };
+      })
+      .filter((entry): entry is NonNullable<typeof entry> => entry != null);
+  }, [db, transactions, selectedPeriod, tab]);
 
   const toggleCollapse = (key: string) => {
     setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -233,6 +274,27 @@ export default function PresupuestoView() {
       </div>
 
       <div className="space-y-5 pb-2">
+        {priorPendingRows.length > 0 ? (
+          <section className="space-y-2">
+            <div className="px-0.5">
+              <h3 className="text-xs font-bold uppercase tracking-[0.06em] text-ink-muted">
+                Adeudos de meses anteriores
+              </h3>
+              <p className="text-caption text-ink-faint">
+                Siguen pendientes aunque veas {formatPeriodLabel(selectedPeriod)}
+              </p>
+            </div>
+            {priorPendingRows.map(({ row, originPeriod }) => (
+              <BudgetConceptCard
+                key={row.concept.id}
+                row={row}
+                onEdit={setEditing}
+                periodLabel={formatPeriodLabel(originPeriod)}
+              />
+            ))}
+          </section>
+        ) : null}
+
         {categoryGroups.length === 0 && activeOrphanLeaves.length === 0 ? (
           inactiveConcepts.length > 0 ? (
             <p className="text-caption">

@@ -5,6 +5,11 @@ import { ChevronDown } from "lucide-react";
 import { money } from "@/lib/money";
 import type { PendingPaymentItem } from "../period-math";
 
+function formatPeriodLabel(period: string) {
+  const [y, m] = period.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString("es-MX", { month: "short", year: "numeric" });
+}
+
 type Props = {
   spentPct: number;
   committedPct: number;
@@ -13,6 +18,7 @@ type Props = {
   committed: number;
   income: number;
   pendingPayments: PendingPaymentItem[];
+  viewingPeriod?: string;
 };
 
 export default function UsageProgressBar({
@@ -23,6 +29,7 @@ export default function UsageProgressBar({
   committed,
   income,
   pendingPayments,
+  viewingPeriod,
 }: Props) {
   const [open, setOpen] = useState(false);
   const tone = totalCommittedPct >= 90 ? "danger" : totalCommittedPct >= 75 ? "warn" : "";
@@ -91,7 +98,15 @@ export default function UsageProgressBar({
               className="flex justify-between gap-3 text-micro"
             >
               <div className="min-w-0">
-                <p className="text-ink truncate">{item.name}</p>
+                <p className="text-ink truncate">
+                  {item.name}
+                  {viewingPeriod && item.originPeriod !== viewingPeriod ? (
+                    <span className="text-ink-faint font-normal">
+                      {" "}
+                      · {formatPeriodLabel(item.originPeriod)}
+                    </span>
+                  ) : null}
+                </p>
                 <p className="text-ink-faint truncate">
                   {item.subcategory ? `${item.category} · ${item.subcategory}` : item.category}
                   {" · "}

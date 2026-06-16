@@ -52,14 +52,34 @@ export function actualByConceptFromTransactions(
   return map;
 }
 
+/** Ejecutado por concepto = suma de txs ligadas (cualquier fecha; pago en jun de adeudo feb). */
+export function actualByConceptFromAllTransactions(
+  transactions: EnhancedTransaction[],
+): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const tx of transactions) {
+    if (!tx.budgetConceptId) continue;
+    if (tx.type !== "income" && tx.type !== "expense") continue;
+    map.set(
+      tx.budgetConceptId,
+      roundMoney((map.get(tx.budgetConceptId) ?? 0) + resolveAmountMxn(tx)),
+    );
+  }
+  return map;
+}
+
 /** Por pagar = presupuesto pendiente según transacciones reales, no actualAmount del CSV. */
 export function calcCommittedFromTransactions(
   concepts: BudgetConcept[],
   transactions: EnhancedTransaction[],
   period: string,
+  options?: ListPendingPaymentsOptions,
 ): number {
   return roundMoney(
-    listPendingPayments(concepts, transactions, period).reduce((sum, item) => sum + item.pending, 0),
+    listPendingPayments(concepts, transactions, period, options).reduce(
+      (sum, item) => sum + item.pending,
+      0,
+    ),
   );
 }
 
@@ -71,16 +91,29 @@ export interface PendingPaymentItem {
   budgeted: number;
   paid: number;
   pending: number;
+  originPeriod: string;
+}
+
+export interface ListPendingPaymentsOptions {
+  /** Incluye adeudos de meses anteriores al periodo visible (default: true). */
+  includePriorPeriods?: boolean;
 }
 
 export function listPendingPayments(
   concepts: BudgetConcept[],
   transactions: EnhancedTransaction[],
   period: string,
+  options?: ListPendingPaymentsOptions,
 ): PendingPaymentItem[] {
-  const actualByConcept = actualByConceptFromTransactions(transactions, period);
+  const includePrior = options?.includePriorPeriods !== false;
+  const actualByConcept = actualByConceptFromAllTransactions(transactions);
+
   return concepts
-    .filter((c) => !c.isParent && c.type === "expense" && c.period === period)
+    .filter((c) => {
+      if (c.isParent || c.type !== "expense") return false;
+      if (c.period === period) return true;
+      return includePrior && c.period < period;
+    })
     .map((c) => {
       const paid = actualByConcept.get(c.id) ?? 0;
       const pending = Math.max(0, roundMoney((c.budgetedAmount || 0) - paid));
@@ -92,10 +125,16 @@ export function listPendingPayments(
         budgeted: c.budgetedAmount || 0,
         paid,
         pending,
+        originPeriod: c.period,
       };
     })
     .filter((item) => item.pending > 0)
-    .sort((a, b) => b.pending - a.pending || a.name.localeCompare(b.name, "es"));
+    .sort(
+      (a, b) =>
+        a.originPeriod.localeCompare(b.originPeriod) ||
+        b.pending - a.pending ||
+        a.name.localeCompare(b.name, "es"),
+    );
 }
 
 export interface PeriodMoneyMetrics {
@@ -123,6 +162,7 @@ export function buildPeriodMoneyMetrics(input: {
     input.concepts,
     input.transactions,
     input.period,
+    { includePriorPeriods: true },
   );
   const calculated = roundMoney(income - spent - committed);
   const disponible =

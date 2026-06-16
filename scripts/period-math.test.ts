@@ -82,6 +82,78 @@ assert(committed === 1323.13, `committed from txs expected 1323.13, got ${commit
 const pending = listPendingPayments(concepts, transactions, period);
 assert(pending.length === 1, `expected 1 pending item, got ${pending.length}`);
 assert(pending[0].pending === 1323.13, `pending item amount expected 1323.13, got ${pending[0].pending}`);
+assert(pending[0].originPeriod === period, "originPeriod should match concept period");
+
+const priorTaxConcepts: BudgetConcept[] = [
+  ...concepts,
+  {
+    id: "brain_2026-02_impuestos",
+    name: "Impuestos",
+    category: "Financial Services",
+    subcategory: "Taxes",
+    budgetedAmount: 3867,
+    actualAmount: 0,
+    currency: "MXN",
+    period: "2026-02",
+    type: "expense",
+    isFixed: false,
+    isParent: false,
+    createdAt: "2026-06-01T00:00:00.000Z",
+    updatedAt: "2026-06-01T00:00:00.000Z",
+  },
+  {
+    id: "brain_2026-03_impuestos",
+    name: "Impuestos",
+    category: "Financial Services",
+    subcategory: "Taxes",
+    budgetedAmount: 2367,
+    actualAmount: 0,
+    currency: "MXN",
+    period: "2026-03",
+    type: "expense",
+    isFixed: false,
+    isParent: false,
+    createdAt: "2026-06-01T00:00:00.000Z",
+    updatedAt: "2026-06-01T00:00:00.000Z",
+  },
+];
+
+const carried = listPendingPayments(priorTaxConcepts, transactions, period);
+assert(carried.length === 3, `expected 3 pending items with carry-forward, got ${carried.length}`);
+assert(
+  calcCommittedFromTransactions(priorTaxConcepts, transactions, period) === 7557.13,
+  "committed should include prior-month tax arrears",
+);
+
+const priorOnly = carried.filter((item) => item.originPeriod !== period);
+assert(priorOnly.length === 2, `expected 2 prior-month items, got ${priorOnly.length}`);
+assert(
+  priorOnly.reduce((sum, item) => sum + item.pending, 0) === 6234,
+  "feb+mar impuestos should total 6234 pending",
+);
+
+const paymentInJune: EnhancedTransaction = {
+  id: "tx_tax_feb",
+  type: "expense",
+  description: "Impuestos febrero",
+  amount: 3867,
+  category: "Financial Services",
+  date: "2026-06-20",
+  timestamp: "2026-06-20T12:00:00.000Z",
+  source: "manual",
+  currency: "MXN",
+  budgetConceptId: "brain_2026-02_impuestos",
+};
+
+const afterPay = listPendingPayments(priorTaxConcepts, [...transactions, paymentInJune], period);
+assert(
+  afterPay.find((item) => item.conceptId === "brain_2026-02_impuestos") == null,
+  "feb impuestos should clear after payment linked to feb concept",
+);
+assert(
+  afterPay.find((item) => item.conceptId === "brain_2026-03_impuestos")?.pending === 2367,
+  "mar impuestos should remain pending",
+);
 
 const metrics = buildPeriodMoneyMetrics({
   transactions,
