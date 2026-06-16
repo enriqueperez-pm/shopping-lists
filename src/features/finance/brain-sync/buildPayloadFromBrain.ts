@@ -51,7 +51,9 @@ function brainIdFromTransaction(row: Record<string, string>): string | null {
   if (c.includes("gas dom")) return "gas";
   if (c.includes("hsbc") || c.includes("debt payment")) return "hsbc-transicion";
   if (c.includes("impuesto")) return "impuestos";
-  if (c.includes("at&t") || c.includes("teléfono") || c.includes("telefono")) return "telefono";
+  if (c.includes("at&t fer") || c.includes("mi niña") || c.includes("5618922308")) return "telefono-fer";
+  if (c.includes("at&t luis") || c.includes("5546108055")) return "telefono-luis";
+  if (c.includes("at&t") || c.includes("teléfono") || c.includes("telefono")) return "telefono-fer";
   if (c.includes("chedraui") || c.includes("despensa") || c.includes("supermercado")) return "despensa";
   if (c.includes("mog") || (c.includes("salida") && !c.includes("salidas"))) return "salidas";
   if (c.includes("nomina") || c.includes("nómina")) return "nomina";

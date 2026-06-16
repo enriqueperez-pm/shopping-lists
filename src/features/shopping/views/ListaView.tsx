@@ -121,7 +121,7 @@ export default function ListaView() {
       </div>
 
       <div
-        className="flex-1 min-h-0 overflow-y-auto view-fade px-[var(--pad,1rem)] pt-3 space-y-2 compras-scroll-pad-lista"
+        className="app-scroll-y view-fade px-[var(--pad,1rem)] pt-3 space-y-2 compras-scroll-pad-lista"
         style={{ "--pad": "clamp(14px, 3.5vw, 22px)" } as React.CSSProperties}
       >
         {sLoading ? (

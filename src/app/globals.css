@@ -27,9 +27,11 @@
     --income-bg: #ecfdf5;
     --expense-color: #dc2626;
     --expense-bg: #fef2f2;
-    --finance-nav-h: 72px;
+    --finance-nav-h: 80px;
     --compras-nav-h: 60px;
-    --fab-bottom: calc(var(--finance-nav-h) + 1rem + env(safe-area-inset-bottom, 0px));
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --fab-bottom: calc(var(--finance-nav-h) + 1rem + var(--safe-bottom));
+    --scroll-bottom-inset: calc(var(--finance-nav-h) + var(--safe-bottom) + 2rem);
     --hero-violet: #8b5cf6;
     --hero-coral: #fb7185;
     --hero-sun: #fbbf24;
@@ -228,15 +230,26 @@
   }
 
   .finance-scroll-pad {
-    padding-bottom: calc(var(--finance-nav-h) + env(safe-area-inset-bottom, 0px) + 1rem);
+    padding-bottom: var(--scroll-bottom-inset);
+    scroll-padding-bottom: var(--scroll-bottom-inset);
   }
 
   .finance-scroll-pad-fab {
-    padding-bottom: calc(var(--finance-nav-h) + env(safe-area-inset-bottom, 0px) + 4.5rem + 1rem);
+    padding-bottom: calc(var(--scroll-bottom-inset) + 4.5rem);
+    scroll-padding-bottom: calc(var(--scroll-bottom-inset) + 4.5rem);
   }
 
   .finance-scroll-pad-compact {
-    padding-bottom: calc(var(--finance-nav-h) + env(safe-area-inset-bottom, 0px) + 0.75rem);
+    padding-bottom: calc(var(--finance-nav-h) + var(--safe-bottom) + 1rem);
+    scroll-padding-bottom: calc(var(--finance-nav-h) + var(--safe-bottom) + 1rem);
+  }
+
+  .app-scroll-y {
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .compare-bar-bg {
@@ -317,11 +330,13 @@
   }
 
   .compras-scroll-pad {
-    padding-bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + env(safe-area-inset-bottom, 0px) + 1rem);
+    padding-bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + var(--safe-bottom) + 2rem);
+    scroll-padding-bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + var(--safe-bottom) + 2rem);
   }
 
   .compras-scroll-pad-lista {
-    padding-bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + env(safe-area-inset-bottom, 0px) + 5.5rem + 1rem);
+    padding-bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + var(--safe-bottom) + 5.5rem + 1rem);
+    scroll-padding-bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + var(--safe-bottom) + 5.5rem + 1rem);
   }
 }
 

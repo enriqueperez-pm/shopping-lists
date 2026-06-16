@@ -13,7 +13,7 @@ export default function HistorialView() {
       <AppHeader title="Historial" subtitle="Compras archivadas" showControls={false} />
 
       <div
-        className="flex-1 min-h-0 overflow-y-auto compras-scroll-pad view-fade px-[var(--pad,1rem)] pt-3"
+        className="app-scroll-y compras-scroll-pad view-fade px-[var(--pad,1rem)] pt-3"
         style={{ "--pad": "clamp(14px, 3.5vw, 22px)" } as React.CSSProperties}
       >
         <PurchaseHistory

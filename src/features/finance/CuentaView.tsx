@@ -116,7 +116,7 @@ export default function CuentaView() {
 
   return (
     <div
-      className="flex-1 min-h-0 overflow-y-auto px-[var(--pad,1rem)] py-3 space-y-4 finance-scroll-pad"
+      className="app-scroll-y px-[var(--pad,1rem)] py-3 space-y-4 finance-scroll-pad"
       style={{ "--pad": "clamp(14px, 3.5vw, 22px)" } as React.CSSProperties}
     >
       <PageHeader title="Cuenta" subtitle="Sesión y datos del dispositivo" />

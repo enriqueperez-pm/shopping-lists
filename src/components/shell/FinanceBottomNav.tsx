@@ -22,8 +22,8 @@ export default function FinanceBottomNav({ active }: { active: AppModule }) {
     <nav
       className="fixed bottom-0 inset-x-0 z-50 flex border-t border-[var(--border-hairline)] bg-white/92 backdrop-blur-md shadow-[0_-8px_24px_rgba(21,49,49,0.06)]"
       style={{
-        paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        height: "calc(var(--finance-nav-h, 64px) + env(safe-area-inset-bottom, 0px))",
+        paddingBottom: "var(--safe-bottom, env(safe-area-inset-bottom, 0px))",
+        height: "calc(var(--finance-nav-h, 80px) + var(--safe-bottom, env(safe-area-inset-bottom, 0px)))",
       }}
       aria-label="Navegación principal"
     >

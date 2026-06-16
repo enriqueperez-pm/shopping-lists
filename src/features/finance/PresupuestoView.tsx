@@ -29,43 +29,89 @@ function usageTone(isIncome: boolean, pct: number) {
   return pct >= 100 ? "bg-danger" : pct >= 85 ? "bg-cart" : "bg-pantry";
 }
 
-function ConceptProgressRow({
+function BudgetConceptCard({
   row,
   onEdit,
-  compact,
+  muted,
 }: {
   row: BudgetConceptAnalysis;
   onEdit: (concept: BudgetConcept) => void;
-  compact?: boolean;
+  muted?: boolean;
 }) {
-  const pct = row.budgeted > 0 ? Math.min(100, (row.actual / row.budgeted) * 100) : 0;
   const isIncome = row.concept.type === "income";
+  const pct = row.budgeted > 0 ? Math.min(100, (row.actual / row.budgeted) * 100) : 0;
+  const pending = Math.max(0, row.budgeted - row.actual);
+  const labelActual = isIncome ? "recibido" : "gastado";
+  const labelBudget = isIncome ? "meta" : "presupuesto";
+  const labelPending = isIncome ? "falta" : "por pagar";
 
   return (
     <button
       type="button"
       onClick={() => onEdit(row.concept)}
-      className={`w-full text-left hover:bg-[rgba(21,49,49,0.03)] transition-colors ${
-        compact ? "px-3 py-2.5 border-t border-[var(--border-hairline)]" : "surface-soft p-3"
+      className={`w-full text-left rounded-2xl border p-3.5 transition-colors ${
+        muted
+          ? "border-[var(--border-hairline)] bg-[rgba(21,49,49,0.02)] opacity-90"
+          : "border-[var(--border-soft)] bg-white shadow-card hover:border-[rgba(21,49,49,0.14)]"
       }`}
     >
-      <div className="flex justify-between gap-2 mb-2">
+      <div className="flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0">
-          <p className="text-sm font-medium truncate">{row.concept.name}</p>
+          <p className="text-[0.9375rem] font-semibold text-ink leading-snug truncate">
+            {row.concept.name}
+          </p>
           {row.concept.subcategory ? (
-            <p className="text-micro text-ink-faint truncate">{row.concept.subcategory}</p>
+            <p className="text-caption text-ink-faint mt-0.5 truncate">{row.concept.subcategory}</p>
           ) : null}
         </div>
-        <p className="text-sm font-semibold tabular-nums shrink-0">
-          {money(row.actual)} / {money(row.budgeted)}
-        </p>
+        {row.budgeted > 0 ? (
+          <span
+            className={`text-caption font-bold tabular-nums shrink-0 px-2 py-0.5 rounded-full ${
+              pct >= 100
+                ? isIncome
+                  ? "bg-pantry-light text-pantry"
+                  : "bg-danger-bg text-danger"
+                : "bg-[rgba(21,49,49,0.05)] text-ink-muted"
+            }`}
+          >
+            {Math.round(pct)}%
+          </span>
+        ) : null}
       </div>
-      <div className="h-1.5 rounded-full bg-[var(--border-hairline)] overflow-hidden">
-        <div
-          className={`h-full rounded-full ${usageTone(isIncome, pct)}`}
-          style={{ width: `${pct || 4}%` }}
-        />
+
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        <div>
+          <p className="text-lg font-bold tabular-nums text-ink leading-none">{money(row.actual)}</p>
+          <p className="text-micro text-ink-faint mt-1">{labelActual}</p>
+        </div>
+        <div className="text-center">
+          <p className="text-sm font-semibold tabular-nums text-ink-muted leading-none">
+            {money(row.budgeted)}
+          </p>
+          <p className="text-micro text-ink-faint mt-1">{labelBudget}</p>
+        </div>
+        <div className="text-right">
+          <p
+            className={`text-sm font-semibold tabular-nums leading-none ${
+              pending > 0 ? "text-cart" : "text-ink-faint"
+            }`}
+          >
+            {money(pending)}
+          </p>
+          <p className="text-micro text-ink-faint mt-1">{labelPending}</p>
+        </div>
       </div>
+
+      {row.budgeted > 0 ? (
+        <div className="h-2 rounded-full bg-[rgba(21,49,49,0.06)] overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${usageTone(isIncome, pct)}`}
+            style={{ width: `${Math.max(pct, row.actual > 0 ? 4 : 0)}%` }}
+          />
+        </div>
+      ) : (
+        <p className="text-micro text-ink-faint">Sin presupuesto asignado</p>
+      )}
     </button>
   );
 }
@@ -153,7 +199,7 @@ export default function PresupuestoView() {
 
   return (
     <div
-      className="flex-1 min-h-0 overflow-y-auto px-[var(--pad,1rem)] py-3 space-y-4 finance-scroll-pad"
+      className="app-scroll-y px-[var(--pad,1rem)] py-3 space-y-4 finance-scroll-pad"
       style={{ "--pad": "clamp(14px, 3.5vw, 22px)" } as React.CSSProperties}
     >
       <PageHeader
@@ -208,7 +254,7 @@ export default function PresupuestoView() {
         )}
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-5 pb-2">
         {categoryGroups.length === 0 && activeOrphanLeaves.length === 0 ? (
           inactiveConcepts.length > 0 ? (
             <p className="text-caption">
@@ -226,39 +272,36 @@ export default function PresupuestoView() {
             const isCollapsed = collapsed[key];
             const groupBudgeted = children.reduce((s, c) => s + c.budgeted, 0);
             const groupActual = children.reduce((s, c) => s + c.actual, 0);
-            const parentPct =
-              groupBudgeted > 0 ? Math.min(100, (groupActual / groupBudgeted) * 100) : 0;
 
             return (
-              <section key={parent.concept.id} className="surface-soft overflow-hidden">
-                <div className="flex items-stretch">
+              <section key={parent.concept.id} className="space-y-2">
+                <div className="flex items-center gap-1 px-0.5">
                   <button
                     type="button"
                     onClick={() => toggleCollapse(key)}
-                    className="flex-1 flex items-center justify-between gap-2 px-3 py-2.5 hover:bg-[rgba(21,49,49,0.03)] transition-colors min-w-0"
+                    className="flex-1 flex items-center gap-2 min-w-0 text-left py-1"
+                    aria-expanded={!isCollapsed}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <ChevronDown
-                        size={16}
-                        className={`shrink-0 text-ink-faint transition-transform ${
-                          isCollapsed ? "-rotate-90" : ""
-                        }`}
-                      />
-                      <div className="min-w-0 text-left">
-                        <span className="category-label uppercase block truncate">
-                          {parent.concept.category}
-                        </span>
-                        <span className="text-micro text-ink-faint tabular-nums">
-                          {children.length} concepto{children.length !== 1 ? "s" : ""} ·{" "}
-                          {money(groupActual)} / {money(groupBudgeted)}
-                        </span>
-                      </div>
+                    <ChevronDown
+                      size={16}
+                      className={`shrink-0 text-ink-faint transition-transform ${
+                        isCollapsed ? "-rotate-90" : ""
+                      }`}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-xs font-bold uppercase tracking-[0.06em] text-ink-muted truncate">
+                        {parent.concept.category}
+                      </h3>
+                      <p className="text-caption text-ink-faint tabular-nums">
+                        {money(groupActual)} / {money(groupBudgeted)} · {children.length}{" "}
+                        {children.length === 1 ? "concepto" : "conceptos"}
+                      </p>
                     </div>
                   </button>
-                  <div className="flex flex-col border-l border-[var(--border-hairline)] shrink-0">
+                  <div className="flex shrink-0">
                     <button
                       type="button"
-                      className="px-2 py-1 text-ink-faint hover:text-ink hover:bg-[rgba(21,49,49,0.03)] disabled:opacity-30"
+                      className="p-1.5 text-ink-faint hover:text-ink disabled:opacity-30"
                       aria-label="Subir categoría"
                       disabled={index === 0}
                       onClick={() => moveCategory(parent.concept.id, "up")}
@@ -267,7 +310,7 @@ export default function PresupuestoView() {
                     </button>
                     <button
                       type="button"
-                      className="px-2 py-1 text-ink-faint hover:text-ink hover:bg-[rgba(21,49,49,0.03)] disabled:opacity-30"
+                      className="p-1.5 text-ink-faint hover:text-ink disabled:opacity-30"
                       aria-label="Bajar categoría"
                       disabled={index === categoryGroups.length - 1}
                       onClick={() => moveCategory(parent.concept.id, "down")}
@@ -276,22 +319,14 @@ export default function PresupuestoView() {
                     </button>
                   </div>
                 </div>
+
                 {!isCollapsed ? (
-                  <div>
-                    <div className="px-3 pb-2">
-                      <div className="h-1.5 rounded-full bg-[var(--border-hairline)] overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${usageTone(parent.concept.type === "income", parentPct)}`}
-                          style={{ width: `${parentPct || 4}%` }}
-                        />
-                      </div>
-                    </div>
+                  <div className="space-y-2">
                     {children.map((child) => (
-                      <ConceptProgressRow
+                      <BudgetConceptCard
                         key={child.concept.id}
                         row={child}
                         onEdit={setEditing}
-                        compact
                       />
                     ))}
                   </div>
@@ -303,31 +338,27 @@ export default function PresupuestoView() {
 
         {activeOrphanLeaves.length > 0 ? (
           <section className="space-y-2">
-            {categoryGroups.length > 0 ? (
-              <p className="text-micro text-ink-faint px-1">Sin categoría padre</p>
-            ) : null}
+            <h3 className="text-xs font-bold uppercase tracking-[0.06em] text-ink-muted px-0.5">
+              Sin categoría
+            </h3>
             {activeOrphanLeaves.map((row) => (
-              <ConceptProgressRow key={row.concept.id} row={row} onEdit={setEditing} />
+              <BudgetConceptCard key={row.concept.id} row={row} onEdit={setEditing} />
             ))}
           </section>
         ) : null}
 
         {inactiveConcepts.length > 0 ? (
-          <section className="surface-soft overflow-hidden border border-dashed border-[var(--border-hairline)]">
+          <section className="pt-1">
             <button
               type="button"
               onClick={() => setShowEmptyConcepts((v) => !v)}
-              className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-[rgba(21,49,49,0.03)] transition-colors"
+              className="w-full flex items-center justify-between gap-2 px-1 py-2 text-left"
               aria-expanded={showEmptyConcepts}
             >
-              <div className="min-w-0">
-                <span className="text-sm font-medium text-ink-muted">
-                  Sin presupuesto ni gasto
-                </span>
-                <span className="text-micro text-ink-faint block">
-                  {inactiveConcepts.length} concepto
-                  {inactiveConcepts.length !== 1 ? "s" : ""} oculto
-                  {inactiveConcepts.length !== 1 ? "s" : ""}
+              <div>
+                <span className="text-sm font-medium text-ink-muted">Sin presupuesto ni gasto</span>
+                <span className="text-caption text-ink-faint block">
+                  {inactiveConcepts.length} ocultos · toca para {showEmptyConcepts ? "cerrar" : "ver"}
                 </span>
               </div>
               <ChevronDown
@@ -338,13 +369,13 @@ export default function PresupuestoView() {
               />
             </button>
             {showEmptyConcepts ? (
-              <div className="border-t border-[var(--border-hairline)] opacity-80">
+              <div className="space-y-2 mt-2">
                 {inactiveConcepts.map((row) => (
-                  <ConceptProgressRow
+                  <BudgetConceptCard
                     key={row.concept.id}
                     row={row}
                     onEdit={setEditing}
-                    compact
+                    muted
                   />
                 ))}
               </div>
@@ -352,6 +383,8 @@ export default function PresupuestoView() {
           </section>
         ) : null}
       </div>
+
+      <div aria-hidden className="h-4 shrink-0" />
 
       {editing && (
         <ConceptEditor
