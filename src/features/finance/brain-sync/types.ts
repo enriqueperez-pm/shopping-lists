@@ -31,6 +31,6 @@ export type BrainCsvExport = {
 export type BrainSnapshotRow = {
   id: string;
   payload: FinancialPersistedData;
-  source: "csv" | "app_import" | "cli";
+  source: "csv" | "app_import" | "cli" | "app";
   updated_at: string;
 };

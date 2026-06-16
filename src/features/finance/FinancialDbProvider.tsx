@@ -10,7 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Session } from "@supabase/supabase-js";
+import type { RealtimeChannel, Session } from "@supabase/supabase-js";
 import {
   FinancialDatabase,
   clearLocalFinanceStorage,
@@ -18,18 +18,28 @@ import {
   type EnhancedTransaction,
   type FinancialPersistedData,
 } from "./FinancialDatabase";
-import { fetchUserFinancialPayload, upsertUserFinancialPayload, fetchBrainSnapshot, upsertBrainSnapshot } from "./financialSupabaseSync";
-import { mergeFinancialPayloads } from "./financialPayloadMerge";
+import {
+  fetchUserFinancialPayload,
+  upsertUserFinancialPayload,
+  fetchBrainSnapshot,
+  upsertBrainSnapshot,
+} from "./financialSupabaseSync";
+import { payloadsEqual, reconcileFinancialState } from "./financialReconcile";
 import {
   buildPayloadFromBrainCsv,
   brainCsvInputsFromFiles,
-  mergeBrainWithRemote,
   validateBrainCsvInputs,
   type BrainCsvInputs,
 } from "./brain-sync";
-import { ensureBaselineBudgetTaxonomy, ensureBaselineIncomeConcepts, ensurePeriodConceptHierarchy, dedupeBudgetConceptsInDb, getBudgetConcepts } from "./finance-linking";
+import {
+  ensureBaselineBudgetTaxonomy,
+  ensureBaselineIncomeConcepts,
+  ensurePeriodConceptHierarchy,
+  dedupeBudgetConceptsInDb,
+  getBudgetConcepts,
+} from "./finance-linking";
 import { setFinanceDb } from "./finance-bridge";
-import { HOUSEHOLD_MEMBER_IDS, resolveCloudPayloadUserId } from "@/lib/household";
+import { HOUSEHOLD_MEMBER_IDS, HOUSEHOLD_PAYLOAD_USER_ID, resolveCloudPayloadUserId } from "@/lib/household";
 import { getBrowserSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
 
 type FinanceContextValue = {
@@ -43,6 +53,7 @@ type FinanceContextValue = {
   cloudSyncError: string | null;
   brainSyncError: string | null;
   brainSnapshotUpdatedAt: string | null;
+  lastCloudSyncAt: string | null;
   reloadFromCloud: () => void;
   syncBrainFromCloud: () => Promise<boolean>;
   importBrainCsv: (files: File[]) => Promise<boolean>;
@@ -65,11 +76,18 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
   const [cloudSyncError, setCloudSyncError] = useState<string | null>(null);
   const [brainSyncError, setBrainSyncError] = useState<string | null>(null);
   const [brainSnapshotUpdatedAt, setBrainSnapshotUpdatedAt] = useState<string | null>(null);
+  const [lastCloudSyncAt, setLastCloudSyncAt] = useState<string | null>(null);
+
   const userIdRef = useRef<string | null>(null);
   const dbRef = useRef<FinancialDatabase | null>(null);
   const cloudTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconcileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cloudSyncInFlightRef = useRef(false);
+  const reconcileInFlightRef = useRef(false);
   const cloudSyncDirtyRef = useRef(false);
+  const lastLocalPushMsRef = useRef(0);
+  const realtimeChannelRef = useRef<RealtimeChannel | null>(null);
+  const lastRemoteCloudMsRef = useRef(0);
 
   const [db] = useState(() => {
     const inst = new FinancialDatabase({
@@ -109,13 +127,26 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
     cloudSyncInFlightRef.current = true;
     try {
       d.captureModuleDataFromLocalStorage({ persist: true });
-      const payload = d.exportFullStateObject() as unknown as Record<string, unknown>;
-      const ok = await upsertUserFinancialPayload(payloadUserId, payload);
-      if (!ok) {
+      const payload = d.exportFullStateObject() as FinancialPersistedData;
+      const now = new Date().toISOString();
+
+      const payloadOk = await upsertUserFinancialPayload(
+        payloadUserId,
+        payload as unknown as Record<string, unknown>,
+      );
+      const snapshotOk = await upsertBrainSnapshot(payload, "app");
+
+      if (!payloadOk || !snapshotOk) {
         cloudSyncDirtyRef.current = true;
+        if (!snapshotOk) setBrainSyncError("No se pudo actualizar el brain en la nube.");
         return false;
       }
+
       cloudSyncDirtyRef.current = false;
+      lastLocalPushMsRef.current = Date.now();
+      setLastCloudSyncAt(now);
+      setBrainSnapshotUpdatedAt(now);
+      setBrainSyncError(null);
       return true;
     } catch (error) {
       console.error(`[Supabase] Sync error (${reason}):`, error);
@@ -136,10 +167,95 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
     if (row) setBrainSyncError(null);
   }, []);
 
+  const pullFromCloud = useCallback(
+    async (options?: { skipIfRecentLocalPush?: boolean; pushIfLocalNewer?: boolean }) => {
+      if (reconcileInFlightRef.current) return false;
+      const d = dbRef.current;
+      const uid = userIdRef.current;
+      const payloadUserId = resolveCloudPayloadUserId(uid);
+      if (!d || !payloadUserId || !isSupabaseConfigured()) return false;
+
+      if (
+        options?.skipIfRecentLocalPush &&
+        Date.now() - lastLocalPushMsRef.current < 2500
+      ) {
+        return false;
+      }
+
+      reconcileInFlightRef.current = true;
+      try {
+        const [{ row: remoteRow, error: remoteError }, { row: brainRow, error: brainError }] =
+          await Promise.all([
+            fetchUserFinancialPayload(payloadUserId),
+            fetchBrainSnapshot(),
+          ]);
+
+        if (remoteError) {
+          setCloudSyncError(remoteError);
+          return false;
+        }
+        if (brainError) setBrainSyncError(brainError);
+
+        const remoteMs = remoteRow?.updated_at
+          ? new Date(remoteRow.updated_at).getTime()
+          : 0;
+        const brainMs = brainRow?.updated_at ? new Date(brainRow.updated_at).getTime() : 0;
+        const cloudMs = Math.max(remoteMs, brainMs);
+
+        if (cloudMs <= lastRemoteCloudMsRef.current && !options?.pushIfLocalNewer) {
+          return false;
+        }
+
+        const remotePayload =
+          remoteRow?.payload && isFinancialPersistedData(remoteRow.payload)
+            ? remoteRow.payload
+            : null;
+        const brainPayload =
+          brainRow?.payload && isFinancialPersistedData(brainRow.payload)
+            ? brainRow.payload
+            : null;
+
+        const localPayload = d.exportFullStateObject() as FinancialPersistedData;
+        const merged = reconcileFinancialState(localPayload, remotePayload, brainPayload);
+
+        if (!payloadsEqual(localPayload, merged)) {
+          d.importFullState(merged, { skipCloudHook: true });
+          dedupeBudgetConceptsInDb(d);
+          refresh();
+        }
+
+        lastRemoteCloudMsRef.current = cloudMs;
+        if (brainRow?.updated_at) setBrainSnapshotUpdatedAt(brainRow.updated_at);
+        if (remoteRow?.updated_at) setLastCloudSyncAt(remoteRow.updated_at);
+        setBrainSyncError(null);
+        setCloudSyncError(null);
+
+        if (options?.pushIfLocalNewer) {
+          const localMs = d.getLastUpdateMs();
+          if (localMs > cloudMs) {
+            await runCloudSync("local-newer");
+          }
+        }
+
+        return true;
+      } finally {
+        reconcileInFlightRef.current = false;
+      }
+    },
+    [refresh, runCloudSync],
+  );
+
+  const schedulePullFromCloud = useCallback(() => {
+    if (reconcileTimerRef.current) clearTimeout(reconcileTimerRef.current);
+    reconcileTimerRef.current = setTimeout(() => {
+      void pullFromCloud({ skipIfRecentLocalPush: true });
+    }, 600);
+  }, [pullFromCloud]);
+
   const applyBrainPayloadMerge = useCallback(
     async (
       brainPayload: FinancialPersistedData,
-      snapshotSource: "csv" | "app_import" | "cli",
+      snapshotSource: "csv" | "app_import" | "cli" | "app",
     ): Promise<boolean> => {
       const d = dbRef.current;
       const uid = userIdRef.current;
@@ -162,9 +278,8 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
           ? remoteRow.payload
           : null;
 
-      const brainMerged = mergeBrainWithRemote(brainPayload, remotePayload);
       const localPayload = d.exportFullStateObject() as FinancialPersistedData;
-      const finalMerged = mergeFinancialPayloads(localPayload, brainMerged);
+      const finalMerged = reconcileFinancialState(localPayload, remotePayload, brainPayload);
 
       const snapshotOk = await upsertBrainSnapshot(brainPayload, snapshotSource);
       if (!snapshotOk) {
@@ -172,6 +287,7 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
         return false;
       }
 
+      const now = new Date().toISOString();
       const cloudOk = await upsertUserFinancialPayload(
         payloadUserId,
         finalMerged as unknown as Record<string, unknown>,
@@ -181,9 +297,11 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
         return false;
       }
 
+      lastLocalPushMsRef.current = Date.now();
       d.importFullState(finalMerged, { skipCloudHook: true });
       dedupeBudgetConceptsInDb(d);
-      setBrainSnapshotUpdatedAt(new Date().toISOString());
+      setBrainSnapshotUpdatedAt(now);
+      setLastCloudSyncAt(now);
       refresh();
       return true;
     },
@@ -254,44 +372,13 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
       }
 
       try {
-        const { row, error } = await fetchUserFinancialPayload(payloadUserId);
-        if (error) {
-          setCloudSyncError(error);
-          setCloudHydrated(true);
-          return;
-        }
-
-        const localMs = d.getLastUpdateMs();
-        const remoteMs = row?.updated_at ? new Date(row.updated_at).getTime() : 0;
-        const remotePayload = row?.payload;
-        const localLeafConcepts = getBudgetConcepts(d).filter((c) => !c.isParent).length;
-        const localTxCount = d.getTransactions().length;
-
-        if (remotePayload && isFinancialPersistedData(remotePayload)) {
-          const localPayload = d.exportFullStateObject() as FinancialPersistedData;
-          const merged = mergeFinancialPayloads(localPayload, remotePayload);
-          d.importFullState(merged, { skipCloudHook: true });
-          dedupeBudgetConceptsInDb(d);
-
-          const mergedJson = JSON.stringify(merged);
-          const remoteJson = JSON.stringify(remotePayload);
-          const localJson = JSON.stringify(localPayload);
-          if (mergedJson !== remoteJson || localMs >= remoteMs || localJson !== mergedJson) {
-            await runCloudSync("merge-unified");
-          }
-        } else if (localLeafConcepts === 0 && localTxCount === 0) {
-          setCloudSyncError(
-            "No hay presupuesto en la nube todavía. Hay que subir el brain (sync) una vez.",
-          );
-        } else if (localMs > 0 && getBudgetConcepts(d).some((c) => !c.isParent)) {
-          await runCloudSync("bootstrap-backup");
-        }
+        await pullFromCloud({ pushIfLocalNewer: true });
       } finally {
         setCloudHydrated(true);
         void refreshBrainSnapshotMeta();
       }
     },
-    [runCloudSync, refreshBrainSnapshotMeta],
+    [pullFromCloud, refreshBrainSnapshotMeta],
   );
 
   const reloadFromCloud = useCallback(() => {
@@ -322,11 +409,52 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
       } else {
         setCloudHydrated(true);
         setCloudSyncError(null);
+        if (realtimeChannelRef.current) {
+          void supabase.removeChannel(realtimeChannelRef.current);
+          realtimeChannelRef.current = null;
+        }
       }
     });
 
     return () => subscription.unsubscribe();
   }, [mergeRemote]);
+
+  useEffect(() => {
+    if (!cloudHydrated || !userId || !isSupabaseConfigured()) return;
+    if (!(HOUSEHOLD_MEMBER_IDS as readonly string[]).includes(userId)) return;
+
+    const supabase = getBrowserSupabase();
+    const channel = supabase
+      .channel("finance-realtime-sync")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "user_financial_payload",
+          filter: `user_id=eq.${HOUSEHOLD_PAYLOAD_USER_ID}`,
+        },
+        () => schedulePullFromCloud(),
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "brain_financial_snapshot",
+          filter: "id=eq.household",
+        },
+        () => schedulePullFromCloud(),
+      )
+      .subscribe();
+
+    realtimeChannelRef.current = channel;
+
+    return () => {
+      void supabase.removeChannel(channel);
+      realtimeChannelRef.current = null;
+    };
+  }, [cloudHydrated, userId, schedulePullFromCloud]);
 
   const value = useMemo(
     () => ({
@@ -340,6 +468,7 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
       cloudSyncError,
       brainSyncError,
       brainSnapshotUpdatedAt,
+      lastCloudSyncAt,
       reloadFromCloud,
       syncBrainFromCloud,
       importBrainCsv,
@@ -355,6 +484,7 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
       cloudSyncError,
       brainSyncError,
       brainSnapshotUpdatedAt,
+      lastCloudSyncAt,
       reloadFromCloud,
       syncBrainFromCloud,
       importBrainCsv,

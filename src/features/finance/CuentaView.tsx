@@ -18,6 +18,7 @@ export default function CuentaView() {
     cloudSyncError,
     brainSyncError,
     brainSnapshotUpdatedAt,
+    lastCloudSyncAt,
     syncBrainFromCloud,
     importBrainCsv,
   } = useFinance();
@@ -105,6 +106,13 @@ export default function CuentaView() {
       })
     : "Sin snapshot en la nube";
 
+  const cloudSyncLabel = lastCloudSyncAt
+    ? new Date(lastCloudSyncAt).toLocaleString("es-MX", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : "Pendiente";
+
   return (
     <div
       className="flex-1 min-h-0 overflow-y-auto px-[var(--pad,1rem)] py-3 space-y-4 finance-scroll-pad"
@@ -156,10 +164,17 @@ export default function CuentaView() {
 
       {isHousehold ? (
         <section className="space-y-2">
-          <h2 className="text-sm font-semibold text-ink">Sincronizar brain</h2>
+          <h2 className="text-sm font-semibold text-ink">Brain y nube (automático)</h2>
           <p className="text-caption">
-            Fusiona el presupuesto del brain (CSV) con la nube y este dispositivo. Último snapshot:{" "}
-            <span className="font-medium text-ink-muted">{snapshotLabel}</span>
+            Cada cambio en la app se sube a Supabase y al brain en la nube al guardar. Entre
+            dispositivos se actualiza en tiempo real. Última sync app:{" "}
+            <span className="font-medium text-ink-muted">{cloudSyncLabel}</span>
+            {" · "}
+            brain: <span className="font-medium text-ink-muted">{snapshotLabel}</span>
+          </p>
+          <p className="text-caption text-ink-faint">
+            Para que los CSV en Drive se actualicen solos, deja corriendo en tu PC:{" "}
+            <code className="text-micro">npm run sync:brain:watch</code>
           </p>
           {brainSyncError ? (
             <p className="text-caption text-cart">{brainSyncError}</p>

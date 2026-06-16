@@ -9,6 +9,7 @@
     "lint": "next lint",
     "backfill:shopping": "node scripts/backfill-shopping.mjs",
     "sync:brain": "node scripts/sync-brain-finanzas.mjs",
+    "sync:brain:watch": "node scripts/sync-brain-watch.mjs",
     "test:brain-merge": "npx tsx scripts/test-brain-merge.ts"
   },
   "dependencies": {
