@@ -15,7 +15,7 @@ import {
   sortGroupsByCategoryOrder,
 } from "./finance-linking";
 import { useBudgetAnalytics } from "./useBudget";
-import { readBudgetUiState, writeBudgetUiState } from "./budget-ui-state";
+import { readBudgetUiState, writeBudgetUiState, isActiveBudgetConcept } from "./budget-ui-state";
 import { money } from "@/lib/money";
 import type { BudgetConcept } from "./types";
 import type { BudgetConceptAnalysis } from "./budget-analytics";
@@ -80,36 +80,52 @@ export default function PresupuestoView() {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
     return readBudgetUiState()?.collapsed ?? {};
   });
+  const [showEmptyConcepts, setShowEmptyConcepts] = useState(
+    () => readBudgetUiState()?.showEmptyConcepts ?? false,
+  );
 
   useEffect(() => {
-    writeBudgetUiState({ collapsed });
-  }, [collapsed]);
+    writeBudgetUiState({ collapsed, showEmptyConcepts });
+  }, [collapsed, showEmptyConcepts]);
 
   const conceptType = tab === "gastos" ? "expense" : "income";
 
-  const categoryGroups = useMemo(() => {
+  const { categoryGroups, activeOrphanLeaves, inactiveConcepts } = useMemo(() => {
     const parents = analytics.parentAnalyses.filter((row) => row.concept.type === conceptType);
     const leaves = analytics.leafAnalyses.filter((row) => row.concept.type === conceptType);
 
+    const inactive: BudgetConceptAnalysis[] = [];
+
     const groups = parents
-      .map((parent) => ({
-        parent,
-        children: leaves
+      .map((parent) => {
+        const allChildren = leaves
           .filter((leaf) => leaf.concept.parentId === parent.concept.id)
-          .sort((a, b) => a.concept.name.localeCompare(b.concept.name, "es")),
-      }))
+          .sort((a, b) => a.concept.name.localeCompare(b.concept.name, "es"));
+        const activeChildren = allChildren.filter(isActiveBudgetConcept);
+        inactive.push(...allChildren.filter((c) => !isActiveBudgetConcept(c)));
+        return { parent, children: activeChildren };
+      })
       .filter((group) => group.children.length > 0);
 
     const order = getBudgetCategoryOrder(db, selectedPeriod, conceptType);
-    return sortGroupsByCategoryOrder(groups, order);
-  }, [analytics.parentAnalyses, analytics.leafAnalyses, conceptType, db, selectedPeriod]);
+    const sortedGroups = sortGroupsByCategoryOrder(groups, order);
 
-  const orphanLeaves = useMemo(() => {
-    const linked = new Set(categoryGroups.flatMap((group) => group.children.map((c) => c.concept.id)));
-    return analytics.leafAnalyses
-      .filter((row) => row.concept.type === conceptType && !linked.has(row.concept.id))
+    const linked = new Set(sortedGroups.flatMap((group) => group.children.map((c) => c.concept.id)));
+    const orphans = leaves
+      .filter((row) => !linked.has(row.concept.id))
       .sort((a, b) => a.concept.name.localeCompare(b.concept.name, "es"));
-  }, [analytics.leafAnalyses, categoryGroups, conceptType]);
+
+    const activeOrphans = orphans.filter(isActiveBudgetConcept);
+    inactive.push(...orphans.filter((c) => !isActiveBudgetConcept(c)));
+
+    inactive.sort((a, b) => a.concept.name.localeCompare(b.concept.name, "es"));
+
+    return {
+      categoryGroups: sortedGroups,
+      activeOrphanLeaves: activeOrphans,
+      inactiveConcepts: inactive,
+    };
+  }, [analytics.parentAnalyses, analytics.leafAnalyses, conceptType, db, selectedPeriod]);
 
   const toggleCollapse = (key: string) => {
     setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -193,16 +209,25 @@ export default function PresupuestoView() {
       </div>
 
       <div className="space-y-3">
-        {categoryGroups.length === 0 && orphanLeaves.length === 0 ? (
-          <p className="text-caption">
-            Sin conceptos de {tab === "gastos" ? "gasto" : "ingreso"} este mes.
-          </p>
+        {categoryGroups.length === 0 && activeOrphanLeaves.length === 0 ? (
+          inactiveConcepts.length > 0 ? (
+            <p className="text-caption">
+              Ningún concepto con presupuesto o gasto este mes. Revisa los ocultos abajo o asigna
+              montos.
+            </p>
+          ) : (
+            <p className="text-caption">
+              Sin conceptos de {tab === "gastos" ? "gasto" : "ingreso"} este mes.
+            </p>
+          )
         ) : (
           categoryGroups.map(({ parent, children }, index) => {
             const key = `budget:${tab}:${parent.concept.id}`;
             const isCollapsed = collapsed[key];
+            const groupBudgeted = children.reduce((s, c) => s + c.budgeted, 0);
+            const groupActual = children.reduce((s, c) => s + c.actual, 0);
             const parentPct =
-              parent.budgeted > 0 ? Math.min(100, (parent.actual / parent.budgeted) * 100) : 0;
+              groupBudgeted > 0 ? Math.min(100, (groupActual / groupBudgeted) * 100) : 0;
 
             return (
               <section key={parent.concept.id} className="surface-soft overflow-hidden">
@@ -225,7 +250,7 @@ export default function PresupuestoView() {
                         </span>
                         <span className="text-micro text-ink-faint tabular-nums">
                           {children.length} concepto{children.length !== 1 ? "s" : ""} ·{" "}
-                          {money(parent.actual)} / {money(parent.budgeted)}
+                          {money(groupActual)} / {money(groupBudgeted)}
                         </span>
                       </div>
                     </div>
@@ -276,14 +301,54 @@ export default function PresupuestoView() {
           })
         )}
 
-        {orphanLeaves.length > 0 ? (
+        {activeOrphanLeaves.length > 0 ? (
           <section className="space-y-2">
             {categoryGroups.length > 0 ? (
               <p className="text-micro text-ink-faint px-1">Sin categoría padre</p>
             ) : null}
-            {orphanLeaves.map((row) => (
+            {activeOrphanLeaves.map((row) => (
               <ConceptProgressRow key={row.concept.id} row={row} onEdit={setEditing} />
             ))}
+          </section>
+        ) : null}
+
+        {inactiveConcepts.length > 0 ? (
+          <section className="surface-soft overflow-hidden border border-dashed border-[var(--border-hairline)]">
+            <button
+              type="button"
+              onClick={() => setShowEmptyConcepts((v) => !v)}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-[rgba(21,49,49,0.03)] transition-colors"
+              aria-expanded={showEmptyConcepts}
+            >
+              <div className="min-w-0">
+                <span className="text-sm font-medium text-ink-muted">
+                  Sin presupuesto ni gasto
+                </span>
+                <span className="text-micro text-ink-faint block">
+                  {inactiveConcepts.length} concepto
+                  {inactiveConcepts.length !== 1 ? "s" : ""} oculto
+                  {inactiveConcepts.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+              <ChevronDown
+                size={16}
+                className={`shrink-0 text-ink-faint transition-transform ${
+                  showEmptyConcepts ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+            {showEmptyConcepts ? (
+              <div className="border-t border-[var(--border-hairline)] opacity-80">
+                {inactiveConcepts.map((row) => (
+                  <ConceptProgressRow
+                    key={row.concept.id}
+                    row={row}
+                    onEdit={setEditing}
+                    compact
+                  />
+                ))}
+              </div>
+            ) : null}
           </section>
         ) : null}
       </div>
