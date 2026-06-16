@@ -29,6 +29,10 @@
     --expense-bg: #fef2f2;
     --finance-nav-h: 64px;
     --compras-nav-h: 60px;
+    --fab-bottom: calc(var(--finance-nav-h) + 1rem + env(safe-area-inset-bottom, 0px));
+    --hero-violet: #8b5cf6;
+    --hero-coral: #fb7185;
+    --hero-sun: #fbbf24;
     --duration-fast: 150ms;
     --duration-normal: 200ms;
     --duration-toast: 220ms;
@@ -53,6 +57,17 @@
 }
 
 @layer components {
+  /*
+   * klagi design system:
+   * 1. Primary = ink (buttons, nav, FAB)
+   * 2. Gradient = .hero-gradient only (Disponible hero)
+   * 3. Money semantics = income/expense vars
+   * 4. Shopping semantics = pantry/cart/list/saved accent bars
+   * 5. Surfaces = surface-soft neutral; secondary = btn-soft
+   * 6. Tabs = .app-tab underline ink
+   * 7. brand.* = legacy, do not use in new UI
+   */
+
   /* ── Typography ── */
   .text-title {
     @apply text-[1.0625rem] font-semibold leading-snug tracking-tight text-ink;
@@ -105,10 +120,10 @@
   }
   .btn-primary {
     @apply inline-flex items-center justify-center gap-1 px-3.5 py-1.5 rounded-xl
-      text-sm font-semibold text-white bg-brand-500
-      shadow-soft hover:bg-brand-600 active:scale-[0.98]
+      text-sm font-semibold text-white bg-ink
+      shadow-soft hover:bg-ink-muted active:scale-[0.98]
       transition-all duration-fast
-      focus-visible:ring-1 focus-visible:ring-brand-400/50 focus-visible:ring-offset-1;
+      focus-visible:ring-1 focus-visible:ring-ink/30 focus-visible:ring-offset-1;
   }
 
   /* ── Chips ── */
@@ -118,7 +133,7 @@
       transition-all duration-fast hover:text-ink;
   }
   .chip-active {
-    @apply chip bg-brand-50/90 text-brand-700 border-brand-200/60 font-semibold;
+    @apply chip font-semibold text-ink border-ink/20 bg-[rgba(21,49,49,0.06)];
   }
 
   /* ── Edit fields (finer) ── */
@@ -201,7 +216,7 @@
 
   /* ── Finance / Disponible ── */
   .hero-gradient {
-    background: linear-gradient(135deg, #8b5cf6 0%, #fb7185 52%, #fbbf24 100%);
+    background: linear-gradient(135deg, var(--hero-violet) 0%, var(--hero-coral) 52%, var(--hero-sun) 100%);
     color: white;
     border: none;
     box-shadow: 0 12px 32px rgba(139, 92, 246, 0.25);
@@ -269,16 +284,40 @@
     background: var(--expense-color);
   }
 
-  .finance-tab {
+  .app-tab {
     @apply flex-1 py-2 text-xs font-semibold border-b-2 border-transparent text-ink-faint
       transition-colors duration-fast bg-transparent cursor-pointer;
   }
-  .finance-tab-active {
-    @apply finance-tab text-ink border-ink;
+  .app-tab-active {
+    @apply app-tab text-ink border-ink;
+  }
+
+  /* legacy aliases */
+  .finance-tab { @apply app-tab; }
+  .finance-tab-active { @apply app-tab-active; }
+
+  .app-fab {
+    @apply fixed right-4 z-30 w-11 h-11 rounded-full bg-ink text-white shadow-float
+      flex items-center justify-center active:scale-[0.98] transition-transform duration-fast;
+    bottom: var(--fab-bottom);
+  }
+  .app-fab-compras {
+    bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + 1rem + env(safe-area-inset-bottom, 0px));
+  }
+  .app-fab-lista {
+    bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + 5.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .app-spinner {
+    @apply w-7 h-7 rounded-full animate-spin border-2 border-[rgba(21,49,49,0.12)] border-t-ink;
   }
 
   .compras-scroll-pad {
     padding-bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + 1rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .compras-scroll-pad-lista {
+    padding-bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + 5.5rem + 1rem + env(safe-area-inset-bottom, 0px));
   }
 }
 

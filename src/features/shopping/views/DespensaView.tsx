@@ -7,6 +7,7 @@ import FilterChips from "@/components/FilterChips";
 import ProductCard from "@/components/ProductCard";
 import EmptyState from "@/components/EmptyState";
 import AddProductModal from "@/components/AddProductModal";
+import AppFab from "@/components/ui/AppFab";
 import { resolveProductStage } from "@/lib/productStage";
 import { useShoppingContext } from "../ShoppingProvider";
 
@@ -60,7 +61,7 @@ export default function DespensaView() {
 
         {pLoading ? (
           <div className="flex items-center justify-center py-16">
-            <div className="w-7 h-7 border-2 border-brand-200 border-t-brand-500 rounded-full animate-spin" />
+            <div className="app-spinner" />
           </div>
         ) : grouped.length === 0 ? (
           <EmptyState
@@ -109,14 +110,9 @@ export default function DespensaView() {
         )}
       </div>
 
-      <button
-        onClick={() => setShowAdd(true)}
-        className="fixed right-4 z-30 w-11 h-11 rounded-full bg-brand-500 text-white shadow-float flex items-center justify-center transition-all duration-fast active:scale-[0.98] hover:bg-brand-600"
-        style={{ bottom: "calc(3.75rem + env(safe-area-inset-bottom, 0px) + .65rem)" }}
-        aria-label="Agregar producto"
-      >
+      <AppFab variant="compras" onClick={() => setShowAdd(true)} ariaLabel="Agregar producto">
         <Plus size={20} strokeWidth={2.5} />
-      </button>
+      </AppFab>
 
       {showAdd && (
         <AddProductModal

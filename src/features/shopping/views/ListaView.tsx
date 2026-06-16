@@ -7,6 +7,7 @@ import ShopItem from "@/components/ShopItem";
 import EmptyState from "@/components/EmptyState";
 import AddProductModal from "@/components/AddProductModal";
 import TripTotalBar from "@/components/TripTotalBar";
+import AppFab from "@/components/ui/AppFab";
 import { useShoppingContext } from "../ShoppingProvider";
 
 export default function ListaView() {
@@ -77,7 +78,7 @@ export default function ListaView() {
           <Share2 size={13} />
           Compartir
         </button>
-        <button type="button" onClick={handleShareReceipt} className="btn-soft shrink-0 text-brand-600">
+        <button type="button" onClick={handleShareReceipt} className="btn-soft shrink-0">
           <ReceiptText size={13} />
           Ticket
         </button>
@@ -120,15 +121,12 @@ export default function ListaView() {
       </div>
 
       <div
-        className="flex-1 min-h-0 overflow-y-auto view-fade px-[var(--pad,1rem)] pt-3 space-y-2 compras-scroll-pad"
-        style={{
-          "--pad": "clamp(14px, 3.5vw, 22px)",
-          paddingBottom: "calc(3.8rem + 5.5rem + env(safe-area-inset-bottom, 0px) + .5rem)",
-        } as React.CSSProperties}
+        className="flex-1 min-h-0 overflow-y-auto view-fade px-[var(--pad,1rem)] pt-3 space-y-2 compras-scroll-pad-lista"
+        style={{ "--pad": "clamp(14px, 3.5vw, 22px)" } as React.CSSProperties}
       >
         {sLoading ? (
           <div className="flex items-center justify-center py-16">
-            <div className="w-7 h-7 border-2 border-brand-200 border-t-brand-500 rounded-full animate-spin" />
+            <div className="app-spinner" />
           </div>
         ) : shopping.length === 0 ? (
           <EmptyState
@@ -192,14 +190,13 @@ export default function ListaView() {
         onBudgetChange={setBudget}
       />
 
-      <button
+      <AppFab
+        variant="lista"
         onClick={() => setShowAdd(true)}
-        className="fixed right-4 z-30 w-11 h-11 rounded-full bg-brand-500 text-white shadow-float flex items-center justify-center transition-all duration-fast active:scale-[0.98] hover:bg-brand-600"
-        style={{ bottom: "calc(8.75rem + env(safe-area-inset-bottom, 0px))" }}
-        aria-label="Agregar producto"
+        ariaLabel="Agregar producto"
       >
         <Plus size={20} strokeWidth={2.5} />
-      </button>
+      </AppFab>
 
       {showAdd && (
         <AddProductModal

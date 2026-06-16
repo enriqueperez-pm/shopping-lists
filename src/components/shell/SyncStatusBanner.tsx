@@ -14,7 +14,7 @@ export default function SyncStatusBanner() {
       <p className="text-caption mt-0.5">{cloudSyncError}</p>
       <p className="text-caption mt-1">
         Ve a{" "}
-        <Link href="/cuenta" className="text-brand-600 font-semibold underline">
+        <Link href="/cuenta" className="text-ink-muted font-semibold underline hover:text-ink">
           Cuenta
         </Link>{" "}
         → Recargar desde la nube. Si persiste, avisa para volver a subir el brain.

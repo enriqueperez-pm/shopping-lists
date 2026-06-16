@@ -71,7 +71,7 @@ export default function TripTotalBar({
     <div
       className="fixed inset-x-0 glass border-t border-[var(--border-hairline)] z-30 px-[var(--pad,1rem)] py-3 gap-3"
       style={{
-        bottom: "calc(3.75rem + env(safe-area-inset-bottom, 0px))",
+        bottom: "calc(var(--finance-nav-h, 64px) + var(--compras-nav-h, 60px) + env(safe-area-inset-bottom, 0px))",
         "--pad": "clamp(14px, 3.5vw, 22px)",
       } as React.CSSProperties}
     >
@@ -80,7 +80,7 @@ export default function TripTotalBar({
           <p className="text-micro uppercase tracking-wider text-ink-faint">Visita</p>
           <p
             className={`text-lg font-bold tabular-nums tracking-tight ${
-              overBy > 0 ? "text-danger" : "text-brand-600"
+              overBy > 0 ? "text-danger" : "text-ink"
             }`}
           >
             {money(tripTotal)}

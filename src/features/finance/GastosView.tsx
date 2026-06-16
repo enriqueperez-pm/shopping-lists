@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
+import PageHeader from "@/components/ui/PageHeader";
 import { useFinance } from "./FinancialDbProvider";
 import { useCashflow } from "./useCashflow";
 import MonthSelector from "./MonthSelector";
@@ -30,31 +31,28 @@ export default function GastosView() {
       className="flex-1 min-h-0 overflow-y-auto px-[var(--pad,1rem)] py-3 space-y-4 finance-scroll-pad-compact"
       style={{ "--pad": "clamp(14px, 3.5vw, 22px)" } as React.CSSProperties}
     >
-      <div>
-        <h1 className="text-title">Gastos</h1>
-        <p className="text-caption">Movimientos del mes</p>
-      </div>
+      <PageHeader title="Gastos" subtitle="Movimientos del mes" />
 
       <MonthSelector />
 
       <div className="flex border-b border-[var(--border-hairline)]">
         <button
           type="button"
-          className={filter === "all" ? "finance-tab-active" : "finance-tab"}
+          className={filter === "all" ? "app-tab-active" : "app-tab"}
           onClick={() => setFilter("all")}
         >
           Todos
         </button>
         <button
           type="button"
-          className={filter === "out" ? "finance-tab-active" : "finance-tab"}
+          className={filter === "out" ? "app-tab-active" : "app-tab"}
           onClick={() => setFilter("out")}
         >
           Salidas
         </button>
         <button
           type="button"
-          className={filter === "in" ? "finance-tab-active" : "finance-tab"}
+          className={filter === "in" ? "app-tab-active" : "app-tab"}
           onClick={() => setFilter("in")}
         >
           Entradas

@@ -6,6 +6,7 @@ import { useFinance } from "./FinancialDbProvider";
 import MonthSelector from "./MonthSelector";
 import ConceptEditor from "./ConceptEditor";
 import QuickIncomeModal from "./QuickIncomeModal";
+import PageHeader from "@/components/ui/PageHeader";
 import { getBudgetConcepts, ensureBaselineBudgetTaxonomy } from "./finance-linking";
 import { useBudgetAnalytics, persistConcepts } from "./useBudget";
 import { money } from "@/lib/money";
@@ -63,29 +64,29 @@ export default function PresupuestoView() {
       className="flex-1 min-h-0 overflow-y-auto px-[var(--pad,1rem)] py-3 space-y-4 finance-scroll-pad-compact"
       style={{ "--pad": "clamp(14px, 3.5vw, 22px)" } as React.CSSProperties}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-title">Presupuesto</h1>
-          <p className="text-caption">Conceptos del mes (MXN)</p>
-        </div>
-        <button type="button" className="btn-soft shrink-0" onClick={copyPreviousMonth}>
-          Copiar mes anterior
-        </button>
-      </div>
+      <PageHeader
+        title="Presupuesto"
+        subtitle="Conceptos del mes (MXN)"
+        actions={
+          <button type="button" className="btn-soft shrink-0" onClick={copyPreviousMonth}>
+            Copiar mes anterior
+          </button>
+        }
+      />
 
       <MonthSelector />
 
       <div className="flex border-b border-[var(--border-hairline)]">
         <button
           type="button"
-          className={tab === "gastos" ? "finance-tab-active" : "finance-tab"}
+          className={tab === "gastos" ? "app-tab-active" : "app-tab"}
           onClick={() => setTab("gastos")}
         >
           Gastos
         </button>
         <button
           type="button"
-          className={tab === "ingresos" ? "finance-tab-active" : "finance-tab"}
+          className={tab === "ingresos" ? "app-tab-active" : "app-tab"}
           onClick={() => setTab("ingresos")}
         >
           Ingresos
@@ -129,7 +130,7 @@ export default function PresupuestoView() {
                 key={row.concept.id}
                 type="button"
                 onClick={() => setEditing(row.concept)}
-                className="w-full text-left surface-soft p-3 hover:bg-brand-50/20 transition-colors"
+                className="w-full text-left surface-soft p-3 hover:bg-[rgba(21,49,49,0.03)] transition-colors"
               >
                 <div className="flex justify-between gap-2 mb-2">
                   <div className="min-w-0">

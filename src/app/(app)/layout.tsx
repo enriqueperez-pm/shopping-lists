@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import AppShell from "@/components/shell/AppShell";
 import FinancialDbProvider from "@/features/finance/FinancialDbProvider";
 import { usePathname } from "next/navigation";
-import type { AppModule } from "@/components/shell/ModuleNav";
+import type { AppModule } from "@/components/shell/app-module";
 
 function resolveModule(pathname: string): AppModule {
   if (pathname.startsWith("/presupuesto")) return "presupuesto";

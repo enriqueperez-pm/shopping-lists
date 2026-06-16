@@ -37,26 +37,26 @@ export default function LoginForm() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <label className="block space-y-1.5">
-            <span className="text-micro uppercase tracking-wider text-ink-faint">Correo</span>
+          <label className="block space-y-1">
+            <span className="modal-label">Correo</span>
             <input
               type="email"
               required
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-[var(--border-hairline)] bg-white px-3 py-2.5 text-sm"
+              className="modal-input"
             />
           </label>
-          <label className="block space-y-1.5">
-            <span className="text-micro uppercase tracking-wider text-ink-faint">Contraseña</span>
+          <label className="block space-y-1">
+            <span className="modal-label">Contraseña</span>
             <input
               type="password"
               required
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-[var(--border-hairline)] bg-white px-3 py-2.5 text-sm"
+              className="modal-input"
             />
           </label>
           {error && <p className="text-sm text-danger">{error}</p>}

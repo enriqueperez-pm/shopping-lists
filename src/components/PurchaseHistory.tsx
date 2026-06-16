@@ -65,7 +65,7 @@ function TripCard({
             {formatTime(trip.purchased_at)} · {trip.item_count} producto{trip.item_count !== 1 ? "s" : ""}
           </p>
         </div>
-        <p className="text-body font-bold text-brand-600 tabular-nums shrink-0 tracking-tight">
+        <p className="text-body font-bold text-ink tabular-nums shrink-0 tracking-tight">
           {money(trip.total)}
         </p>
         <ChevronDown
@@ -90,7 +90,7 @@ function TripCard({
             ))}
 
             <div className="flex gap-1.5 pt-2 border-t border-[var(--border-hairline)]">
-              <button type="button" onClick={handleShare} className="btn-soft text-brand-600">
+              <button type="button" onClick={handleShare} className="btn-soft">
                 <Share2 size={12} />
                 Compartir
               </button>
@@ -124,7 +124,7 @@ export default function PurchaseHistory({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="w-7 h-7 border-2 border-brand-200 border-t-brand-500 rounded-full animate-spin" />
+        <div className="app-spinner" />
       </div>
     );
   }

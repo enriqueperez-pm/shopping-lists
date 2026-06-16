@@ -21,7 +21,7 @@ export default function MonthSelector() {
     <div className="flex items-center justify-between gap-2 surface-soft px-3 py-2">
       <button
         type="button"
-        className="p-1.5 rounded-lg hover:bg-black/[0.03] text-ink-faint"
+        className="p-1.5 rounded-lg hover:bg-[rgba(21,49,49,0.03)] text-ink-faint"
         onClick={() => setSelectedPeriod(shiftMonth(selectedPeriod, -1))}
         aria-label="Mes anterior"
       >
@@ -30,7 +30,7 @@ export default function MonthSelector() {
       <span className="text-sm font-semibold capitalize text-ink">{labelMonth(selectedPeriod)}</span>
       <button
         type="button"
-        className="p-1.5 rounded-lg hover:bg-black/[0.03] text-ink-faint"
+        className="p-1.5 rounded-lg hover:bg-[rgba(21,49,49,0.03)] text-ink-faint"
         onClick={() => setSelectedPeriod(shiftMonth(selectedPeriod, 1))}
         aria-label="Mes siguiente"
       >

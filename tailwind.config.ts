@@ -54,6 +54,15 @@ const config: Config = {
           DEFAULT: "#b91c1c",
           bg: "#fef2f2",
         },
+        // legacy — do not use in new components; primary = ink
+        income: {
+          DEFAULT: "#059669",
+          bg: "#ecfdf5",
+        },
+        expense: {
+          DEFAULT: "#dc2626",
+          bg: "#fef2f2",
+        },
       },
       boxShadow: {
         soft: "0 1px 2px rgba(21,49,49,0.04), 0 4px 16px rgba(21,49,49,0.04)",

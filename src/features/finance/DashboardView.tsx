@@ -19,6 +19,8 @@ import CashflowBreakdown from "./components/CashflowBreakdown";
 import UsageProgressBar from "./components/UsageProgressBar";
 import FlowCompareChart from "./components/FlowCompareChart";
 import CategorySpendChart from "./components/CategorySpendChart";
+import PageHeader from "@/components/ui/PageHeader";
+import AppFab from "@/components/ui/AppFab";
 import RecentMovements from "./components/RecentMovements";
 
 function periodLabel(period: string) {
@@ -57,10 +59,7 @@ export default function DashboardView() {
       className="flex-1 min-h-0 overflow-y-auto px-[var(--pad,1rem)] py-3 space-y-4 finance-scroll-pad"
       style={{ "--pad": "clamp(14px, 3.5vw, 22px)" } as React.CSSProperties}
     >
-      <div>
-        <h1 className="text-title">Inicio</h1>
-        <p className="text-caption">Tu billetera del mes</p>
-      </div>
+      <PageHeader title="Inicio" subtitle="Tu billetera del mes" />
 
       <MonthSelector />
 
@@ -101,10 +100,10 @@ export default function DashboardView() {
 
       <Link
         href="/compras/lista"
-        className="block surface-soft p-4 hover:bg-brand-50/30 transition-colors"
+        className="block surface-soft p-4 hover:bg-[rgba(21,49,49,0.03)] transition-colors"
       >
         <div className="flex items-start gap-3">
-          <span className="w-9 h-9 rounded-full bg-brand-50 flex items-center justify-center text-brand-600">
+          <span className="w-9 h-9 rounded-full bg-[rgba(21,49,49,0.06)] flex items-center justify-center text-ink">
             <ShoppingCart size={18} />
           </span>
           <div className="min-w-0 flex-1">
@@ -146,15 +145,9 @@ export default function DashboardView() {
         )}
       </section>
 
-      <button
-        type="button"
-        onClick={() => setShowExpense(true)}
-        className="fixed right-4 z-30 w-11 h-11 rounded-full bg-ink text-white shadow-float flex items-center justify-center"
-        style={{ bottom: "calc(var(--finance-nav-h, 64px) + 1rem + env(safe-area-inset-bottom, 0px))" }}
-        aria-label="Registrar gasto rápido"
-      >
+      <AppFab onClick={() => setShowExpense(true)} ariaLabel="Registrar gasto rápido">
         <Plus size={20} strokeWidth={2.5} />
-      </button>
+      </AppFab>
 
       {showExpense && <QuickExpenseModal onClose={() => setShowExpense(false)} />}
       {showAdjust && (

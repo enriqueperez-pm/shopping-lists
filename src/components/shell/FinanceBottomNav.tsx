@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Home, PiggyBank, Receipt, ShoppingCart, User } from "lucide-react";
-import type { AppModule } from "./ModuleNav";
+import type { AppModule } from "./app-module";
 
 const tabs: {
   key: AppModule;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ModalShell from "@/components/ui/ModalShell";
 import { useFinance } from "./FinancialDbProvider";
 import { getBudgetConceptsForTypeAndDate, applyConceptCategoryToTransaction } from "./finance-linking";
 
@@ -40,51 +41,48 @@ export default function QuickExpenseModal({ onClose }: { onClose: () => void }) 
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/30 p-4">
-      <div className="w-full max-w-md surface-soft p-4 space-y-3">
-        <h2 className="text-title">Gasto rápido</h2>
-        <label className="block space-y-1">
-          <span className="modal-label">Descripción</span>
-          <input
-            placeholder="Ej. Uber Eats, luz…"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="modal-input"
-          />
-        </label>
-        <label className="block space-y-1">
-          <span className="modal-label">Monto MXN</span>
-          <input
-            type="number"
-            placeholder="0"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="modal-input tabular-nums"
-          />
-        </label>
-        <label className="block space-y-1">
-          <span className="modal-label">Concepto</span>
-          <select
-            value={conceptId}
-            onChange={(e) => setConceptId(e.target.value)}
-            className="modal-input bg-white"
-          >
-            {concepts.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.category} / {c.subcategory || c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="flex gap-2 justify-end pt-1">
-          <button type="button" className="btn-soft" onClick={onClose}>
-            Cancelar
-          </button>
-          <button type="button" className="btn-primary" onClick={save}>
-            Guardar
-          </button>
-        </div>
+    <ModalShell open onClose={onClose} title="Gasto rápido">
+      <label className="block space-y-1">
+        <span className="modal-label">Descripción</span>
+        <input
+          placeholder="Ej. Uber Eats, luz…"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="modal-input"
+        />
+      </label>
+      <label className="block space-y-1">
+        <span className="modal-label">Monto MXN</span>
+        <input
+          type="number"
+          placeholder="0"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          className="modal-input tabular-nums"
+        />
+      </label>
+      <label className="block space-y-1">
+        <span className="modal-label">Concepto</span>
+        <select
+          value={conceptId}
+          onChange={(e) => setConceptId(e.target.value)}
+          className="modal-input bg-white"
+        >
+          {concepts.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.category} / {c.subcategory || c.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="flex gap-2 justify-end pt-1">
+        <button type="button" className="btn-soft" onClick={onClose}>
+          Cancelar
+        </button>
+        <button type="button" className="btn-primary" onClick={save}>
+          Guardar
+        </button>
       </div>
-    </div>
+    </ModalShell>
   );
 }

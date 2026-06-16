@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { LogOut, RefreshCw, User } from "lucide-react";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { HOUSEHOLD_MEMBER_IDS } from "@/lib/household";
+import PageHeader from "@/components/ui/PageHeader";
 import { clearLocalFinanceStorage } from "./FinancialDatabase";
 import { useFinance } from "./FinancialDbProvider";
 
@@ -52,10 +53,7 @@ export default function CuentaView() {
       className="flex-1 min-h-0 overflow-y-auto px-[var(--pad,1rem)] py-3 space-y-4 finance-scroll-pad-compact"
       style={{ "--pad": "clamp(14px, 3.5vw, 22px)" } as React.CSSProperties}
     >
-      <div>
-        <h1 className="text-title">Cuenta</h1>
-        <p className="text-caption">Sesión y datos del dispositivo</p>
-      </div>
+      <PageHeader title="Cuenta" subtitle="Sesión y datos del dispositivo" />
 
       {cloudSyncError ? (
         <div className="surface-soft p-3 border border-cart/30 text-sm">
@@ -66,7 +64,7 @@ export default function CuentaView() {
 
       <div className="surface-soft p-4 space-y-3">
         <div className="flex items-center gap-3">
-          <span className="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center text-brand-600">
+          <span className="w-10 h-10 rounded-full bg-[rgba(21,49,49,0.06)] flex items-center justify-center text-ink">
             <User size={20} />
           </span>
           <div className="min-w-0">
@@ -103,7 +101,7 @@ export default function CuentaView() {
         <h2 className="text-sm font-semibold text-ink">Sesión</h2>
         <button
           type="button"
-          className="btn-primary w-full justify-center gap-2 py-2.5 bg-ink-muted hover:bg-ink"
+          className="btn-primary w-full justify-center gap-2 py-2.5"
           disabled={busy !== null}
           onClick={() => void handleLogout()}
         >

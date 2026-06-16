@@ -19,7 +19,7 @@ export default function MovementRow({ tx }: { tx: EnhancedTransaction }) {
           </span>
         ) : null}
         {tx.source === "shopping_trip" ? (
-          <span className="inline-flex ml-1 mt-1 px-1.5 py-0.5 rounded bg-brand-50 text-brand-700 text-[0.625rem] font-semibold">
+          <span className="inline-flex ml-1 mt-1 px-1.5 py-0.5 rounded bg-[rgba(21,49,49,0.06)] text-ink-faint text-[0.625rem] font-semibold">
             super
           </span>
         ) : null}
