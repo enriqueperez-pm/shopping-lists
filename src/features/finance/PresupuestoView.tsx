@@ -39,79 +39,57 @@ function BudgetConceptCard({
   muted?: boolean;
 }) {
   const isIncome = row.concept.type === "income";
-  const pct = row.budgeted > 0 ? Math.min(100, (row.actual / row.budgeted) * 100) : 0;
-  const pending = Math.max(0, row.budgeted - row.actual);
-  const labelActual = isIncome ? "recibido" : "gastado";
-  const labelBudget = isIncome ? "meta" : "presupuesto";
-  const labelPending = isIncome ? "falta" : "por pagar";
+  const hasBudget = row.budgeted > 0;
+  const pct = hasBudget ? Math.min(999, Math.round((row.actual / row.budgeted) * 100)) : 0;
+  const pctDisplay = hasBudget ? `${pct}%` : "—";
+  const pctBar = hasBudget ? Math.min(100, pct) : 0;
 
   return (
     <button
       type="button"
       onClick={() => onEdit(row.concept)}
-      className={`w-full text-left rounded-2xl border p-3.5 transition-colors ${
+      className={`w-full text-left rounded-xl border px-3.5 py-3 transition-colors ${
         muted
-          ? "border-[var(--border-hairline)] bg-[rgba(21,49,49,0.02)] opacity-90"
+          ? "border-[var(--border-hairline)] bg-[rgba(21,49,49,0.02)]"
           : "border-[var(--border-soft)] bg-white shadow-card hover:border-[rgba(21,49,49,0.14)]"
       }`}
     >
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="min-w-0">
-          <p className="text-[0.9375rem] font-semibold text-ink leading-snug truncate">
-            {row.concept.name}
-          </p>
-          {row.concept.subcategory ? (
-            <p className="text-caption text-ink-faint mt-0.5 truncate">{row.concept.subcategory}</p>
-          ) : null}
-        </div>
-        {row.budgeted > 0 ? (
-          <span
-            className={`text-caption font-bold tabular-nums shrink-0 px-2 py-0.5 rounded-full ${
-              pct >= 100
+      <p className="text-sm font-semibold text-ink truncate">{row.concept.name}</p>
+
+      <div className="mt-2 flex items-baseline justify-between gap-2">
+        <p className="text-base font-bold tabular-nums text-ink">
+          {money(row.actual)}
+          <span className="text-ink-faint font-medium mx-1">/</span>
+          <span className="text-ink-muted font-semibold">{money(row.budgeted)}</span>
+        </p>
+        <span
+          className={`text-sm font-bold tabular-nums shrink-0 ${
+            !hasBudget
+              ? "text-ink-faint"
+              : pct >= 100
                 ? isIncome
-                  ? "bg-pantry-light text-pantry"
-                  : "bg-danger-bg text-danger"
-                : "bg-[rgba(21,49,49,0.05)] text-ink-muted"
-            }`}
-          >
-            {Math.round(pct)}%
-          </span>
-        ) : null}
+                  ? "text-pantry"
+                  : "text-danger"
+                : "text-ink-muted"
+          }`}
+        >
+          {pctDisplay}
+        </span>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mb-3">
-        <div>
-          <p className="text-lg font-bold tabular-nums text-ink leading-none">{money(row.actual)}</p>
-          <p className="text-micro text-ink-faint mt-1">{labelActual}</p>
-        </div>
-        <div className="text-center">
-          <p className="text-sm font-semibold tabular-nums text-ink-muted leading-none">
-            {money(row.budgeted)}
-          </p>
-          <p className="text-micro text-ink-faint mt-1">{labelBudget}</p>
-        </div>
-        <div className="text-right">
-          <p
-            className={`text-sm font-semibold tabular-nums leading-none ${
-              pending > 0 ? "text-cart" : "text-ink-faint"
-            }`}
-          >
-            {money(pending)}
-          </p>
-          <p className="text-micro text-ink-faint mt-1">{labelPending}</p>
-        </div>
-      </div>
+      <p className="text-micro text-ink-faint mt-0.5">
+        {isIncome ? "recibido / meta" : "ejercido / presupuesto"}
+        {hasBudget ? ` · ${pctDisplay} del plan` : " · sin presupuesto"}
+      </p>
 
-      {row.budgeted > 0 ? (
-        <div className="h-2 rounded-full bg-[rgba(21,49,49,0.06)] overflow-hidden">
+      {hasBudget ? (
+        <div className="mt-2.5 h-1.5 rounded-full bg-[rgba(21,49,49,0.06)] overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all ${usageTone(isIncome, pct)}`}
-            style={{ width: `${Math.max(pct, row.actual > 0 ? 4 : 0)}%` }}
+            className={`h-full rounded-full ${usageTone(isIncome, Math.min(pct, 100))}`}
+            style={{ width: `${Math.max(pctBar, row.actual > 0 ? 4 : 0)}%` }}
           />
         </div>
-      ) : (
-        <p className="text-micro text-ink-faint">Sin presupuesto asignado</p>
-      )}
+      ) : null}
     </button>
   );
 }
