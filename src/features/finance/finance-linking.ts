@@ -267,6 +267,11 @@ export function ensureBaselineBudgetTaxonomy(db: FinancialDatabase, period: stri
     })
   );
 
+  const hasPeriodConcepts = getBudgetConcepts(db).some(
+    (concept) => concept.period === period && !concept.isParent,
+  );
+  if (hasPeriodConcepts) return;
+
   const currentConcepts = getBudgetConcepts(db);
   const nextConcepts = [...currentConcepts];
   const defaultCurrency = db.getTrackerConfig().defaultCurrency;
@@ -275,6 +280,7 @@ export function ensureBaselineBudgetTaxonomy(db: FinancialDatabase, period: stri
   let changed = false;
 
   nextConcepts.forEach((concept) => {
+    if (concept.period !== period) return;
     const parentKey = getParentConceptKey(concept.type, concept.category);
     if (!concept.parentId && (concept.isParent || normalizeValue(concept.name) === normalizeValue(concept.category))) {
       if (!parentByKey.has(parentKey)) parentByKey.set(parentKey, concept);
@@ -901,4 +907,144 @@ export function copyBudgetConceptsFromPeriod(
   if (changed) {
     db.setModuleData('budgetConcepts', concepts);
   }
+}
+
+const periodParentKey = (period: string, type: 'income' | 'expense', category: string) =>
+  `${period}::${getParentConceptKey(type, category)}`;
+
+const leafConceptKey = (concept: BudgetConcept) =>
+  `${concept.period}::${concept.type}::${normalizeValue(concept.category)}::${normalizeValue(concept.subcategory || '')}::${normalizeValue(concept.name)}`;
+
+function pickCanonicalConcept(a: BudgetConcept, b: BudgetConcept): BudgetConcept {
+  const aBrain = a.id.startsWith('brain_');
+  const bBrain = b.id.startsWith('brain_');
+  if (aBrain && !bBrain) return a;
+  if (bBrain && !aBrain) return b;
+  return new Date(a.createdAt).getTime() <= new Date(b.createdAt).getTime() ? a : b;
+}
+
+export function dedupeBudgetConcepts(concepts: BudgetConcept[]): BudgetConcept[] {
+  const parentCanonical = new Map<string, BudgetConcept>();
+  const parentIdRemap = new Map<string, string>();
+  const leafCanonical = new Map<string, BudgetConcept>();
+  const dropIds = new Set<string>();
+
+  for (const concept of concepts) {
+    if (!concept.isParent || concept.parentId) continue;
+    const key = periodParentKey(concept.period, concept.type, concept.category);
+    const existing = parentCanonical.get(key);
+    if (!existing) {
+      parentCanonical.set(key, concept);
+      continue;
+    }
+    const keep = pickCanonicalConcept(existing, concept);
+    const drop = keep.id === existing.id ? concept : existing;
+    parentCanonical.set(key, keep);
+    parentIdRemap.set(drop.id, keep.id);
+    dropIds.add(drop.id);
+  }
+
+  for (const concept of concepts) {
+    if (concept.isParent) continue;
+    const key = leafConceptKey(concept);
+    const existing = leafCanonical.get(key);
+    if (!existing) {
+      leafCanonical.set(key, concept);
+      continue;
+    }
+    const keep = pickCanonicalConcept(existing, concept);
+    const drop = keep.id === existing.id ? concept : existing;
+    keep.budgetedAmount = Math.max(keep.budgetedAmount, drop.budgetedAmount);
+    keep.actualAmount = Math.max(keep.actualAmount, drop.actualAmount);
+    keep.updatedAt = nowIso();
+    leafCanonical.set(key, keep);
+    parentIdRemap.set(drop.id, keep.id);
+    dropIds.add(drop.id);
+  }
+
+  return concepts
+    .filter((concept) => !dropIds.has(concept.id))
+    .map((concept) => {
+      if (concept.isParent) return concept;
+      const parentId = concept.parentId ? parentIdRemap.get(concept.parentId) ?? concept.parentId : undefined;
+      return parentId && parentId !== concept.parentId
+        ? { ...concept, parentId, updatedAt: nowIso() }
+        : concept;
+    });
+}
+
+export function dedupeBudgetConceptsInDb(db: FinancialDatabase) {
+  const next = dedupeBudgetConcepts(getBudgetConcepts(db));
+  if (next.length !== getBudgetConcepts(db).length) {
+    db.setModuleData('budgetConcepts', next);
+    return true;
+  }
+
+  const before = JSON.stringify(getBudgetConcepts(db));
+  const after = JSON.stringify(next);
+  if (before !== after) {
+    db.setModuleData('budgetConcepts', next);
+    return true;
+  }
+  return false;
+}
+
+export function categoryOrderKey(period: string, type: 'income' | 'expense') {
+  return `${period}:${type}`;
+}
+
+export function getBudgetCategoryOrder(
+  db: FinancialDatabase,
+  period: string,
+  type: 'income' | 'expense',
+): string[] {
+  return db.getBudgetCategoryOrderMap()[categoryOrderKey(period, type)] ?? [];
+}
+
+export function setBudgetCategoryOrder(
+  db: FinancialDatabase,
+  period: string,
+  type: 'income' | 'expense',
+  order: string[],
+) {
+  const all = { ...db.getBudgetCategoryOrderMap() };
+  all[categoryOrderKey(period, type)] = order;
+  db.setBudgetCategoryOrderMap(all);
+}
+
+export function sortGroupsByCategoryOrder<T extends { parent: { concept: BudgetConcept } }>(
+  groups: T[],
+  order: string[],
+): T[] {
+  if (order.length === 0) return groups;
+  const rank = new Map(order.map((id, index) => [id, index]));
+  return [...groups].sort((a, b) => {
+    const aRank = rank.get(a.parent.concept.id);
+    const bRank = rank.get(b.parent.concept.id);
+    if (aRank != null && bRank != null) return aRank - bRank;
+    if (aRank != null) return -1;
+    if (bRank != null) return 1;
+    return a.parent.concept.category.localeCompare(b.parent.concept.category, 'es');
+  });
+}
+
+export function moveCategoryInOrder(
+  db: FinancialDatabase,
+  period: string,
+  type: 'income' | 'expense',
+  parentId: string,
+  direction: 'up' | 'down',
+  allParentIds: string[],
+) {
+  const current = getBudgetCategoryOrder(db, period, type);
+  const order = current.length > 0 ? [...current] : [...allParentIds];
+  if (!order.includes(parentId)) order.push(parentId);
+
+  const index = order.indexOf(parentId);
+  if (index === -1) return;
+  const swapWith = direction === 'up' ? index - 1 : index + 1;
+  if (swapWith < 0 || swapWith >= order.length) return;
+
+  [order[index], order[swapWith]] = [order[swapWith], order[index]];
+  setBudgetCategoryOrder(db, period, type, order);
 }

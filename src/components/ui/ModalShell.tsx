@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 type Props = {
   open: boolean;
@@ -19,44 +20,54 @@ export default function ModalShell({
   title,
   className = "",
 }: Props) {
-  if (!open) return null;
+  const [mounted, setMounted] = useState(false);
 
-  const overlay = (
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
+  if (!open || !mounted) return null;
+
+  const panelClass =
+    variant === "sheet"
+      ? `relative z-10 w-full max-w-lg surface-soft rounded-t-2xl p-4 pb-[max(1rem,env(safe-area-inset-bottom))] max-h-[90dvh] overflow-y-auto ${className}`
+      : `relative z-10 w-full max-w-md surface-soft p-4 space-y-3 max-h-[90dvh] overflow-y-auto ${className}`;
+
+  const content = (
     <div
-      className="fixed inset-0 z-[60] bg-black/30"
-      aria-hidden
-      onClick={onClose}
-    />
-  );
-
-  if (variant === "sheet") {
-    return (
-      <div className="fixed inset-0 z-[60] flex items-end justify-center">
-        {overlay}
-        <div
-          className={`relative w-full max-w-lg surface-soft rounded-t-2xl p-4 pb-[max(1rem,env(safe-area-inset-bottom))] max-h-[90dvh] overflow-y-auto ${className}`}
-          role="dialog"
-          aria-modal
-        >
-          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[rgba(21,49,49,0.12)]" />
-          {title ? <h2 className="text-title mb-3">{title}</h2> : null}
-          {children}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4">
-      {overlay}
+      className={`fixed inset-0 z-[60] ${variant === "sheet" ? "flex items-end justify-center" : "flex items-end sm:items-center justify-center p-4"}`}
+      role="presentation"
+    >
       <div
-        className={`relative w-full max-w-md surface-soft p-4 space-y-3 max-h-[90dvh] overflow-y-auto ${className}`}
+        className="absolute inset-0 bg-black/30"
+        aria-hidden
+        onClick={onClose}
+      />
+      <div
+        className={panelClass}
         role="dialog"
         aria-modal
+        onClick={(e) => e.stopPropagation()}
       >
-        {title ? <h2 className="text-title">{title}</h2> : null}
+        {variant === "sheet" ? (
+          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[rgba(21,49,49,0.12)]" />
+        ) : null}
+        {title ? (
+          <h2 className={variant === "sheet" ? "text-title mb-3" : "text-title"}>{title}</h2>
+        ) : null}
         {children}
       </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 }

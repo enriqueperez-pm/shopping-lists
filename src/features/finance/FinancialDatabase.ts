@@ -132,6 +132,7 @@ export interface FinancialPersistedData {
     legacyAccounts?: unknown[];
     transferHistory?: unknown[];
     cashflowSettings?: CashflowSettings;
+    budgetCategoryOrder?: Record<string, string[]>;
   };
   settings: {
     version: string;
@@ -712,6 +713,16 @@ export class FinancialDatabase {
     }
     settings.manualAvailableByPeriod = manual;
     this.data.moduleData.cashflowSettings = settings;
+    this.saveData();
+  }
+
+  getBudgetCategoryOrderMap(): Record<string, string[]> {
+    return this.data.moduleData?.budgetCategoryOrder ?? {};
+  }
+
+  setBudgetCategoryOrderMap(value: Record<string, string[]>): void {
+    if (!this.data.moduleData) this.data.moduleData = {};
+    this.data.moduleData.budgetCategoryOrder = value;
     this.saveData();
   }
 
