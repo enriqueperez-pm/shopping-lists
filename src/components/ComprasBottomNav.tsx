@@ -15,9 +15,12 @@ export default function ComprasBottomNav({ badge }: { badge: number }) {
 
   return (
     <nav
-      className="fixed bottom-0 inset-x-0 glass border-t border-[var(--border-hairline)]
+      className="fixed inset-x-0 glass border-t border-[var(--border-hairline)]
         flex items-stretch z-40"
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)", height: "3.75rem" }}
+      style={{
+        bottom: "calc(var(--finance-nav-h, 64px) + env(safe-area-inset-bottom, 0px))",
+        height: "var(--compras-nav-h, 60px)",
+      }}
       aria-label="Navegación de compras"
     >
       {tabs.map(({ key, label, href, Icon }) => {

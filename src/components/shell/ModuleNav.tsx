@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Home, PiggyBank, Receipt, ShoppingCart } from "lucide-react";
+import { Home, PiggyBank, Receipt, ShoppingCart, User } from "lucide-react";
 
-export type AppModule = "inicio" | "presupuesto" | "gastos" | "compras";
+export type AppModule = "inicio" | "presupuesto" | "gastos" | "compras" | "cuenta";
 
 const modules: {
   key: AppModule;
@@ -16,6 +16,7 @@ const modules: {
   { key: "presupuesto", label: "Presupuesto", href: "/presupuesto", Icon: PiggyBank, enabled: true },
   { key: "gastos", label: "Gastos", href: "/gastos", Icon: Receipt, enabled: true },
   { key: "compras", label: "Compras", href: "/compras/lista", Icon: ShoppingCart, enabled: true },
+  { key: "cuenta", label: "Cuenta", href: "/cuenta", Icon: User, enabled: true },
 ];
 
 export default function ModuleNav({ active }: { active: AppModule }) {

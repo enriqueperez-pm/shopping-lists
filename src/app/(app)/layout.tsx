@@ -10,6 +10,7 @@ function resolveModule(pathname: string): AppModule {
   if (pathname.startsWith("/presupuesto")) return "presupuesto";
   if (pathname.startsWith("/gastos")) return "gastos";
   if (pathname.startsWith("/compras")) return "compras";
+  if (pathname.startsWith("/cuenta")) return "cuenta";
   return "inicio";
 }
 

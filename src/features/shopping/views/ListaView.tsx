@@ -120,7 +120,7 @@ export default function ListaView() {
       </div>
 
       <div
-        className="flex-1 min-h-0 overflow-y-auto view-fade px-[var(--pad,1rem)] pt-3 space-y-2"
+        className="flex-1 min-h-0 overflow-y-auto view-fade px-[var(--pad,1rem)] pt-3 space-y-2 compras-scroll-pad"
         style={{
           "--pad": "clamp(14px, 3.5vw, 22px)",
           paddingBottom: "calc(3.8rem + 5.5rem + env(safe-area-inset-bottom, 0px) + .5rem)",

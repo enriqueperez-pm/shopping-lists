@@ -6,11 +6,16 @@ export type FinancialPayloadRow = {
   updated_at: string;
 };
 
+export type FetchPayloadResult = {
+  row: FinancialPayloadRow | null;
+  error: string | null;
+};
+
 export async function fetchUserFinancialPayload(
   userId: string
-): Promise<FinancialPayloadRow | null> {
+): Promise<FetchPayloadResult> {
   const supabase = getBrowserSupabase();
-  if (!supabase) return null;
+  if (!supabase) return { row: null, error: "Supabase no configurado" };
 
   const { data, error } = await supabase
     .from('user_financial_payload')
@@ -20,9 +25,9 @@ export async function fetchUserFinancialPayload(
 
   if (error) {
     console.error('[Supabase] fetchUserFinancialPayload:', error.message);
-    return null;
+    return { row: null, error: error.message };
   }
-  return data as FinancialPayloadRow | null;
+  return { row: data as FinancialPayloadRow | null, error: null };
 }
 
 export async function upsertUserFinancialPayload(

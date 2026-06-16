@@ -131,6 +131,7 @@ export interface FinancialPersistedData {
     legacyBanks?: unknown[];
     legacyAccounts?: unknown[];
     transferHistory?: unknown[];
+    cashflowSettings?: CashflowSettings;
   };
   settings: {
     version: string;
@@ -164,6 +165,16 @@ const MODULE_STORAGE_KEYS = {
   transferHistory: 'financial_transfers',
 } as const;
 
+/** Borra finanzas locales del navegador (no toca Supabase). Tras recargar, la app baja la nube. */
+export function clearLocalFinanceStorage(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("financialEstadoResultados");
+  localStorage.removeItem("financial_transactions");
+  for (const key of Object.values(MODULE_STORAGE_KEYS)) {
+    localStorage.removeItem(key);
+  }
+}
+
 type ModuleDataKey = keyof typeof MODULE_STORAGE_KEYS;
 
 export interface WorkspaceSeedData {
@@ -176,6 +187,10 @@ export interface WorkspaceSeedData {
     Omit<AmortizationSchedule, 'id' | 'debtId'> & { debtId?: string; debtName?: string }
   >;
   moduleData?: FinancialPersistedData['moduleData'];
+}
+
+export interface CashflowSettings {
+  manualAvailableByPeriod?: Record<string, number>;
 }
 
 export interface EnhancedTransaction {
@@ -680,6 +695,24 @@ export class FinancialDatabase {
       dataSize: JSON.stringify(this.data).length,
       lastUpdate: this.data.settings.lastUpdate
     };
+  }
+
+  getCashflowSettings(): CashflowSettings {
+    return this.data.moduleData?.cashflowSettings ?? {};
+  }
+
+  setManualAvailable(period: string, value: number | null): void {
+    if (!this.data.moduleData) this.data.moduleData = {};
+    const settings: CashflowSettings = { ...(this.data.moduleData.cashflowSettings ?? {}) };
+    const manual = { ...(settings.manualAvailableByPeriod ?? {}) };
+    if (value === null) {
+      delete manual[period];
+    } else {
+      manual[period] = value;
+    }
+    settings.manualAvailableByPeriod = manual;
+    this.data.moduleData.cashflowSettings = settings;
+    this.saveData();
   }
 
   // Bank management methods

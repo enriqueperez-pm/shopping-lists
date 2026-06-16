@@ -351,6 +351,74 @@ export function ensureBaselineBudgetTaxonomy(db: FinancialDatabase, period: stri
   }
 }
 
+const BASELINE_INCOME_BUDGET: MonthlyBudgetSeedItem[] = [
+  { category: 'Salary', subcategory: 'Main Job', amount: 45000, fixed: true },
+  { category: 'Freelance', subcategory: 'Projects', amount: 8000, fixed: false },
+];
+
+/** Asegura conceptos de ingreso con presupuesto base para el periodo. */
+export function ensureBaselineIncomeConcepts(db: FinancialDatabase, period: string) {
+  ensureBaselineBudgetTaxonomy(db, period);
+  const concepts = getBudgetConcepts(db);
+  const next = [...concepts];
+  let changed = false;
+  const defaultCurrency = db.getTrackerConfig().defaultCurrency;
+
+  for (const seed of BASELINE_INCOME_BUDGET) {
+    const existing = next.find(
+      (c) =>
+        !c.isParent &&
+        c.type === 'income' &&
+        c.period === period &&
+        normalizeValue(c.category) === normalizeValue(seed.category) &&
+        normalizeValue(c.subcategory || c.name) === normalizeValue(seed.subcategory),
+    );
+    if (existing) {
+      if (existing.budgetedAmount === 0 && seed.amount > 0) {
+        existing.budgetedAmount = seed.amount;
+        existing.isFixed = seed.fixed ?? false;
+        existing.name =
+          seed.subcategory === 'Main Job' ? 'Nómina principal' : existing.name || seed.subcategory;
+        existing.updatedAt = nowIso();
+        changed = true;
+      }
+      continue;
+    }
+
+    const parent = next.find(
+      (c) =>
+        c.isParent &&
+        c.type === 'income' &&
+        c.period === period &&
+        normalizeValue(c.category) === normalizeValue(seed.category),
+    );
+    if (!parent) continue;
+
+    next.push({
+      id: createConceptId(),
+      name: seed.subcategory === 'Main Job' ? 'Nómina principal' : 'Freelance / proyectos',
+      category: seed.category,
+      subcategory: seed.subcategory,
+      budgetedAmount: seed.amount,
+      actualAmount: 0,
+      currency: defaultCurrency,
+      period,
+      type: 'income',
+      isFixed: seed.fixed ?? false,
+      description: `${seed.category} / ${seed.subcategory}`,
+      parentId: parent.id,
+      isParent: false,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    });
+    changed = true;
+  }
+
+  if (changed) {
+    db.setModuleData('budgetConcepts', next);
+  }
+}
+
 export function findGroceriesConcept(db: FinancialDatabase, period: string) {
   return getBudgetConcepts(db).find(
     (concept) =>

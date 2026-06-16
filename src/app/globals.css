@@ -23,6 +23,12 @@
     --brand: #5e2e55;
     --danger: #b91c1c;
     --danger-bg: #fef2f2;
+    --income-color: #059669;
+    --income-bg: #ecfdf5;
+    --expense-color: #dc2626;
+    --expense-bg: #fef2f2;
+    --finance-nav-h: 64px;
+    --compras-nav-h: 60px;
     --duration-fast: 150ms;
     --duration-normal: 200ms;
     --duration-toast: 220ms;
@@ -191,6 +197,88 @@
 
   .modal-label {
     @apply block text-micro font-semibold uppercase tracking-[0.08em] text-ink-faint mb-1.5;
+  }
+
+  /* ── Finance / Disponible ── */
+  .hero-gradient {
+    background: linear-gradient(135deg, #8b5cf6 0%, #fb7185 52%, #fbbf24 100%);
+    color: white;
+    border: none;
+    box-shadow: 0 12px 32px rgba(139, 92, 246, 0.25);
+  }
+
+  .btn-link {
+    @apply inline-flex items-center gap-1 text-xs font-semibold text-ink-muted
+      hover:text-ink transition-colors duration-fast bg-transparent border-0 cursor-pointer p-0;
+  }
+
+  .finance-scroll-pad {
+    padding-bottom: calc(var(--finance-nav-h) + 5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .finance-scroll-pad-compact {
+    padding-bottom: calc(var(--finance-nav-h) + 1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .compare-bar-bg {
+    @apply h-2 rounded-full overflow-hidden;
+    background: rgba(21, 49, 49, 0.06);
+  }
+  .compare-bar-fill.income {
+    @apply h-full rounded-full;
+    background: var(--income-color);
+  }
+  .compare-bar-fill.expense {
+    @apply h-full rounded-full;
+    background: var(--expense-color);
+  }
+
+  .cat-bar-bg {
+    @apply h-1.5 rounded-full overflow-hidden flex-1;
+    background: rgba(21, 49, 49, 0.06);
+  }
+  .cat-bar-fill {
+    @apply h-full rounded-full;
+    background: var(--expense-color);
+  }
+
+  .movement-amt-in {
+    color: var(--income-color);
+  }
+  .movement-amt-out {
+    color: var(--expense-color);
+  }
+
+  .breakdown-income {
+    background: var(--income-bg);
+    color: var(--income-color);
+  }
+  .breakdown-expense {
+    background: var(--expense-bg);
+    color: var(--expense-color);
+  }
+
+  .progress-fill {
+    @apply h-full rounded-full transition-all duration-normal;
+    background: var(--income-color);
+  }
+  .progress-fill.warn {
+    background: var(--cart);
+  }
+  .progress-fill.danger {
+    background: var(--expense-color);
+  }
+
+  .finance-tab {
+    @apply flex-1 py-2 text-xs font-semibold border-b-2 border-transparent text-ink-faint
+      transition-colors duration-fast bg-transparent cursor-pointer;
+  }
+  .finance-tab-active {
+    @apply finance-tab text-ink border-ink;
+  }
+
+  .compras-scroll-pad {
+    padding-bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + 1rem + env(safe-area-inset-bottom, 0px));
   }
 }
 

@@ -52,7 +52,7 @@ export default function DespensaView() {
       />
 
       <div
-        className="flex-1 min-h-0 overflow-y-auto pb-20 view-fade px-[var(--pad,1rem)] pt-3 space-y-3"
+        className="flex-1 min-h-0 overflow-y-auto compras-scroll-pad view-fade px-[var(--pad,1rem)] pt-3 space-y-3"
         style={{ "--pad": "clamp(14px, 3.5vw, 22px)" } as React.CSSProperties}
       >
         <SearchBar value={search} onChange={setSearch} />

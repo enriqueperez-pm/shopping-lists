@@ -2,27 +2,38 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Plus, ShoppingCart } from "lucide-react";
 import { useFinance } from "./FinancialDbProvider";
 import MonthSelector from "./MonthSelector";
 import { useBudgetAnalytics } from "./useBudget";
+import { useCashflow } from "./useCashflow";
 import { getGroceriesAnalysis } from "./finance-linking";
 import { useShopping } from "@/lib/hooks";
 import { itemStatus } from "@/lib/purchase";
 import { money } from "@/lib/money";
 import QuickExpenseModal from "./QuickExpenseModal";
+import AdjustBalanceModal from "./AdjustBalanceModal";
+import DisponibleHero from "./components/DisponibleHero";
+import CashflowBreakdown from "./components/CashflowBreakdown";
+import UsageProgressBar from "./components/UsageProgressBar";
+import FlowCompareChart from "./components/FlowCompareChart";
+import CategorySpendChart from "./components/CategorySpendChart";
+import RecentMovements from "./components/RecentMovements";
+
+function periodLabel(period: string) {
+  const [y, m] = period.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString("es-MX", { month: "long", year: "numeric" });
+}
 
 export default function DashboardView() {
+  const router = useRouter();
   const { db, transactions, selectedPeriod } = useFinance();
+  const cashflow = useCashflow();
   const analytics = useBudgetAnalytics();
   const { items: shopping } = useShopping();
   const [showExpense, setShowExpense] = useState(false);
-
-  const mxn = analytics.totalsByCurrency.find((t) => t.currency === "MXN") ?? {
-    budgeted: 0,
-    actual: 0,
-    variance: 0,
-  };
+  const [showAdjust, setShowAdjust] = useState(false);
 
   const alerts = useMemo(
     () =>
@@ -39,36 +50,59 @@ export default function DashboardView() {
 
   const listCart = shopping.filter((s) => itemStatus(s) === "in_cart").length;
   const listNeeded = shopping.filter((s) => itemStatus(s) === "needed").length;
+  const monthLabel = periodLabel(selectedPeriod);
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto px-[var(--pad,1rem)] py-3 space-y-4 pb-24"
-      style={{ "--pad": "clamp(14px, 3.5vw, 22px)" } as React.CSSProperties}>
+    <div
+      className="flex-1 min-h-0 overflow-y-auto px-[var(--pad,1rem)] py-3 space-y-4 finance-scroll-pad"
+      style={{ "--pad": "clamp(14px, 3.5vw, 22px)" } as React.CSSProperties}
+    >
       <div>
         <h1 className="text-title">Inicio</h1>
-        <p className="text-caption">Resumen del mes</p>
+        <p className="text-caption">Tu billetera del mes</p>
       </div>
 
       <MonthSelector />
 
-      <div className="grid grid-cols-2 gap-2">
-        <div className="surface-soft p-3">
-          <p className="text-micro uppercase text-ink-faint">Presupuesto</p>
-          <p className="text-lg font-bold tabular-nums text-brand-600">{money(mxn.budgeted)}</p>
-        </div>
-        <div className="surface-soft p-3">
-          <p className="text-micro uppercase text-ink-faint">Gastado</p>
-          <p className="text-lg font-bold tabular-nums text-ink">{money(mxn.actual)}</p>
-        </div>
-        <div className="surface-soft p-3 col-span-2">
-          <p className="text-micro uppercase text-ink-faint">Salud</p>
-          <p className="text-sm font-medium">
-            {analytics.summary.healthy} ok · {analytics.summary.warning} alerta ·{" "}
-            {analytics.summary.critical} crítico
-          </p>
-        </div>
-      </div>
+      <DisponibleHero
+        disponible={cashflow.disponible}
+        calculated={cashflow.calculated}
+        manualOverride={cashflow.manualOverride}
+        onAdjust={() => setShowAdjust(true)}
+      />
 
-      <Link href="/compras/lista" className="block surface-soft p-4 hover:bg-brand-50/30 transition-colors">
+      <CashflowBreakdown
+        income={cashflow.income}
+        spent={cashflow.spent}
+        committed={cashflow.committed}
+      />
+
+      <UsageProgressBar
+        usagePct={cashflow.usagePct}
+        spent={cashflow.spent}
+        committed={cashflow.committed}
+        income={cashflow.income}
+      />
+
+      <section className="surface-soft p-4 space-y-3">
+        <h2 className="text-sm font-semibold text-ink">Ingresos vs gastos</h2>
+        <FlowCompareChart income={cashflow.income} spent={cashflow.spent} periodLabel={monthLabel} />
+      </section>
+
+      <section className="surface-soft p-4 space-y-3">
+        <h2 className="text-sm font-semibold text-ink">Gastos por categoría</h2>
+        <CategorySpendChart entries={cashflow.categoryBreakdown} periodLabel={monthLabel} />
+      </section>
+
+      <RecentMovements
+        movements={cashflow.recentMovements}
+        onSeeAll={() => router.push("/gastos")}
+      />
+
+      <Link
+        href="/compras/lista"
+        className="block surface-soft p-4 hover:bg-brand-50/30 transition-colors"
+      >
         <div className="flex items-start gap-3">
           <span className="w-9 h-9 rounded-full bg-brand-50 flex items-center justify-center text-brand-600">
             <ShoppingCart size={18} />
@@ -115,14 +149,21 @@ export default function DashboardView() {
       <button
         type="button"
         onClick={() => setShowExpense(true)}
-        className="fixed right-4 z-30 w-11 h-11 rounded-full bg-brand-500 text-white shadow-float flex items-center justify-center"
-        style={{ bottom: "calc(1rem + env(safe-area-inset-bottom, 0px))" }}
+        className="fixed right-4 z-30 w-11 h-11 rounded-full bg-ink text-white shadow-float flex items-center justify-center"
+        style={{ bottom: "calc(var(--finance-nav-h, 64px) + 1rem + env(safe-area-inset-bottom, 0px))" }}
         aria-label="Registrar gasto rápido"
       >
         <Plus size={20} strokeWidth={2.5} />
       </button>
 
       {showExpense && <QuickExpenseModal onClose={() => setShowExpense(false)} />}
+      {showAdjust && (
+        <AdjustBalanceModal
+          calculated={cashflow.calculated}
+          manualOverride={cashflow.manualOverride}
+          onClose={() => setShowAdjust(false)}
+        />
+      )}
     </div>
   );
 }

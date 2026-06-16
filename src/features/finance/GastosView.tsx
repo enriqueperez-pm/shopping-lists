@@ -1,27 +1,35 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Plus } from "lucide-react";
 import { useFinance } from "./FinancialDbProvider";
+import { useCashflow } from "./useCashflow";
 import MonthSelector from "./MonthSelector";
 import QuickExpenseModal from "./QuickExpenseModal";
-import { money } from "@/lib/money";
-import { Plus } from "lucide-react";
+import QuickIncomeModal from "./QuickIncomeModal";
+import MovementRow from "./components/MovementRow";
+
+type MovFilter = "all" | "out" | "in";
 
 export default function GastosView() {
-  const { transactions, selectedPeriod } = useFinance();
-  const [showForm, setShowForm] = useState(false);
+  const cashflow = useCashflow();
+  const [filter, setFilter] = useState<MovFilter>("all");
+  const [showExpense, setShowExpense] = useState(false);
+  const [showIncome, setShowIncome] = useState(false);
 
-  const monthTx = useMemo(
-    () =>
-      transactions.filter(
-        (tx) => tx.type === "expense" && tx.date.startsWith(selectedPeriod),
-      ),
-    [transactions, selectedPeriod],
-  );
+  const list = useMemo(() => {
+    return cashflow.allMovements.filter((tx) => {
+      if (filter === "in") return tx.type === "income";
+      if (filter === "out") return tx.type === "expense";
+      return true;
+    });
+  }, [cashflow.allMovements, filter]);
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto px-[var(--pad,1rem)] py-3 space-y-4 pb-24"
-      style={{ "--pad": "clamp(14px, 3.5vw, 22px)" } as React.CSSProperties}>
+    <div
+      className="flex-1 min-h-0 overflow-y-auto px-[var(--pad,1rem)] py-3 space-y-4 finance-scroll-pad-compact"
+      style={{ "--pad": "clamp(14px, 3.5vw, 22px)" } as React.CSSProperties}
+    >
       <div>
         <h1 className="text-title">Gastos</h1>
         <p className="text-caption">Movimientos del mes</p>
@@ -29,35 +37,51 @@ export default function GastosView() {
 
       <MonthSelector />
 
-      <button type="button" className="btn-primary w-full justify-center" onClick={() => setShowForm(true)}>
-        <Plus size={14} />
-        Gasto rápido
-      </button>
+      <div className="flex border-b border-[var(--border-hairline)]">
+        <button
+          type="button"
+          className={filter === "all" ? "finance-tab-active" : "finance-tab"}
+          onClick={() => setFilter("all")}
+        >
+          Todos
+        </button>
+        <button
+          type="button"
+          className={filter === "out" ? "finance-tab-active" : "finance-tab"}
+          onClick={() => setFilter("out")}
+        >
+          Salidas
+        </button>
+        <button
+          type="button"
+          className={filter === "in" ? "finance-tab-active" : "finance-tab"}
+          onClick={() => setFilter("in")}
+        >
+          Entradas
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <button type="button" className="btn-primary justify-center" onClick={() => setShowExpense(true)}>
+          <Plus size={14} />
+          Gasto
+        </button>
+        <button type="button" className="btn-soft justify-center" onClick={() => setShowIncome(true)}>
+          <Plus size={14} />
+          Ingreso
+        </button>
+      </div>
 
       <div className="space-y-2">
-        {monthTx.length === 0 ? (
-          <p className="text-caption">Sin gastos registrados.</p>
+        {list.length === 0 ? (
+          <p className="text-caption">Sin movimientos con este filtro.</p>
         ) : (
-          monthTx.map((tx) => (
-            <div key={tx.id} className="surface-soft px-3 py-2.5 flex justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-sm font-medium truncate">{tx.description}</p>
-                <p className="text-micro text-ink-faint">
-                  {tx.date}
-                  {tx.source === "shopping_trip" && (
-                    <span className="ml-1.5 inline-flex px-1.5 py-0.5 rounded bg-brand-50 text-brand-700">
-                      super
-                    </span>
-                  )}
-                </p>
-              </div>
-              <p className="text-sm font-semibold tabular-nums shrink-0">{money(tx.amount)}</p>
-            </div>
-          ))
+          list.map((tx) => <MovementRow key={tx.id} tx={tx} />)
         )}
       </div>
 
-      {showForm && <QuickExpenseModal onClose={() => setShowForm(false)} />}
+      {showExpense && <QuickExpenseModal onClose={() => setShowExpense(false)} />}
+      {showIncome && <QuickIncomeModal onClose={() => setShowIncome(false)} />}
     </div>
   );
 }
