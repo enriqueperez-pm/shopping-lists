@@ -27,7 +27,7 @@
     --income-bg: #ecfdf5;
     --expense-color: #dc2626;
     --expense-bg: #fef2f2;
-    --finance-nav-h: 64px;
+    --finance-nav-h: 72px;
     --compras-nav-h: 60px;
     --fab-bottom: calc(var(--finance-nav-h) + 1rem + env(safe-area-inset-bottom, 0px));
     --hero-violet: #8b5cf6;
@@ -228,11 +228,15 @@
   }
 
   .finance-scroll-pad {
-    padding-bottom: calc(var(--finance-nav-h) + 5rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: 1rem;
+  }
+
+  .finance-scroll-pad-fab {
+    padding-bottom: calc(4.5rem + 1rem);
   }
 
   .finance-scroll-pad-compact {
-    padding-bottom: calc(var(--finance-nav-h) + 1.5rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: 1rem;
   }
 
   .compare-bar-bg {
@@ -313,11 +317,11 @@
   }
 
   .compras-scroll-pad {
-    padding-bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + 1rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(var(--compras-nav-h) + 1rem);
   }
 
   .compras-scroll-pad-lista {
-    padding-bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + 5.5rem + 1rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(var(--compras-nav-h) + 5.5rem + 1rem);
   }
 }
 

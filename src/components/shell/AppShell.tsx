@@ -32,7 +32,16 @@ export default function AppShell({
 
       <SyncStatusBanner />
 
-      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">{children}</div>
+      <div
+        className="flex-1 min-h-0 flex flex-col overflow-hidden"
+        style={{
+          paddingBottom: "calc(var(--finance-nav-h) + env(safe-area-inset-bottom, 0px))",
+        }}
+      >
+
+        {children}
+
+      </div>
 
       <FinanceBottomNav active={module} />
 

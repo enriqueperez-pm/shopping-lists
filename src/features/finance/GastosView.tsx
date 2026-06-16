@@ -9,6 +9,7 @@ import MonthSelector from "./MonthSelector";
 import QuickExpenseModal from "./QuickExpenseModal";
 import QuickIncomeModal from "./QuickIncomeModal";
 import EditMovementModal from "./EditMovementModal";
+import ConceptCreatorModal from "./ConceptCreatorModal";
 import MovementRow from "./components/MovementRow";
 import type { EnhancedTransaction } from "./FinancialDatabase";
 
@@ -19,6 +20,7 @@ export default function GastosView() {
   const [filter, setFilter] = useState<MovFilter>("all");
   const [showExpense, setShowExpense] = useState(false);
   const [showIncome, setShowIncome] = useState(false);
+  const [creatingConcept, setCreatingConcept] = useState(false);
   const [editingTx, setEditingTx] = useState<EnhancedTransaction | null>(null);
 
   const list = useMemo(() => {
@@ -31,7 +33,7 @@ export default function GastosView() {
 
   return (
     <div
-      className="flex-1 min-h-0 overflow-y-auto px-[var(--pad,1rem)] py-3 space-y-4 finance-scroll-pad-compact"
+      className="flex-1 min-h-0 overflow-y-auto px-[var(--pad,1rem)] py-3 space-y-4 finance-scroll-pad"
       style={{ "--pad": "clamp(14px, 3.5vw, 22px)" } as React.CSSProperties}
     >
       <PageHeader title="Gastos" subtitle="Movimientos del mes" />
@@ -72,6 +74,15 @@ export default function GastosView() {
           Ingreso
         </button>
       </div>
+
+      <button
+        type="button"
+        className="btn-soft w-full justify-center gap-1"
+        onClick={() => setCreatingConcept(true)}
+      >
+        <Plus size={14} />
+        Nuevo concepto (categoría)
+      </button>
 
       <div className="space-y-2">
         {list.length === 0 ? (

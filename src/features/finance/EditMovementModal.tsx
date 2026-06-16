@@ -1,10 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ModalShell from "@/components/ui/ModalShell";
 import type { EnhancedTransaction } from "./FinancialDatabase";
 import { useFinance } from "./FinancialDbProvider";
-import { money } from "@/lib/money";
+import {
+  applyConceptCategoryToTransaction,
+  getBudgetConceptsForTypeAndDate,
+  groupBudgetConceptsByCategory,
+} from "./finance-linking";
 
 type Props = {
   tx: EnhancedTransaction;
@@ -13,11 +17,48 @@ type Props = {
 
 export default function EditMovementModal({ tx, onClose }: Props) {
   const { db, refresh } = useFinance();
+  const txType = tx.type === "income" ? "income" : "expense";
   const [date, setDate] = useState(tx.date.slice(0, 10));
+  const [description, setDescription] = useState(tx.description);
+  const [amount, setAmount] = useState(String(tx.originalAmount ?? tx.amount));
+  const [conceptId, setConceptId] = useState(tx.budgetConceptId ?? "");
+
+  const concepts = useMemo(
+    () => getBudgetConceptsForTypeAndDate(db, txType, date),
+    [db, txType, date],
+  );
+  const conceptGroups = useMemo(() => groupBudgetConceptsByCategory(concepts), [concepts]);
+
+  useEffect(() => {
+    if (!conceptId && concepts[0]) setConceptId(concepts[0].id);
+    if (conceptId && !concepts.some((c) => c.id === conceptId)) {
+      setConceptId(concepts[0]?.id ?? "");
+    }
+  }, [concepts, conceptId]);
 
   const save = () => {
-    if (!date) return;
-    db.updateTransaction(tx.id, { date });
+    const value = Number(amount);
+    if (!date || !description.trim() || !value) return;
+
+    const concept = concepts.find((c) => c.id === conceptId);
+    const cats = applyConceptCategoryToTransaction(db, {
+      type: txType,
+      budgetConceptId: conceptId || undefined,
+      category: concept?.category ?? tx.category,
+      subcategory: concept?.subcategory ?? tx.subcategory,
+    });
+
+    db.updateTransaction(tx.id, {
+      date,
+      description: description.trim(),
+      amount: value,
+      originalAmount: value,
+      originalCurrency: tx.originalCurrency ?? "MXN",
+      currency: tx.currency ?? "MXN",
+      category: cats.category ?? tx.category,
+      subcategory: cats.subcategory,
+      budgetConceptId: conceptId || undefined,
+    });
     refresh();
     onClose();
   };
@@ -25,16 +66,9 @@ export default function EditMovementModal({ tx, onClose }: Props) {
   const isIncome = tx.type === "income";
 
   return (
-    <ModalShell open onClose={onClose} title="Editar movimiento">
-      <div className="space-y-1">
-        <p className="text-sm font-medium text-ink">{tx.description}</p>
-        <p className={`text-sm font-semibold tabular-nums ${isIncome ? "movement-amt-in" : "movement-amt-out"}`}>
-          {isIncome ? "+" : "−"}
-          {money(tx.originalAmount ?? tx.amount)}
-        </p>
-      </div>
+    <ModalShell open onClose={onClose} title="Editar movimiento" className="space-y-4">
       <label className="block space-y-1">
-        <span className="modal-label">Fecha del movimiento</span>
+        <span className="modal-label">Fecha</span>
         <input
           type="date"
           value={date}
@@ -42,14 +76,62 @@ export default function EditMovementModal({ tx, onClose }: Props) {
           className="modal-input"
         />
       </label>
+      <label className="block space-y-1">
+        <span className="modal-label">Descripción</span>
+        <input
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="modal-input"
+        />
+      </label>
+      <label className="block space-y-1">
+        <span className="modal-label">Monto MXN</span>
+        <input
+          type="number"
+          min={0}
+          step="0.01"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          className="modal-input tabular-nums"
+        />
+      </label>
+      {concepts.length > 0 ? (
+        <label className="block space-y-1">
+          <span className="modal-label">Concepto</span>
+          <select
+            value={conceptId}
+            onChange={(e) => setConceptId(e.target.value)}
+            className="modal-input bg-white"
+          >
+            {conceptGroups.map(({ category, concepts: groupConcepts }) => (
+              <optgroup key={category} label={category}>
+                {groupConcepts.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.subcategory ? `${c.subcategory} — ` : ""}
+                    {c.name}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </label>
+      ) : null}
       <div className="flex gap-2 justify-end pt-1">
         <button type="button" className="btn-soft" onClick={onClose}>
           Cancelar
         </button>
-        <button type="button" className="btn-primary" onClick={save} disabled={!date}>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={save}
+          disabled={!date || !description.trim() || !Number(amount)}
+        >
           Guardar
         </button>
       </div>
+      {tx.source === "shopping_trip" ? (
+        <p className="text-micro text-ink-faint">Compra del super — puedes ajustar fecha y monto aquí.</p>
+      ) : null}
     </ModalShell>
   );
 }
