@@ -366,6 +366,10 @@ const BASELINE_INCOME_BUDGET: MonthlyBudgetSeedItem[] = [
 export function ensureBaselineIncomeConcepts(db: FinancialDatabase, period: string) {
   ensureBaselineBudgetTaxonomy(db, period);
   const concepts = getBudgetConcepts(db);
+  const hasIncomeInPeriod = concepts.some(
+    (c) => !c.isParent && c.type === 'income' && c.period === period,
+  );
+  if (hasIncomeInPeriod) return;
   const next = [...concepts];
   let changed = false;
   const defaultCurrency = db.getTrackerConfig().defaultCurrency;

@@ -1,4 +1,6 @@
 import { getBrowserSupabase } from "@/lib/supabase/client";
+import type { FinancialPersistedData } from "./FinancialDatabase";
+import { BRAIN_SNAPSHOT_ID, type BrainSnapshotRow } from "./brain-sync";
 
 export type FinancialPayloadRow = {
   user_id: string;
@@ -8,6 +10,11 @@ export type FinancialPayloadRow = {
 
 export type FetchPayloadResult = {
   row: FinancialPayloadRow | null;
+  error: string | null;
+};
+
+export type BrainSnapshotFetchResult = {
+  row: BrainSnapshotRow | null;
   error: string | null;
 };
 
@@ -48,6 +55,58 @@ export async function upsertUserFinancialPayload(
 
   if (error) {
     console.error('[Supabase] upsertUserFinancialPayload:', error.message);
+    return false;
+  }
+  return true;
+}
+
+export async function fetchBrainSnapshot(): Promise<BrainSnapshotFetchResult> {
+  const supabase = getBrowserSupabase();
+  if (!supabase) return { row: null, error: "Supabase no configurado" };
+
+  const { data, error } = await supabase
+    .from("brain_financial_snapshot")
+    .select("id, payload, source, updated_at")
+    .eq("id", BRAIN_SNAPSHOT_ID)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[Supabase] fetchBrainSnapshot:", error.message);
+    return { row: null, error: error.message };
+  }
+
+  if (!data?.payload) return { row: null, error: null };
+
+  return {
+    row: {
+      id: data.id,
+      payload: data.payload as FinancialPersistedData,
+      source: (data.source as BrainSnapshotRow["source"]) ?? "csv",
+      updated_at: data.updated_at,
+    },
+    error: null,
+  };
+}
+
+export async function upsertBrainSnapshot(
+  payload: FinancialPersistedData,
+  source: BrainSnapshotRow["source"] = "csv",
+): Promise<boolean> {
+  const supabase = getBrowserSupabase();
+  if (!supabase) return false;
+
+  const { error } = await supabase.from("brain_financial_snapshot").upsert(
+    {
+      id: BRAIN_SNAPSHOT_ID,
+      payload,
+      source,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "id" },
+  );
+
+  if (error) {
+    console.error("[Supabase] upsertBrainSnapshot:", error.message);
     return false;
   }
   return true;

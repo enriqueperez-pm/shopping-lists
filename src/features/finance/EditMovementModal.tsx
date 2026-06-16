@@ -58,6 +58,7 @@ export default function EditMovementModal({ tx, onClose }: Props) {
       category: cats.category ?? tx.category,
       subcategory: cats.subcategory,
       budgetConceptId: conceptId || undefined,
+      source: tx.source === "shopping_trip" ? "shopping_trip" : "manual",
     });
     refresh();
     onClose();

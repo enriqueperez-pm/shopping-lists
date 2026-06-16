@@ -95,6 +95,12 @@ export default function GastosView() {
       {showExpense && <QuickExpenseModal onClose={() => setShowExpense(false)} />}
       {showIncome && <QuickIncomeModal onClose={() => setShowIncome(false)} />}
       {editingTx && <EditMovementModal tx={editingTx} onClose={() => setEditingTx(null)} />}
+      {creatingConcept && (
+        <ConceptCreatorModal
+          type={filter === "in" ? "income" : "expense"}
+          onClose={() => setCreatingConcept(false)}
+        />
+      )}
     </div>
   );
 }

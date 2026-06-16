@@ -563,6 +563,7 @@ export class FinancialDatabase {
       ...this.data.transactions[index],
       ...updates,
       id: this.data.transactions[index].id,
+      timestamp: new Date().toISOString(),
     };
     this.saveData();
     return true;
