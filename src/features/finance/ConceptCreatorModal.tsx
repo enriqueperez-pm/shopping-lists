@@ -5,6 +5,8 @@ import ModalShell from "@/components/ui/ModalShell";
 import { useFinance } from "./FinancialDbProvider";
 import {
   createBudgetConcept,
+  getCanonicalCategories,
+  getCanonicalSubcategories,
   getDistinctCategories,
   getDistinctSubcategories,
 } from "./finance-linking";
@@ -17,7 +19,12 @@ type Props = {
 
 export default function ConceptCreatorModal({ type, onClose, onSaved }: Props) {
   const { db, selectedPeriod, refresh } = useFinance();
-  const existingCategories = useMemo(() => getDistinctCategories(db, type), [db, type]);
+  const canonicalCategories = useMemo(() => getCanonicalCategories(type), [type]);
+  const legacyCategories = useMemo(() => getDistinctCategories(db, type), [db, type]);
+  const existingCategories = useMemo(
+    () => [...new Set([...canonicalCategories, ...legacyCategories])].sort((a, b) => a.localeCompare(b, "es")),
+    [canonicalCategories, legacyCategories],
+  );
 
   const [categoryMode, setCategoryMode] = useState<"existing" | "new">(
     existingCategories.length ? "existing" : "new",
@@ -32,10 +39,12 @@ export default function ConceptCreatorModal({ type, onClose, onSaved }: Props) {
   const [isFixed, setIsFixed] = useState(false);
 
   const resolvedCategory = categoryMode === "new" ? newCategory.trim() : category.trim();
-  const existingSubcategories = useMemo(
-    () => (resolvedCategory ? getDistinctSubcategories(db, type, resolvedCategory) : []),
-    [db, type, resolvedCategory],
-  );
+  const existingSubcategories = useMemo(() => {
+    if (!resolvedCategory) return [];
+    const canonical = getCanonicalSubcategories(type, resolvedCategory);
+    const legacy = getDistinctSubcategories(db, type, resolvedCategory);
+    return [...new Set([...canonical, ...legacy])].sort((a, b) => a.localeCompare(b, "es"));
+  }, [db, type, resolvedCategory]);
 
   const resolvedSubcategory =
     subcategoryMode === "none"
@@ -101,7 +110,7 @@ export default function ConceptCreatorModal({ type, onClose, onSaved }: Props) {
           </select>
         ) : (
           <input
-            placeholder="Ej. Housing, Food, Technology…"
+            placeholder="Ej. Vivienda, Alimentación, Tecnología…"
             value={newCategory}
             onChange={(e) => setNewCategory(e.target.value)}
             className="modal-input"
@@ -149,7 +158,7 @@ export default function ConceptCreatorModal({ type, onClose, onSaved }: Props) {
           </select>
         ) : subcategoryMode === "new" ? (
           <input
-            placeholder="Ej. Rent, Groceries, Subscriptions…"
+            placeholder="Ej. Renta, Despensa, Suscripciones…"
             value={newSubcategory}
             onChange={(e) => setNewSubcategory(e.target.value)}
             className="modal-input"

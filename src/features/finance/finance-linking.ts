@@ -42,52 +42,74 @@ const createConceptId = () => `concept_${Date.now()}_${Math.random().toString(36
 export const normalizeValue = (value: string) => value.trim().toLowerCase();
 
 const BASELINE_TAXONOMY_SEED: BaselineTaxonomySeedRow[] = [
-  { category: 'Housing', subcategory: 'Rent', type: 'expense' },
-  { category: 'Housing', subcategory: 'Utilities', type: 'expense' },
-  { category: 'Housing', subcategory: 'Maintenance', type: 'expense' },
-  { category: 'Housing', subcategory: 'Internet', type: 'expense' },
-  { category: 'Food', subcategory: 'Groceries', type: 'expense' },
-  { category: 'Food', subcategory: 'Restaurants', type: 'expense' },
-  { category: 'Food', subcategory: 'Delivery', type: 'expense' },
-  { category: 'Food', subcategory: 'Coffee', type: 'expense' },
-  { category: 'Transport', subcategory: 'Gas', type: 'expense' },
-  { category: 'Transport', subcategory: 'Uber/Taxi', type: 'expense' },
-  { category: 'Transport', subcategory: 'Public Transit', type: 'expense' },
-  { category: 'Transport', subcategory: 'Parking', type: 'expense' },
-  { category: 'Health', subcategory: 'Pharmacy', type: 'expense' },
-  { category: 'Health', subcategory: 'Gym', type: 'expense' },
-  { category: 'Health', subcategory: 'Doctor', type: 'expense' },
-  { category: 'Health', subcategory: 'Insurance', type: 'expense' },
-  { category: 'Entertainment', subcategory: 'Streaming', type: 'expense' },
-  { category: 'Entertainment', subcategory: 'Outings', type: 'expense' },
-  { category: 'Entertainment', subcategory: 'Events', type: 'expense' },
-  { category: 'Entertainment', subcategory: 'Games', type: 'expense' },
-  { category: 'Personal', subcategory: 'Clothing', type: 'expense' },
-  { category: 'Personal', subcategory: 'Grooming', type: 'expense' },
-  { category: 'Personal', subcategory: 'Gifts', type: 'expense' },
-  { category: 'Technology', subcategory: 'Software', type: 'expense' },
-  { category: 'Technology', subcategory: 'Devices', type: 'expense' },
-  { category: 'Technology', subcategory: 'Subscriptions', type: 'expense' },
-  { category: 'Work', subcategory: 'Tools', type: 'expense' },
-  { category: 'Work', subcategory: 'Education', type: 'expense' },
-  { category: 'Work', subcategory: 'Office Supplies', type: 'expense' },
-  { category: 'Savings', subcategory: 'Emergency Fund', type: 'expense' },
-  { category: 'Savings', subcategory: 'Goals', type: 'expense' },
-  { category: 'Pets', subcategory: 'Food', type: 'expense' },
-  { category: 'Pets', subcategory: 'Vet', type: 'expense' },
-  { category: 'Pets', subcategory: 'Grooming', type: 'expense' },
-  { category: 'Other', subcategory: 'Miscellaneous', type: 'expense' },
-  { category: 'Salary', subcategory: 'Main Job', type: 'income' },
-  { category: 'Salary', subcategory: 'Side Job', type: 'income' },
-  { category: 'Freelance', subcategory: 'Projects', type: 'income' },
-  { category: 'Freelance', subcategory: 'Consulting', type: 'income' },
-  { category: 'Interest', subcategory: 'Bank Interest', type: 'income' },
-  { category: 'Interest', subcategory: 'Investments', type: 'income' },
-  { category: 'Other Income', subcategory: 'Refunds', type: 'income' },
-  { category: 'Other Income', subcategory: 'Gifts Received', type: 'income' },
-  { category: 'Other Income', subcategory: 'Miscellaneous', type: 'income' },
-  { category: 'Financial Services', subcategory: 'Commissions', type: 'expense' },
+  { category: 'Vivienda', subcategory: 'Renta', type: 'expense' },
+  { category: 'Vivienda', subcategory: 'Luz', type: 'expense' },
+  { category: 'Vivienda', subcategory: 'Agua', type: 'expense' },
+  { category: 'Vivienda', subcategory: 'Gas doméstico', type: 'expense' },
+  { category: 'Vivienda', subcategory: 'Mantenimiento', type: 'expense' },
+  { category: 'Vivienda', subcategory: 'Internet', type: 'expense' },
+  { category: 'Vivienda', subcategory: 'Teléfono móvil', type: 'expense' },
+  { category: 'Transporte', subcategory: 'Auto', type: 'expense' },
+  { category: 'Transporte', subcategory: 'Gasolina', type: 'expense' },
+  { category: 'Transporte', subcategory: 'Uber/Taxi', type: 'expense' },
+  { category: 'Transporte', subcategory: 'Transporte público', type: 'expense' },
+  { category: 'Transporte', subcategory: 'Estacionamiento', type: 'expense' },
+  { category: 'Alimentación', subcategory: 'Despensa', type: 'expense' },
+  { category: 'Alimentación', subcategory: 'Delivery', type: 'expense' },
+  { category: 'Alimentación', subcategory: 'Restaurantes', type: 'expense' },
+  { category: 'Alimentación', subcategory: 'Café', type: 'expense' },
+  { category: 'Salud', subcategory: 'Farmacia', type: 'expense' },
+  { category: 'Salud', subcategory: 'Gym', type: 'expense' },
+  { category: 'Salud', subcategory: 'Doctor', type: 'expense' },
+  { category: 'Salud', subcategory: 'Seguro', type: 'expense' },
+  { category: 'Entretenimiento', subcategory: 'Salidas', type: 'expense' },
+  { category: 'Entretenimiento', subcategory: 'Streaming', type: 'expense' },
+  { category: 'Tecnología', subcategory: 'Suscripciones', type: 'expense' },
+  { category: 'Tecnología', subcategory: 'Software', type: 'expense' },
+  { category: 'Tecnología', subcategory: 'Dispositivos', type: 'expense' },
+  { category: 'Servicios financieros', subcategory: 'Impuestos', type: 'expense' },
+  { category: 'Servicios financieros', subcategory: 'Pago de deuda', type: 'expense' },
+  { category: 'Servicios financieros', subcategory: 'Comisiones', type: 'expense' },
+  { category: 'Personal', subcategory: 'Misceláneos', type: 'expense' },
+  { category: 'Personal', subcategory: 'Apoyo hogar', type: 'expense' },
+  { category: 'Personal', subcategory: 'Ropa', type: 'expense' },
+  { category: 'Personal', subcategory: 'Aseo personal', type: 'expense' },
+  { category: 'Personal', subcategory: 'Regalos', type: 'expense' },
+  { category: 'Mascotas', subcategory: 'Paseos', type: 'expense' },
+  { category: 'Mascotas', subcategory: 'Comida Runa', type: 'expense' },
+  { category: 'Mascotas', subcategory: 'Veterinario', type: 'expense' },
+  { category: 'Mascotas', subcategory: 'Aseo', type: 'expense' },
+  { category: 'Ahorro', subcategory: 'Metas', type: 'expense' },
+  { category: 'Ahorro', subcategory: 'Fondo de emergencia', type: 'expense' },
+  { category: 'Trabajo', subcategory: 'Herramientas', type: 'expense' },
+  { category: 'Trabajo', subcategory: 'Educación', type: 'expense' },
+  { category: 'Trabajo', subcategory: 'Oficina', type: 'expense' },
+  { category: 'Otros', subcategory: 'Misceláneos', type: 'expense' },
+  { category: 'Ingresos', subcategory: 'Nómina', type: 'income' },
+  { category: 'Ingresos', subcategory: 'Freelance', type: 'income' },
 ];
+
+export function getCanonicalCategories(type: 'income' | 'expense'): string[] {
+  return [
+    ...new Set(
+      BASELINE_TAXONOMY_SEED.filter((row) => row.type === type).map((row) => row.category),
+    ),
+  ].sort((a, b) => a.localeCompare(b, 'es'));
+}
+
+export function getCanonicalSubcategories(
+  type: 'income' | 'expense',
+  category: string,
+): string[] {
+  const categoryLower = normalizeValue(category);
+  return [
+    ...new Set(
+      BASELINE_TAXONOMY_SEED.filter(
+        (row) => row.type === type && normalizeValue(row.category) === categoryLower,
+      ).map((row) => row.subcategory),
+    ),
+  ].sort((a, b) => a.localeCompare(b, 'es'));
+}
 
 const MAY_2026_BUDGET_ITEMS: MonthlyBudgetSeedItem[] = [
   { category: 'Housing', subcategory: 'Rent', amount: 14500, fixed: true },
@@ -120,12 +142,54 @@ export function getBudgetConcepts(db: FinancialDatabase): BudgetConcept[] {
 export function getBudgetConceptsForTypeAndDate(
   db: FinancialDatabase,
   type: 'income' | 'expense',
-  date: string
+  date: string,
+  options?: {
+    selectedPeriod?: string;
+    currentConceptId?: string;
+    /** Incluye meses anteriores con presupuesto (impuestos, auto, etc.). */
+    includePriorPeriodsWithBudget?: boolean;
+  },
 ): BudgetConcept[] {
   const targetPeriod = date.slice(0, 7);
   const all = getBudgetConcepts(db).filter((concept) => concept.type === type && !concept.isParent);
-  const periodScoped = all.filter((concept) => concept.period === targetPeriod);
-  return periodScoped.length > 0 ? periodScoped : all;
+  const periodSet = new Set<string>([targetPeriod]);
+
+  if (options?.selectedPeriod) periodSet.add(options.selectedPeriod);
+  if (options?.currentConceptId) {
+    const linked = all.find((concept) => concept.id === options.currentConceptId);
+    if (linked) periodSet.add(linked.period);
+  }
+  if (options?.includePriorPeriodsWithBudget !== false) {
+    for (const concept of all) {
+      if (concept.period <= targetPeriod && (concept.budgetedAmount || 0) > 0) {
+        periodSet.add(concept.period);
+      }
+    }
+  }
+
+  return all
+    .filter((concept) => periodSet.has(concept.period))
+    .sort(
+      (a, b) =>
+        a.period.localeCompare(b.period) ||
+        a.category.localeCompare(b.category, 'es') ||
+        a.name.localeCompare(b.name, 'es'),
+    );
+}
+
+export function formatPeriodShort(period: string): string {
+  const [y, m] = period.split('-').map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString('es-MX', { month: 'short', year: 'numeric' });
+}
+
+export function formatConceptPickerLabel(
+  concept: BudgetConcept,
+  referencePeriod?: string,
+): string {
+  if (referencePeriod && concept.period !== referencePeriod) {
+    return `${formatPeriodShort(concept.period)} · ${concept.name}`;
+  }
+  return concept.name;
 }
 
 export function ensureCategoryPath(
@@ -267,6 +331,12 @@ export function ensureBaselineBudgetTaxonomy(db: FinancialDatabase, period: stri
     })
   );
 
+  const hasBrainPeriod = getBudgetConcepts(db).some(
+    (concept) =>
+      concept.period === period && !concept.isParent && concept.id.startsWith(`brain_${period}_`),
+  );
+  if (hasBrainPeriod) return;
+
   const hasPeriodConcepts = getBudgetConcepts(db).some(
     (concept) => concept.period === period && !concept.isParent,
   );
@@ -358,8 +428,8 @@ export function ensureBaselineBudgetTaxonomy(db: FinancialDatabase, period: stri
 }
 
 const BASELINE_INCOME_BUDGET: MonthlyBudgetSeedItem[] = [
-  { category: 'Salary', subcategory: 'Main Job', amount: 45000, fixed: true },
-  { category: 'Freelance', subcategory: 'Projects', amount: 8000, fixed: false },
+  { category: 'Ingresos', subcategory: 'Nómina', amount: 45000, fixed: true },
+  { category: 'Ingresos', subcategory: 'Freelance', amount: 8000, fixed: false },
 ];
 
 /** Asegura conceptos de ingreso con presupuesto base para el periodo. */
@@ -388,7 +458,7 @@ export function ensureBaselineIncomeConcepts(db: FinancialDatabase, period: stri
         existing.budgetedAmount = seed.amount;
         existing.isFixed = seed.fixed ?? false;
         existing.name =
-          seed.subcategory === 'Main Job' ? 'NÃ³mina principal' : existing.name || seed.subcategory;
+          seed.subcategory === 'Nómina' ? 'Nómina principal' : existing.name || seed.subcategory;
         existing.updatedAt = nowIso();
         changed = true;
       }
@@ -406,7 +476,7 @@ export function ensureBaselineIncomeConcepts(db: FinancialDatabase, period: stri
 
     next.push({
       id: createConceptId(),
-      name: seed.subcategory === 'Main Job' ? 'NÃ³mina principal' : 'Freelance / proyectos',
+      name: seed.subcategory === 'Nómina' ? 'Nómina principal' : 'Freelance / proyectos',
       category: seed.category,
       subcategory: seed.subcategory,
       budgetedAmount: seed.amount,
@@ -456,103 +526,14 @@ export function getGroceriesAnalysis(
 
 export function ensureMay2026BudgetSnapshot(db: FinancialDatabase): void {
   const period = "2026-05";
-  const type: "expense" = "expense";
-
-  MAY_2026_BUDGET_ITEMS.forEach((item) => {
-    ensureCategoryPath(db, {
-      type,
-      category: item.category,
-      subcategory: item.subcategory,
+  const hasBrainMay = getBudgetConcepts(db).some((c) => c.id.startsWith(`brain_${period}_`));
+  if (!hasBrainMay) {
+    const type: "expense" = "expense";
+    MAY_2026_BUDGET_ITEMS.forEach((item) => {
+      ensureCategoryPath(db, { type, category: item.category, subcategory: item.subcategory });
     });
-  });
-
-  const concepts = getBudgetConcepts(db);
-  const now = nowIso();
-  const nextConcepts = [...concepts];
-  let changed = false;
-
-  const parentByCategory = new Map<string, BudgetConcept>();
-  for (const concept of nextConcepts) {
-    if (!concept.isParent) continue;
-    if (concept.type !== type) continue;
-    if (concept.period !== period) continue;
-    parentByCategory.set(normalizeValue(concept.category), concept);
+    // ... legacy seed only when brain CSV has not been synced
   }
-
-  const uniqueCategories = [...new Set(MAY_2026_BUDGET_ITEMS.map((item) => item.category))];
-  for (const category of uniqueCategories) {
-    const key = normalizeValue(category);
-    if (parentByCategory.has(key)) continue;
-    const parent: BudgetConcept = {
-      id: createConceptId(),
-      name: category,
-      category,
-      budgetedAmount: 0,
-      actualAmount: 0,
-      currency: 'MXN',
-      period,
-      type,
-      isFixed: true,
-      description: `Budget parent for ${category}`,
-      isParent: true,
-      createdAt: now,
-      updatedAt: now,
-    };
-    nextConcepts.push(parent);
-    parentByCategory.set(key, parent);
-    changed = true;
-  }
-
-  for (const item of MAY_2026_BUDGET_ITEMS) {
-    const existing = nextConcepts.find(
-      (concept) =>
-        !concept.isParent &&
-        concept.type === type &&
-        concept.period === period &&
-        normalizeValue(concept.category) === normalizeValue(item.category) &&
-        normalizeValue(concept.subcategory || '') === normalizeValue(item.subcategory)
-    );
-
-    if (existing) {
-      if (
-        existing.budgetedAmount !== item.amount ||
-        existing.currency !== 'MXN' ||
-        existing.isFixed !== (item.fixed !== false)
-      ) {
-        existing.budgetedAmount = item.amount;
-        existing.currency = 'MXN';
-        existing.isFixed = item.fixed !== false;
-        existing.updatedAt = now;
-        changed = true;
-      }
-      continue;
-    }
-
-    const parent = parentByCategory.get(normalizeValue(item.category));
-    nextConcepts.push({
-      id: createConceptId(),
-      name: item.subcategory,
-      category: item.category,
-      subcategory: item.subcategory,
-      budgetedAmount: item.amount,
-      actualAmount: 0,
-      currency: 'MXN',
-      period,
-      type,
-      isFixed: item.fixed !== false,
-      description: `Presupuesto mayo: ${item.subcategory}`,
-      parentId: parent?.id,
-      isParent: false,
-      createdAt: now,
-      updatedAt: now,
-    });
-    changed = true;
-  }
-
-  if (changed) {
-    db.setModuleData('budgetConcepts', nextConcepts);
-  }
-
   const transferReference = 'deel-bancomer-2026-04-30-580';
   const accounts = db.getAccounts();
   const banks = db.getBanks();
@@ -917,7 +898,7 @@ const periodParentKey = (period: string, type: 'income' | 'expense', category: s
   `${period}::${getParentConceptKey(type, category)}`;
 
 const leafConceptKey = (concept: BudgetConcept) =>
-  `${concept.period}::${concept.type}::${normalizeValue(concept.category)}::${normalizeValue(concept.subcategory || '')}::${normalizeValue(concept.name)}`;
+  `${concept.period}::${concept.type}::${normalizeValue(concept.category)}::${normalizeValue(concept.subcategory || concept.name)}`;
 
 function pickCanonicalConcept(a: BudgetConcept, b: BudgetConcept): BudgetConcept {
   const aBrain = a.id.startsWith('brain_');
