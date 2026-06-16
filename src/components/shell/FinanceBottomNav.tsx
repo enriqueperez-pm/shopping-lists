@@ -20,10 +20,10 @@ const tabs: {
 export default function FinanceBottomNav({ active }: { active: AppModule }) {
   return (
     <nav
-      className="fixed bottom-0 inset-x-0 z-50 flex border-t border-[var(--border-hairline)] bg-white/92 backdrop-blur-md shadow-[0_-8px_24px_rgba(21,49,49,0.06)]"
+      className="shrink-0 w-full flex border-t border-[var(--border-hairline)] bg-white/95 backdrop-blur-md shadow-[0_-4px_16px_rgba(21,49,49,0.05)] z-40"
       style={{
         paddingBottom: "var(--safe-bottom, env(safe-area-inset-bottom, 0px))",
-        height: "calc(var(--finance-nav-h, 80px) + var(--safe-bottom, env(safe-area-inset-bottom, 0px)))",
+        minHeight: "calc(var(--finance-nav-h, 80px) + var(--safe-bottom, env(safe-area-inset-bottom, 0px)))",
       }}
       aria-label="Navegación principal"
     >

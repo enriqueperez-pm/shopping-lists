@@ -15,11 +15,8 @@ export default function ComprasBottomNav({ badge }: { badge: number }) {
 
   return (
     <nav
-      className="fixed inset-x-0 border-t border-[var(--border-hairline)] bg-white/92 backdrop-blur-md flex items-stretch z-40 shadow-[0_-8px_24px_rgba(21,49,49,0.06)]"
-      style={{
-        bottom: "calc(var(--finance-nav-h, 64px) + env(safe-area-inset-bottom, 0px))",
-        height: "var(--compras-nav-h, 60px)",
-      }}
+      className="shrink-0 w-full border-t border-[var(--border-hairline)] bg-white/95 backdrop-blur-md flex items-stretch z-30 shadow-[0_-4px_16px_rgba(21,49,49,0.05)]"
+      style={{ minHeight: "var(--compras-nav-h, 60px)" }}
       aria-label="Navegación de compras"
     >
       {tabs.map(({ key, label, href, Icon }) => {

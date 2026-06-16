@@ -68,14 +68,16 @@ export default function Toast() {
     <div
       role="status"
       aria-live="polite"
-      className={`fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px)+.5rem)] left-1/2
-        -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl text-body font-semibold text-white
+      className={`fixed left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl text-body font-semibold text-white
         max-w-[calc(100vw-2rem)] shadow-float
         transition-all duration-toast ease-out ${
           visible
             ? "opacity-100 translate-y-0 pointer-events-auto bg-[color-mix(in_srgb,var(--ink)_92%,transparent)] backdrop-blur-md"
             : "opacity-0 translate-y-2 pointer-events-none"
         }`}
+      style={{
+        bottom: "calc(var(--finance-nav-h, 80px) + var(--compras-nav-h, 0px) + var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 0.75rem)",
+      }}
     >
       <div className="flex items-center gap-3 justify-center flex-wrap">
         <span className="text-center">{message}</span>

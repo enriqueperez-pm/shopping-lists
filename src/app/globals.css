@@ -31,7 +31,9 @@
     --compras-nav-h: 60px;
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --fab-bottom: calc(var(--finance-nav-h) + 1rem + var(--safe-bottom));
-    --scroll-bottom-inset: calc(var(--finance-nav-h) + var(--safe-bottom) + 2rem);
+    --scroll-bottom-inset: 1.25rem;
+    --scroll-fab-extra: 3.75rem;
+    --scroll-trip-bar-extra: 5.5rem;
     --hero-violet: #8b5cf6;
     --hero-coral: #fb7185;
     --hero-sun: #fbbf24;
@@ -235,13 +237,13 @@
   }
 
   .finance-scroll-pad-fab {
-    padding-bottom: calc(var(--scroll-bottom-inset) + 4.5rem);
-    scroll-padding-bottom: calc(var(--scroll-bottom-inset) + 4.5rem);
+    padding-bottom: calc(var(--scroll-bottom-inset) + var(--scroll-fab-extra));
+    scroll-padding-bottom: calc(var(--scroll-bottom-inset) + var(--scroll-fab-extra));
   }
 
   .finance-scroll-pad-compact {
-    padding-bottom: calc(var(--finance-nav-h) + var(--safe-bottom) + 1rem);
-    scroll-padding-bottom: calc(var(--finance-nav-h) + var(--safe-bottom) + 1rem);
+    padding-bottom: var(--scroll-bottom-inset);
+    scroll-padding-bottom: var(--scroll-bottom-inset);
   }
 
   .app-scroll-y {
@@ -319,10 +321,10 @@
     bottom: var(--fab-bottom);
   }
   .app-fab-compras {
-    bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + 1rem + env(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + 1rem + var(--safe-bottom));
   }
   .app-fab-lista {
-    bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + 5.5rem + env(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + var(--scroll-trip-bar-extra) + var(--safe-bottom));
   }
 
   .app-spinner {
@@ -330,13 +332,13 @@
   }
 
   .compras-scroll-pad {
-    padding-bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + var(--safe-bottom) + 2rem);
-    scroll-padding-bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + var(--safe-bottom) + 2rem);
+    padding-bottom: var(--scroll-bottom-inset);
+    scroll-padding-bottom: var(--scroll-bottom-inset);
   }
 
   .compras-scroll-pad-lista {
-    padding-bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + var(--safe-bottom) + 5.5rem + 1rem);
-    scroll-padding-bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + var(--safe-bottom) + 5.5rem + 1rem);
+    padding-bottom: calc(var(--scroll-bottom-inset) + var(--scroll-trip-bar-extra));
+    scroll-padding-bottom: calc(var(--scroll-bottom-inset) + var(--scroll-trip-bar-extra));
   }
 }
 

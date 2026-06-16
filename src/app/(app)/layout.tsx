@@ -20,7 +20,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <FinancialDbProvider>
-      <AppShell module={module}>{children}</AppShell>
+      <AppShell module={module}>
+        <div className="flex flex-1 min-h-0 flex-col overflow-hidden">{children}</div>
+      </AppShell>
     </FinancialDbProvider>
   );
 }
