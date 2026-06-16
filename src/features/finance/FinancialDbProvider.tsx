@@ -35,7 +35,7 @@ import {
   ensureBaselineBudgetTaxonomy,
   ensureBaselineIncomeConcepts,
   ensurePeriodConceptHierarchy,
-  dedupeBudgetConceptsInDb,
+  repairBudgetHierarchyInDb,
   getBudgetConcepts,
 } from "./finance-linking";
 import { setFinanceDb } from "./finance-bridge";
@@ -49,12 +49,14 @@ type FinanceContextValue = {
   setSelectedPeriod: (period: string) => void;
   refresh: () => void;
   userId: string | null;
+  isHouseholdMember: boolean;
   cloudHydrated: boolean;
   cloudSyncError: string | null;
   brainSyncError: string | null;
   brainSnapshotUpdatedAt: string | null;
   lastCloudSyncAt: string | null;
   reloadFromCloud: () => void;
+  pushToCloud: () => Promise<boolean>;
   syncBrainFromCloud: () => Promise<boolean>;
   importBrainCsv: (files: File[]) => Promise<boolean>;
   refreshBrainSnapshotMeta: () => Promise<void>;
@@ -109,7 +111,7 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
     ensureBaselineBudgetTaxonomy(db, selectedPeriod);
     ensureBaselineIncomeConcepts(db, selectedPeriod);
     ensurePeriodConceptHierarchy(db, selectedPeriod);
-    dedupeBudgetConceptsInDb(db);
+    repairBudgetHierarchyInDb(db, selectedPeriod);
     setTransactions(db.getTransactions(selectedPeriod));
   }, [db, selectedPeriod]);
 
@@ -220,7 +222,7 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
 
         if (!payloadsEqual(localPayload, merged)) {
           d.importFullState(merged, { skipCloudHook: true });
-          dedupeBudgetConceptsInDb(d);
+          repairBudgetHierarchyInDb(d);
           refresh();
         }
 
@@ -299,7 +301,7 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
 
       lastLocalPushMsRef.current = Date.now();
       d.importFullState(finalMerged, { skipCloudHook: true });
-      dedupeBudgetConceptsInDb(d);
+      repairBudgetHierarchyInDb(d);
       setBrainSnapshotUpdatedAt(now);
       setLastCloudSyncAt(now);
       refresh();
@@ -456,6 +458,14 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
     };
   }, [cloudHydrated, userId, schedulePullFromCloud]);
 
+  const pushToCloud = useCallback(async (): Promise<boolean> => {
+    return runCloudSync("manual");
+  }, [runCloudSync]);
+
+  const isHouseholdMember = Boolean(
+    userId && (HOUSEHOLD_MEMBER_IDS as readonly string[]).includes(userId),
+  );
+
   const value = useMemo(
     () => ({
       db,
@@ -464,12 +474,14 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
       setSelectedPeriod,
       refresh,
       userId,
+      isHouseholdMember,
       cloudHydrated,
       cloudSyncError,
       brainSyncError,
       brainSnapshotUpdatedAt,
       lastCloudSyncAt,
       reloadFromCloud,
+      pushToCloud,
       syncBrainFromCloud,
       importBrainCsv,
       refreshBrainSnapshotMeta,
@@ -480,12 +492,14 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
       selectedPeriod,
       refresh,
       userId,
+      isHouseholdMember,
       cloudHydrated,
       cloudSyncError,
       brainSyncError,
       brainSnapshotUpdatedAt,
       lastCloudSyncAt,
       reloadFromCloud,
+      pushToCloud,
       syncBrainFromCloud,
       importBrainCsv,
       refreshBrainSnapshotMeta,

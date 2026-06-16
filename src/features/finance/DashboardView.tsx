@@ -80,7 +80,9 @@ export default function DashboardView() {
       />
 
       <UsageProgressBar
-        usagePct={cashflow.usagePct}
+        spentPct={cashflow.spentPct}
+        committedPct={cashflow.committedPct}
+        totalCommittedPct={cashflow.totalCommittedPct}
         spent={cashflow.spent}
         committed={cashflow.committed}
         income={cashflow.income}

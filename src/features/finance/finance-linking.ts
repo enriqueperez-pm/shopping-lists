@@ -928,6 +928,13 @@ function pickCanonicalConcept(a: BudgetConcept, b: BudgetConcept): BudgetConcept
 }
 
 export function dedupeBudgetConcepts(concepts: BudgetConcept[]): BudgetConcept[] {
+  return dedupeBudgetConceptsInternal(concepts).concepts;
+}
+
+function dedupeBudgetConceptsInternal(concepts: BudgetConcept[]): {
+  concepts: BudgetConcept[];
+  idRemap: Map<string, string>;
+} {
   const parentCanonical = new Map<string, BudgetConcept>();
   const parentIdRemap = new Map<string, string>();
   const leafCanonical = new Map<string, BudgetConcept>();
@@ -966,7 +973,7 @@ export function dedupeBudgetConcepts(concepts: BudgetConcept[]): BudgetConcept[]
     dropIds.add(drop.id);
   }
 
-  return concepts
+  const next = concepts
     .filter((concept) => !dropIds.has(concept.id))
     .map((concept) => {
       if (concept.isParent) return concept;
@@ -975,6 +982,8 @@ export function dedupeBudgetConcepts(concepts: BudgetConcept[]): BudgetConcept[]
         ? { ...concept, parentId, updatedAt: nowIso() }
         : concept;
     });
+
+  return { concepts: next, idRemap: parentIdRemap };
 }
 
 export function dedupeBudgetConceptsInDb(db: FinancialDatabase) {
@@ -991,6 +1000,117 @@ export function dedupeBudgetConceptsInDb(db: FinancialDatabase) {
     return true;
   }
   return false;
+}
+
+export function repairBudgetHierarchy(db: FinancialDatabase, periodFilter?: string): boolean {
+  const beforeConcepts = getBudgetConcepts(db);
+  const { concepts: deduped, idRemap } = dedupeBudgetConceptsInternal(beforeConcepts);
+  let concepts = deduped;
+  let changed =
+    concepts.length !== beforeConcepts.length ||
+    JSON.stringify(concepts) !== JSON.stringify(beforeConcepts);
+
+  const periods = periodFilter
+    ? [periodFilter]
+    : [...new Set(concepts.map((c) => c.period))];
+
+  const defaultCurrency = db.getTrackerConfig().defaultCurrency;
+
+  for (const period of periods) {
+    const parentByKey = new Map<string, BudgetConcept>();
+
+    for (const concept of concepts) {
+      if (concept.isParent && concept.period === period && !concept.parentId) {
+        const key = getParentConceptKey(concept.type, concept.category);
+        if (!parentByKey.has(key)) parentByKey.set(key, concept);
+      }
+    }
+
+    const parentIds = () =>
+      new Set(
+        concepts
+          .filter((c) => c.isParent && c.period === period && !c.parentId)
+          .map((c) => c.id),
+      );
+
+    let ids = parentIds();
+
+    for (let i = 0; i < concepts.length; i++) {
+      const leaf = concepts[i];
+      if (leaf.isParent || leaf.period !== period) continue;
+
+      const parentValid =
+        leaf.parentId &&
+        ids.has(leaf.parentId) &&
+        concepts.some((p) => p.id === leaf.parentId && p.isParent && !p.parentId);
+
+      if (parentValid) continue;
+
+      const key = getParentConceptKey(leaf.type, leaf.category);
+      let parent = parentByKey.get(key);
+      if (!parent) {
+        parent = {
+          id: createConceptId(),
+          name: leaf.category,
+          category: leaf.category,
+          budgetedAmount: 0,
+          actualAmount: 0,
+          currency: defaultCurrency,
+          period,
+          type: leaf.type,
+          isFixed: false,
+          description: `Parent ${leaf.category}`,
+          isParent: true,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        };
+        concepts = [...concepts, parent];
+        parentByKey.set(key, parent);
+        ids = parentIds();
+        changed = true;
+      }
+
+      if (leaf.parentId !== parent.id) {
+        concepts = concepts.map((c, idx) =>
+          idx === i ? { ...c, parentId: parent!.id, updatedAt: nowIso() } : c,
+        );
+        changed = true;
+      }
+    }
+
+    const leafParentIds = new Set(
+      concepts
+        .filter((c) => !c.isParent && c.period === period && c.parentId)
+        .map((c) => c.parentId as string),
+    );
+    const filtered = concepts.filter((c) => {
+      if (!c.isParent || c.period !== period || c.parentId) return true;
+      return leafParentIds.has(c.id);
+    });
+    if (filtered.length !== concepts.length) {
+      concepts = filtered;
+      changed = true;
+    }
+  }
+
+  if (idRemap.size > 0) {
+    for (const tx of db.getTransactions()) {
+      if (!tx.budgetConceptId || !idRemap.has(tx.budgetConceptId)) continue;
+      const newId = idRemap.get(tx.budgetConceptId)!;
+      if (newId !== tx.budgetConceptId && db.updateTransaction(tx.id, { budgetConceptId: newId })) {
+        changed = true;
+      }
+    }
+  }
+
+  if (changed) {
+    db.setModuleData('budgetConcepts', concepts);
+  }
+  return changed;
+}
+
+export function repairBudgetHierarchyInDb(db: FinancialDatabase, period?: string): boolean {
+  return repairBudgetHierarchy(db, period);
 }
 
 export function categoryOrderKey(period: string, type: 'income' | 'expense') {

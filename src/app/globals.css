@@ -228,15 +228,15 @@
   }
 
   .finance-scroll-pad {
-    padding-bottom: 1rem;
+    padding-bottom: calc(var(--finance-nav-h) + env(safe-area-inset-bottom, 0px) + 1rem);
   }
 
   .finance-scroll-pad-fab {
-    padding-bottom: calc(4.5rem + 1rem);
+    padding-bottom: calc(var(--finance-nav-h) + env(safe-area-inset-bottom, 0px) + 4.5rem + 1rem);
   }
 
   .finance-scroll-pad-compact {
-    padding-bottom: 1rem;
+    padding-bottom: calc(var(--finance-nav-h) + env(safe-area-inset-bottom, 0px) + 0.75rem);
   }
 
   .compare-bar-bg {
@@ -317,11 +317,11 @@
   }
 
   .compras-scroll-pad {
-    padding-bottom: calc(var(--compras-nav-h) + 1rem);
+    padding-bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + env(safe-area-inset-bottom, 0px) + 1rem);
   }
 
   .compras-scroll-pad-lista {
-    padding-bottom: calc(var(--compras-nav-h) + 5.5rem + 1rem);
+    padding-bottom: calc(var(--finance-nav-h) + var(--compras-nav-h) + env(safe-area-inset-bottom, 0px) + 5.5rem + 1rem);
   }
 }
 

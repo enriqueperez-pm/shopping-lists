@@ -1,5 +1,10 @@
 import type { EnhancedTransaction } from "./FinancialDatabase";
 import type { BudgetConcept } from "./types";
+import {
+  buildPeriodMoneyMetrics,
+  getPeriodMovements,
+  resolveAmountMxn,
+} from "./period-math";
 
 export type CashflowMovementType = "income" | "expense";
 
@@ -11,25 +16,17 @@ export interface PeriodCashflow {
   manualOverride: number | null;
   disponible: number;
   net: number;
+  /** @deprecated use totalCommittedPct */
   usagePct: number;
+  spentPct: number;
+  committedPct: number;
+  totalCommittedPct: number;
   categoryBreakdown: [string, number][];
   allMovements: EnhancedTransaction[];
   recentMovements: EnhancedTransaction[];
 }
 
-const resolveAmountMxn = (tx: EnhancedTransaction) =>
-  tx.originalCurrency === "MXN" || tx.currency === "MXN"
-    ? (tx.originalAmount ?? tx.amount)
-    : tx.amount;
-
-export function getPeriodMovements(
-  transactions: EnhancedTransaction[],
-  period: string,
-): EnhancedTransaction[] {
-  return transactions
-    .filter((tx) => tx.type !== "transfer" && tx.date.startsWith(period))
-    .sort((a, b) => b.date.localeCompare(a.date) || b.timestamp.localeCompare(a.timestamp));
-}
+export { getPeriodMovements, resolveAmountMxn };
 
 export function sumByType(
   movements: EnhancedTransaction[],
@@ -38,12 +35,6 @@ export function sumByType(
   return movements
     .filter((m) => m.type === type)
     .reduce((sum, m) => sum + resolveAmountMxn(m), 0);
-}
-
-export function calcCommitted(concepts: BudgetConcept[], period: string): number {
-  return concepts
-    .filter((c) => !c.isParent && c.type === "expense" && c.period === period)
-    .reduce((sum, c) => sum + Math.max(0, (c.budgetedAmount || 0) - (c.actualAmount || 0)), 0);
 }
 
 export function categoryBreakdownFromMovements(
@@ -58,46 +49,24 @@ export function categoryBreakdownFromMovements(
   return Object.entries(byCat).sort((a, b) => b[1] - a[1]);
 }
 
-export function computeDisponible(input: {
-  income: number;
-  spent: number;
-  committed: number;
-  manualOverride: number | null;
-}): { calculated: number; disponible: number } {
-  const calculated = input.income - input.spent - input.committed;
-  const disponible = input.manualOverride != null ? input.manualOverride : calculated;
-  return { calculated, disponible };
-}
-
 export function buildPeriodCashflow(input: {
   transactions: EnhancedTransaction[];
   concepts: BudgetConcept[];
   selectedPeriod: string;
   manualOverride: number | null;
 }): PeriodCashflow {
-  const allMovements = getPeriodMovements(input.transactions, input.selectedPeriod);
-  const income = sumByType(allMovements, "income");
-  const spent = sumByType(allMovements, "expense");
-  const committed = calcCommitted(input.concepts, input.selectedPeriod);
-  const { calculated, disponible } = computeDisponible({
-    income,
-    spent,
-    committed,
+  const metrics = buildPeriodMoneyMetrics({
+    transactions: input.transactions,
+    concepts: input.concepts,
+    period: input.selectedPeriod,
     manualOverride: input.manualOverride,
   });
-  const net = income - spent;
-  const usagePct =
-    income > 0 ? Math.min(100, Math.round(((spent + committed) / income) * 100)) : 0;
+  const allMovements = getPeriodMovements(input.transactions, input.selectedPeriod);
 
   return {
-    income,
-    spent,
-    committed,
-    calculated,
+    ...metrics,
     manualOverride: input.manualOverride,
-    disponible,
-    net,
-    usagePct,
+    usagePct: metrics.totalCommittedPct,
     categoryBreakdown: categoryBreakdownFromMovements(allMovements),
     allMovements,
     recentMovements: allMovements.slice(0, 5),

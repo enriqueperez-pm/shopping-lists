@@ -10,7 +10,8 @@
     "backfill:shopping": "node scripts/backfill-shopping.mjs",
     "sync:brain": "node scripts/sync-brain-finanzas.mjs",
     "sync:brain:watch": "node scripts/sync-brain-watch.mjs",
-    "test:brain-merge": "npx tsx scripts/test-brain-merge.ts"
+    "test:brain-merge": "npx tsx scripts/test-brain-merge.ts",
+    "test:period-math": "npx tsx scripts/period-math.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",

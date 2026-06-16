@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, LogOut, RefreshCw, Upload, User } from "lucide-react";
+import { CloudUpload, Download, LogOut, RefreshCw, Upload, User } from "lucide-react";
 import { getBrowserSupabase } from "@/lib/supabase/client";
-import { HOUSEHOLD_MEMBER_IDS } from "@/lib/household";
 import PageHeader from "@/components/ui/PageHeader";
 import { clearLocalFinanceStorage, isFinancialPersistedData } from "./FinancialDatabase";
 import { useFinance } from "./FinancialDbProvider";
@@ -19,26 +18,14 @@ export default function CuentaView() {
     brainSyncError,
     brainSnapshotUpdatedAt,
     lastCloudSyncAt,
+    isHouseholdMember,
+    pushToCloud,
     syncBrainFromCloud,
     importBrainCsv,
   } = useFinance();
-  const [email, setEmail] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [brainMessage, setBrainMessage] = useState<string | null>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    void getBrowserSupabase()
-      .auth.getUser()
-      .then(({ data }: { data: { user: { email?: string; id?: string } | null } }) => {
-        setEmail(data.user?.email ?? null);
-        setUserId(data.user?.id ?? null);
-      });
-  }, []);
-
-  const isHousehold =
-    userId && (HOUSEHOLD_MEMBER_IDS as readonly string[]).includes(userId);
 
   const handleReloadFromCloud = () => {
     if (
@@ -58,6 +45,18 @@ export default function CuentaView() {
     clearLocalFinanceStorage();
     router.replace("/login");
     router.refresh();
+  };
+
+  const handlePushToCloud = async () => {
+    setBusy("brain-push");
+    setBrainMessage(null);
+    const ok = await pushToCloud();
+    setBusy(null);
+    setBrainMessage(
+      ok
+        ? "App subida a la nube y al brain. Los CSV en Drive se actualizan con sync:brain:watch."
+        : null,
+    );
   };
 
   const handleSyncBrainFromCloud = async () => {
@@ -113,6 +112,8 @@ export default function CuentaView() {
       })
     : "Pendiente";
 
+  const brainDisabled = busy !== null || !isHouseholdMember;
+
   return (
     <div
       className="flex-1 min-h-0 overflow-y-auto px-[var(--pad,1rem)] py-3 space-y-4 finance-scroll-pad"
@@ -133,15 +134,19 @@ export default function CuentaView() {
             <User size={20} />
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-semibold truncate">{email ?? "…"}</p>
-            <p className="text-micro text-ink-faint truncate">{userId ?? ""}</p>
+            <p className="text-sm font-semibold truncate">Sesión activa</p>
+            <p className="text-micro text-ink-faint">
+              {isHouseholdMember ? "Cuenta del hogar" : "Cuenta sin acceso al brain compartido"}
+            </p>
           </div>
         </div>
-        {isHousehold ? (
-          <p className="text-caption text-pantry">Cuenta del hogar — ves compras y presupuesto compartidos.</p>
+        {isHouseholdMember ? (
+          <p className="text-caption text-pantry">
+            Ves compras y presupuesto compartidos del hogar.
+          </p>
         ) : (
           <p className="text-caption text-cart">
-            Esta cuenta no es una de las dos del hogar. Puede que no veas el presupuesto del brain.
+            Inicia sesión con una de las dos cuentas del hogar para sincronizar el brain.
           </p>
         )}
       </div>
@@ -162,63 +167,70 @@ export default function CuentaView() {
         </button>
       </section>
 
-      {isHousehold ? (
-        <section className="space-y-2">
-          <h2 className="text-sm font-semibold text-ink">Brain y nube (automático)</h2>
-          <p className="text-caption">
-            Cada cambio en la app se sube a Supabase y al brain en la nube al guardar. Entre
-            dispositivos se actualiza en tiempo real. Última sync app:{" "}
-            <span className="font-medium text-ink-muted">{cloudSyncLabel}</span>
-            {" · "}
-            brain: <span className="font-medium text-ink-muted">{snapshotLabel}</span>
-          </p>
-          <p className="text-caption text-ink-faint">
-            Para que los CSV en Drive se actualicen solos, deja corriendo en tu PC:{" "}
-            <code className="text-micro">npm run sync:brain:watch</code>
-          </p>
-          {brainSyncError ? (
-            <p className="text-caption text-cart">{brainSyncError}</p>
-          ) : null}
-          {brainMessage ? (
-            <p className="text-caption text-pantry">{brainMessage}</p>
-          ) : null}
-          <button
-            type="button"
-            className="btn-primary w-full justify-center gap-2 py-2.5"
-            disabled={busy !== null}
-            onClick={() => void handleSyncBrainFromCloud()}
-          >
-            <RefreshCw size={16} />
-            {busy === "brain-sync" ? "Sincronizando…" : "Sincronizar desde brain (nube)"}
-          </button>
-          <input
-            ref={csvInputRef}
-            type="file"
-            accept=".csv,text/csv"
-            multiple
-            className="hidden"
-            onChange={(e) => void handleImportBrainCsv(e.target.files)}
-          />
-          <button
-            type="button"
-            className="btn-soft w-full justify-center gap-2 py-2.5"
-            disabled={busy !== null}
-            onClick={() => csvInputRef.current?.click()}
-          >
-            <Upload size={16} />
-            {busy === "brain-import" ? "Importando…" : "Importar CSV del brain"}
-          </button>
-          <button
-            type="button"
-            className="btn-soft w-full justify-center gap-2 py-2.5"
-            disabled={busy !== null}
-            onClick={handleExportBrainCsv}
-          >
-            <Download size={16} />
-            Exportar CSV para brain (ZIP)
-          </button>
-        </section>
-      ) : null}
+      <section className="space-y-2">
+        <h2 className="text-sm font-semibold text-ink">Brain y nube</h2>
+        <p className="text-caption">
+          Cada cambio en la app se sube automáticamente al guardar. También puedes forzar la sync
+          manualmente. Última sync app:{" "}
+          <span className="font-medium text-ink-muted">{cloudSyncLabel}</span>
+          {" · "}
+          brain: <span className="font-medium text-ink-muted">{snapshotLabel}</span>
+        </p>
+        <p className="text-caption text-ink-faint">
+          Para que los CSV en Drive se actualicen solos, deja corriendo en tu PC:{" "}
+          <code className="text-micro">npm run sync:brain:watch</code>
+        </p>
+        {brainSyncError ? (
+          <p className="text-caption text-cart">{brainSyncError}</p>
+        ) : null}
+        {brainMessage ? (
+          <p className="text-caption text-pantry">{brainMessage}</p>
+        ) : null}
+        <button
+          type="button"
+          className="btn-primary w-full justify-center gap-2 py-2.5"
+          disabled={brainDisabled}
+          onClick={() => void handlePushToCloud()}
+        >
+          <CloudUpload size={16} />
+          {busy === "brain-push" ? "Subiendo…" : "Subir cambios de la app al brain"}
+        </button>
+        <button
+          type="button"
+          className="btn-soft w-full justify-center gap-2 py-2.5"
+          disabled={brainDisabled}
+          onClick={() => void handleSyncBrainFromCloud()}
+        >
+          <RefreshCw size={16} />
+          {busy === "brain-sync" ? "Sincronizando…" : "Traer brain desde la nube"}
+        </button>
+        <input
+          ref={csvInputRef}
+          type="file"
+          accept=".csv,text/csv"
+          multiple
+          className="hidden"
+          onChange={(e) => void handleImportBrainCsv(e.target.files)}
+        />
+        <button
+          type="button"
+          className="btn-soft w-full justify-center gap-2 py-2.5"
+          disabled={brainDisabled}
+          onClick={() => csvInputRef.current?.click()}
+        >
+          <Upload size={16} />
+          {busy === "brain-import" ? "Importando…" : "Importar CSV del brain"}
+        </button>
+        <button
+          type="button"
+          className="btn-soft w-full justify-center gap-2 py-2.5"
+          disabled={brainDisabled}
+          onClick={handleExportBrainCsv}
+        >
+          <Download size={16} />
+          Exportar CSV para brain (ZIP)
+        </button>
+      </section>
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold text-ink">Sesión</h2>
