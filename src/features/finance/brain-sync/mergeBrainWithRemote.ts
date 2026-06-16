@@ -106,12 +106,17 @@ function mergeBudgetConcepts(
     const remote =
       remoteById.get(bc.id) || (!bc.isParent ? remoteByLeaf.get(leafKey(bc)) : undefined);
     if (remote) {
+      const brainManaged = bc.id.startsWith("brain_");
       mergedBrainPeriod.push({
         ...bc,
-        budgetedAmount: remote.budgetedAmount ?? bc.budgetedAmount,
-        actualAmount: Math.max(remote.actualAmount ?? 0, bc.actualAmount ?? 0),
-        isFixed: remote.isFixed ?? bc.isFixed,
-        description: remote.description || bc.description,
+        budgetedAmount: brainManaged
+          ? (bc.budgetedAmount ?? remote.budgetedAmount)
+          : (remote.budgetedAmount ?? bc.budgetedAmount),
+        actualAmount: brainManaged
+          ? (bc.actualAmount ?? 0)
+          : Math.max(remote.actualAmount ?? 0, bc.actualAmount ?? 0),
+        isFixed: brainManaged ? bc.isFixed : (remote.isFixed ?? bc.isFixed),
+        description: brainManaged ? bc.description : remote.description || bc.description,
         updatedAt: remote.updatedAt || bc.updatedAt,
       });
       consumedRemote.add(remote.id);
@@ -169,6 +174,47 @@ function dedupeMonthlyIncomeTx(transactions: EnhancedTransaction[]): EnhancedTra
   return [...rest, ...income];
 }
 
+function transactionFingerprint(tx: EnhancedTransaction): string {
+  return [
+    tx.date,
+    tx.type,
+    Number(tx.amount).toFixed(2),
+    String(tx.description || "")
+      .trim()
+      .toLowerCase(),
+    tx.budgetConceptId || "",
+  ].join("|");
+}
+
+function transactionKeepScore(tx: EnhancedTransaction) {
+  const brainIdx = tx.id?.match(/^brain_tx_\d{4}-\d{2}-\d{2}_(\d+)$/)?.[1];
+  return {
+    shopping: tx.source === "shopping_trip" ? 3 : 0,
+    manual: tx.source !== "import" ? 2 : 0,
+    brainIdx: brainIdx != null ? -Number(brainIdx) : 0,
+    time: new Date(tx.timestamp || tx.date).getTime() || 0,
+  };
+}
+
+function pickPreferredTransaction(a: EnhancedTransaction, b: EnhancedTransaction): EnhancedTransaction {
+  const ar = transactionKeepScore(a);
+  const br = transactionKeepScore(b);
+  if (ar.shopping !== br.shopping) return ar.shopping > br.shopping ? a : b;
+  if (ar.manual !== br.manual) return ar.manual > br.manual ? a : b;
+  if (ar.brainIdx !== br.brainIdx) return ar.brainIdx > br.brainIdx ? a : b;
+  return ar.time >= br.time ? a : b;
+}
+
+function dedupeTransactionFingerprints(transactions: EnhancedTransaction[]): EnhancedTransaction[] {
+  const byFingerprint = new Map<string, EnhancedTransaction>();
+  for (const tx of transactions) {
+    const key = transactionFingerprint(tx);
+    const existing = byFingerprint.get(key);
+    byFingerprint.set(key, existing ? pickPreferredTransaction(existing, tx) : tx);
+  }
+  return [...byFingerprint.values()];
+}
+
 function mergeTransactions(
   brainTx: EnhancedTransaction[],
   remoteTx: EnhancedTransaction[],
@@ -180,55 +226,33 @@ function mergeTransactions(
     byId.set(tx.id, tx);
   };
 
-  for (const tx of brainTx) {
-    const period = (tx.date || "").slice(0, 7);
-    if (!brainPeriods.has(period)) add(tx);
-  }
+  const brainIds = new Set(brainTx.map((tx) => tx.id));
 
   for (const tx of remoteTx) {
     if (tx.source === "shopping_trip") add(tx);
   }
 
   for (const tx of remoteTx) {
-    const period = (tx.date || "").slice(0, 7);
     if (tx.source === "shopping_trip") continue;
-    if (!brainPeriods.has(period)) add(tx);
-  }
-
-  for (const tx of remoteTx) {
     const period = (tx.date || "").slice(0, 7);
-    if (!period || !brainPeriods.has(period)) continue;
-    if (tx.source === "shopping_trip") continue;
+    if (brainPeriods.has(period)) continue;
     add(tx);
   }
 
   for (const tx of brainTx) {
-    const period = (tx.date || "").slice(0, 7);
-    if (!brainPeriods.has(period)) continue;
-    if (byId.has(tx.id)) continue;
-
-    if (tx.budgetConceptId) {
-      const remoteMatch = [...byId.values()].find(
-        (r) =>
-          r.type === tx.type &&
-          r.budgetConceptId === tx.budgetConceptId &&
-          (r.date || "").slice(0, 7) === period,
-      );
-      if (remoteMatch) {
-        const brainManual = tx.source !== "import";
-        const remoteImport = remoteMatch.source === "import";
-        if (brainManual && remoteImport) {
-          byId.delete(remoteMatch.id);
-        } else {
-          continue;
-        }
-      }
-    }
-
     add(tx);
   }
 
-  return dedupeMonthlyIncomeTx([...byId.values()]).sort(
+  for (const tx of remoteTx) {
+    if (tx.source === "shopping_trip") continue;
+    const period = (tx.date || "").slice(0, 7);
+    if (!brainPeriods.has(period)) continue;
+    if (brainIds.has(tx.id)) continue;
+    if (tx.id?.startsWith("brain_tx_")) continue;
+    add(tx);
+  }
+
+  return dedupeMonthlyIncomeTx(dedupeTransactionFingerprints([...byId.values()])).sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
   );
 }
