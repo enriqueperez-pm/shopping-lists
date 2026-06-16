@@ -3,7 +3,9 @@ import type { BudgetConcept } from "./types";
 import {
   buildPeriodMoneyMetrics,
   getPeriodMovements,
+  listPendingPayments,
   resolveAmountMxn,
+  type PendingPaymentItem,
 } from "./period-math";
 
 export type CashflowMovementType = "income" | "expense";
@@ -21,6 +23,7 @@ export interface PeriodCashflow {
   spentPct: number;
   committedPct: number;
   totalCommittedPct: number;
+  pendingPayments: PendingPaymentItem[];
   categoryBreakdown: [string, number][];
   allMovements: EnhancedTransaction[];
   recentMovements: EnhancedTransaction[];
@@ -67,6 +70,7 @@ export function buildPeriodCashflow(input: {
     ...metrics,
     manualOverride: input.manualOverride,
     usagePct: metrics.totalCommittedPct,
+    pendingPayments: listPendingPayments(input.concepts, input.transactions, input.selectedPeriod),
     categoryBreakdown: categoryBreakdownFromMovements(allMovements),
     allMovements,
     recentMovements: allMovements.slice(0, 5),

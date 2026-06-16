@@ -1,6 +1,9 @@
 "use client";
 
+import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { money } from "@/lib/money";
+import type { PendingPaymentItem } from "../period-math";
 
 type Props = {
   spentPct: number;
@@ -9,6 +12,7 @@ type Props = {
   spent: number;
   committed: number;
   income: number;
+  pendingPayments: PendingPaymentItem[];
 };
 
 export default function UsageProgressBar({
@@ -18,8 +22,11 @@ export default function UsageProgressBar({
   spent,
   committed,
   income,
+  pendingPayments,
 }: Props) {
+  const [open, setOpen] = useState(false);
   const tone = totalCommittedPct >= 90 ? "danger" : totalCommittedPct >= 75 ? "warn" : "";
+  const hasPendingDetail = committed > 0 && pendingPayments.length > 0;
 
   return (
     <div className="surface-soft p-3 space-y-2">
@@ -54,11 +61,50 @@ export default function UsageProgressBar({
           <span className="w-2 h-2 rounded-full bg-pantry shrink-0" />
           Gastado {money(spent)} ({spentPct}%)
         </span>
-        <span className="inline-flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-[rgba(180,140,80,0.85)] shrink-0" />
-          Por pagar {money(committed)} ({committedPct}%)
-        </span>
+        {hasPendingDetail ? (
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="inline-flex items-center gap-1 hover:text-ink-muted transition-colors"
+            aria-expanded={open}
+          >
+            <span className="w-2 h-2 rounded-full bg-[rgba(180,140,80,0.85)] shrink-0" />
+            Por pagar {money(committed)} ({committedPct}%)
+            <ChevronDown
+              size={12}
+              className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+            />
+          </button>
+        ) : (
+          <span className="inline-flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[rgba(180,140,80,0.85)] shrink-0" />
+            Por pagar {money(committed)} ({committedPct}%)
+          </span>
+        )}
       </div>
+
+      {open && hasPendingDetail ? (
+        <ul className="border-t border-[var(--border-hairline)] pt-2 space-y-1.5">
+          {pendingPayments.map((item) => (
+            <li
+              key={item.conceptId}
+              className="flex justify-between gap-3 text-micro"
+            >
+              <div className="min-w-0">
+                <p className="text-ink truncate">{item.name}</p>
+                <p className="text-ink-faint truncate">
+                  {item.subcategory ? `${item.category} · ${item.subcategory}` : item.category}
+                  {" · "}
+                  {money(item.paid)} de {money(item.budgeted)}
+                </p>
+              </div>
+              <span className="font-semibold tabular-nums text-ink shrink-0">
+                {money(item.pending)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }

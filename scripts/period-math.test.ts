@@ -5,6 +5,7 @@
 import {
   buildPeriodMoneyMetrics,
   calcCommittedFromTransactions,
+  listPendingPayments,
 } from "../src/features/finance/period-math";
 import type { EnhancedTransaction } from "../src/features/finance/FinancialDatabase";
 import type { BudgetConcept } from "../src/features/finance/types";
@@ -77,6 +78,10 @@ function assert(condition: boolean, message: string) {
 
 const committed = calcCommittedFromTransactions(concepts, transactions, period);
 assert(committed === 1323.13, `committed from txs expected 1323.13, got ${committed}`);
+
+const pending = listPendingPayments(concepts, transactions, period);
+assert(pending.length === 1, `expected 1 pending item, got ${pending.length}`);
+assert(pending[0].pending === 1323.13, `pending item amount expected 1323.13, got ${pending[0].pending}`);
 
 const metrics = buildPeriodMoneyMetrics({
   transactions,

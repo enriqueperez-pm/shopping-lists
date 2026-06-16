@@ -86,6 +86,7 @@ export default function DashboardView() {
         spent={cashflow.spent}
         committed={cashflow.committed}
         income={cashflow.income}
+        pendingPayments={cashflow.pendingPayments}
       />
 
       <section className="surface-soft p-4 space-y-3">

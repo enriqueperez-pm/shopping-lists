@@ -58,15 +58,44 @@ export function calcCommittedFromTransactions(
   transactions: EnhancedTransaction[],
   period: string,
 ): number {
-  const actualByConcept = actualByConceptFromTransactions(transactions, period);
   return roundMoney(
-    concepts
-      .filter((c) => !c.isParent && c.type === "expense" && c.period === period)
-      .reduce((sum, c) => {
-        const executed = actualByConcept.get(c.id) ?? 0;
-        return sum + Math.max(0, roundMoney((c.budgetedAmount || 0) - executed));
-      }, 0),
+    listPendingPayments(concepts, transactions, period).reduce((sum, item) => sum + item.pending, 0),
   );
+}
+
+export interface PendingPaymentItem {
+  conceptId: string;
+  name: string;
+  category: string;
+  subcategory?: string;
+  budgeted: number;
+  paid: number;
+  pending: number;
+}
+
+export function listPendingPayments(
+  concepts: BudgetConcept[],
+  transactions: EnhancedTransaction[],
+  period: string,
+): PendingPaymentItem[] {
+  const actualByConcept = actualByConceptFromTransactions(transactions, period);
+  return concepts
+    .filter((c) => !c.isParent && c.type === "expense" && c.period === period)
+    .map((c) => {
+      const paid = actualByConcept.get(c.id) ?? 0;
+      const pending = Math.max(0, roundMoney((c.budgetedAmount || 0) - paid));
+      return {
+        conceptId: c.id,
+        name: c.name,
+        category: c.category,
+        subcategory: c.subcategory,
+        budgeted: c.budgetedAmount || 0,
+        paid,
+        pending,
+      };
+    })
+    .filter((item) => item.pending > 0)
+    .sort((a, b) => b.pending - a.pending || a.name.localeCompare(b.name, "es"));
 }
 
 export interface PeriodMoneyMetrics {
