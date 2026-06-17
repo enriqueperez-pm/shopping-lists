@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>klagi — Wireframe Disponible v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-cream: #fff9f6;
+      --bg-surface: #ffffff;
+      --ink: #3d3654;
+      --ink-muted: #6b6580;
+      --ink-faint: #9b94ad;
+      --border-hairline: rgba(61, 54, 84, 0.08);
+      --mint: #34d399;
+      --mint-light: #ecfdf5;
+      --sun: #fbbf24;
+      --sun-light: #fffbeb;
+      --coral: #fb7185;
+      --coral-light: #fff1f2;
+      --violet: #8b5cf6;
+      --violet-light: #f3e8ff;
+      --danger: #f87171;
+      --income-color: #059669;
+      --income-bg: #ecfdf5;
+      --expense-color: #dc2626;
+      --expense-bg: #fef2f2;
+      --pad: clamp(14px, 3.5vw, 22px);
+      --phone-w: 390px;
+      --nav-h: 64px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+      background: #e8e4df;
+      color: var(--ink);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+      letter-spacing: -0.01em;
+    }
+
+    .proto-banner {
+      max-width: var(--phone-w);
+      width: 100%;
+      background: var(--ink);
+      color: white;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-align: center;
+      padding: 6px 12px;
+      border-radius: 14px 14px 0 0;
+    }
+
+    .phone {
+      width: 100%;
+      max-width: var(--phone-w);
+      height: min(844px, calc(100dvh - 80px));
+      background: var(--bg-cream);
+      border-radius: 0 0 28px 28px;
+      box-shadow: 0 24px 64px rgba(61, 54, 84, 0.2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .screen-wrap { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+
+    .screen {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px var(--pad) calc(var(--nav-h) + 72px);
+      display: none;
+    }
+    .screen.active { display: block; }
+
+    /* Bottom nav */
+    .bottom-nav {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      display: flex;
+      border-top: 1px solid var(--border-hairline);
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(12px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      z-index: 20;
+      box-shadow: 0 -8px 24px rgba(61,54,84,0.06);
+    }
+    .bottom-nav button {
+      flex: 1;
+      border: none;
+      background: none;
+      padding: 8px 2px 10px;
+      font-family: inherit;
+      font-size: 0.625rem;
+      font-weight: 600;
+      color: var(--ink-faint);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+    .bottom-nav button.active { color: var(--ink); }
+    .bottom-nav button.active .nav-icon {
+      background: rgba(61, 54, 84, 0.06);
+      color: var(--ink);
+    }
+    .bottom-nav button:disabled { opacity: 0.35; cursor: not-allowed; }
+    .nav-icon {
+      width: 32px; height: 32px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s;
+    }
+    .bottom-nav svg { width: 18px; height: 18px; }
+
+    .text-title { font-size: 1.125rem; font-weight: 700; }
+    .text-caption { font-size: 0.75rem; font-weight: 500; color: var(--ink-faint); }
+    .text-micro { font-size: 0.6875rem; font-weight: 600; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .surface-soft {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-hairline);
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(61,54,84,0.04);
+    }
+
+    .month-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .month-select {
+      font-size: 0.8125rem; font-weight: 600;
+      border: 1px solid var(--border-hairline); border-radius: 999px;
+      padding: 8px 14px;
+      background: var(--bg-surface);
+      color: var(--ink-muted);
+    }
+
+    /* Único gradiente de la app: tarjeta Disponible */
+    .hero {
+      background: linear-gradient(135deg, #a78bfa 0%, #fb7185 55%, #fbbf24 100%);
+      color: white;
+      border-radius: 20px;
+      padding: 22px 20px;
+      margin-bottom: 14px;
+      box-shadow: 0 12px 32px rgba(139, 92, 246, 0.35);
+    }
+    .hero-label { font-size: 0.6875rem; font-weight: 700; opacity: 0.9; letter-spacing: 0.1em; text-transform: uppercase; }
+    .hero-amount { font-size: 2.5rem; font-weight: 800; font-variant-numeric: tabular-nums; margin: 6px 0 8px; letter-spacing: -0.04em; }
+    .hero-sub { font-size: 0.75rem; opacity: 0.92; line-height: 1.4; }
+
+    .progress-wrap { margin-top: 18px; }
+    .progress-meta { display: flex; justify-content: space-between; font-size: 0.6875rem; font-weight: 600; opacity: 0.95; margin-bottom: 8px; }
+    .progress-bar { height: 8px; background: rgba(255,255,255,0.3); border-radius: 99px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 99px; background: white; transition: width 0.4s ease; box-shadow: 0 0 8px rgba(255,255,255,0.5); }
+    .progress-fill.warn { background: rgba(255,255,255,0.65); }
+    .progress-fill.danger { background: rgba(255,255,255,0.4); }
+
+    .breakdown { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+    .breakdown-card {
+      padding: 12px 8px; text-align: center; border-radius: 14px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-hairline);
+    }
+    .breakdown-card .label { font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-faint); margin-bottom: 4px; font-weight: 700; }
+    .breakdown-card .val { font-size: 0.9375rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ink); }
+    .breakdown-card.income .val { color: var(--income-color); }
+    .breakdown-card.spent .val { color: var(--expense-color); }
+
+    /* Secundarios: blanco, borde suave */
+    .btn-soft {
+      width: 100%; padding: 12px;
+      border: 1px solid var(--border-hairline);
+      border-radius: 14px;
+      background: var(--bg-surface);
+      font-family: inherit; font-size: 0.8125rem; font-weight: 600;
+      color: var(--ink-muted); cursor: pointer; margin-bottom: 16px;
+    }
+    /* Primario: sólido, sin gradiente */
+    .btn-primary {
+      padding: 11px 18px; border: none; border-radius: 12px;
+      background: var(--ink);
+      color: white; font-family: inherit; font-size: 0.8125rem; font-weight: 600; cursor: pointer;
+      box-shadow: 0 2px 8px rgba(61, 54, 84, 0.12);
+    }
+    .btn-link {
+      background: none; border: none; color: var(--ink-muted);
+      font-family: inherit; font-size: 0.8125rem; font-weight: 700;
+      cursor: pointer; text-decoration: underline; padding: 0;
+    }
+
+    .section-title { font-size: 0.9375rem; font-weight: 700; margin-bottom: 8px; }
+    .section-head-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; margin-bottom: 8px; margin-top: 4px;
+    }
+    .section-head-row .section-title { margin-bottom: 0; }
+
+    .movement-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; gap: 12px; margin-bottom: 8px; }
+    .movement-row .desc { font-size: 0.875rem; font-weight: 600; }
+    .movement-row .meta { font-size: 0.6875rem; color: var(--ink-faint); margin-top: 2px; }
+    .movement-row .tag {
+      display: inline-block; font-size: 0.625rem; font-weight: 600;
+      padding: 2px 6px; border-radius: 6px; margin-top: 4px;
+      background: rgba(61, 54, 84, 0.05); color: var(--ink-faint);
+    }
+    .movement-row .amt { font-size: 0.9375rem; font-weight: 800; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+    .movement-row .amt.in { color: var(--income-color); }
+    .movement-row .amt.out { color: var(--expense-color); }
+
+    /* Gráficas Inicio */
+    .chart-card { padding: 16px; margin-bottom: 12px; }
+    .chart-legend { display: flex; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+    .chart-legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 600; color: var(--ink-muted); }
+    .chart-legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+    .chart-legend-dot.income { background: var(--income-color); }
+    .chart-legend-dot.expense { background: var(--expense-color); }
+
+    .compare-row { margin-bottom: 12px; }
+    .compare-row:last-child { margin-bottom: 0; }
+    .compare-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+    .compare-label { font-size: 0.8125rem; font-weight: 600; color: var(--ink-muted); }
+    .compare-val { font-size: 0.875rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .compare-val.income { color: var(--income-color); }
+    .compare-val.expense { color: var(--expense-color); }
+    .compare-bar-bg { height: 10px; background: rgba(61, 54, 84, 0.06); border-radius: 99px; overflow: hidden; }
+    .compare-bar-fill { height: 100%; border-radius: 99px; transition: width 0.4s ease; }
+    .compare-bar-fill.income { background: var(--income-color); }
+    .compare-bar-fill.expense { background: var(--expense-color); }
+
+    .cat-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .cat-row:last-child { margin-bottom: 0; }
+    .cat-name { width: 88px; flex-shrink: 0; font-size: 0.75rem; font-weight: 600; color: var(--ink-muted); }
+    .cat-bar-wrap { flex: 1; min-width: 0; }
+    .cat-bar-bg { height: 8px; background: rgba(61, 54, 84, 0.06); border-radius: 99px; overflow: hidden; }
+    .cat-bar-fill { height: 100%; background: var(--expense-color); border-radius: 99px; opacity: 0.85; transition: width 0.4s ease; }
+    .cat-amt { width: 64px; text-align: right; font-size: 0.75rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--expense-color); flex-shrink: 0; }
+
+    .alert-row { display: flex; justify-content: space-between; padding: 12px 14px; margin-bottom: 8px; }
+    .badge-warn {
+      font-size: 0.75rem; font-weight: 700; color: var(--ink-muted);
+      background: rgba(61, 54, 84, 0.06); padding: 4px 8px; border-radius: 8px;
+    }
+
+    .compras-card { padding: 14px; display: flex; gap: 12px; align-items: flex-start; margin-bottom: 8px; }
+    .compras-icon {
+      width: 40px; height: 40px; border-radius: 14px;
+      background: rgba(61, 54, 84, 0.05); border: 1px solid var(--border-hairline);
+      display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;
+    }
+
+    .seg-tabs {
+      display: flex; gap: 4px; padding: 4px;
+      background: rgba(61, 54, 84, 0.05); border-radius: 12px; margin-bottom: 12px;
+    }
+    .seg-tabs button {
+      flex: 1; border: none; background: none; padding: 9px;
+      border-radius: 10px; font-family: inherit; font-size: 0.8125rem; font-weight: 700;
+      color: var(--ink-faint); cursor: pointer;
+    }
+    .seg-tabs button.active { background: white; color: var(--ink); box-shadow: 0 1px 4px rgba(61,54,84,0.08); }
+
+    .concept-row { padding: 14px; margin-bottom: 8px; }
+    .concept-head { display: flex; justify-content: space-between; margin-bottom: 8px; gap: 8px; }
+    .concept-name { font-size: 0.875rem; font-weight: 700; }
+    .concept-amt { font-size: 0.875rem; font-weight: 700; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+    .bar-bg { height: 8px; background: rgba(61,54,84,0.06); border-radius: 99px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 99px; }
+    .bar-fill.ok { background: rgba(139, 92, 246, 0.45); }
+    .bar-fill.warn { background: rgba(139, 92, 246, 0.65); }
+    .bar-fill.over { background: var(--violet); }
+
+    .action-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .action-row .btn-soft, .action-row .btn-primary { flex: 1; margin: 0; width: auto; }
+
+    .fab {
+      position: absolute; right: 16px;
+      bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 14px);
+      width: 52px; height: 52px; border-radius: 18px;
+      background: var(--ink);
+      color: white; border: none; font-size: 1.75rem; line-height: 1;
+      cursor: pointer; box-shadow: 0 6px 20px rgba(61, 54, 84, 0.2); z-index: 15;
+    }
+
+    .overlay {
+      position: absolute; inset: 0;
+      background: rgba(61,54,84,0.4);
+      display: none; align-items: flex-end; justify-content: center;
+      padding: 12px; z-index: 50;
+    }
+    .overlay.open { display: flex; }
+    .modal {
+      width: 100%; background: white; border-radius: 20px 20px 16px 16px;
+      padding: 20px; max-height: 88%; overflow-y: auto;
+    }
+    .modal h2 { font-size: 1.125rem; font-weight: 800; margin-bottom: 4px; }
+    .modal .modal-sub { font-size: 0.75rem; color: var(--ink-faint); margin-bottom: 14px; }
+    .modal label.field-label { display: block; font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); margin-bottom: 6px; margin-top: 10px; }
+    .modal input, .modal select {
+      width: 100%; padding: 12px 14px;
+      border: 2px solid var(--border-hairline); border-radius: 12px;
+      font-family: inherit; font-size: 0.875rem; background: var(--bg-cream);
+    }
+    .modal input:focus, .modal select:focus { outline: none; border-color: rgba(61, 54, 84, 0.2); background: white; }
+    .concept-preview {
+      margin-top: 10px; padding: 12px 14px;
+      background: rgba(61, 54, 84, 0.04); border-radius: 12px;
+      font-size: 0.8125rem; font-weight: 600; color: var(--ink-muted);
+    }
+    .create-panel {
+      margin-top: 12px; padding: 14px;
+      background: var(--bg-cream); border-radius: 14px;
+      border: 1px dashed var(--border-hairline);
+    }
+    .create-panel.hidden { display: none; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
+
+    .hidden { display: none !important; }
+    .proto-help { max-width: var(--phone-w); width: 100%; margin-top: 12px; font-size: 0.75rem; color: var(--ink-muted); text-align: center; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="proto-banner">WIREFRAME v2.4 · data real · mes sincronizado</div>
+
+  <div class="phone" id="phone">
+    <div class="screen-wrap">
+      <!-- INICIO -->
+      <section class="screen active" id="screen-inicio">
+        <div class="month-row">
+          <div>
+            <h1 class="text-title">Inicio</h1>
+            <p class="text-caption">Tu billetera del mes</p>
+          </div>
+          <select class="month-select js-month-select" aria-label="Mes"></select>
+        </div>
+
+        <div class="hero">
+          <p class="hero-label">Disponible</p>
+          <p class="hero-amount" id="hero-amount">$12,800</p>
+          <p class="hero-sub" id="hero-sub">Calculado <span id="calc-val">$12,340</span> · Ajustado manualmente</p>
+          <div class="progress-wrap">
+            <div class="progress-meta">
+              <span id="progress-label">72% del ingreso usado</span>
+              <span id="progress-detail">$32,660 / $45,000</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill warn" id="progress-fill" style="width:72%"></div></div>
+          </div>
+        </div>
+
+        <div class="breakdown">
+          <div class="breakdown-card income surface-soft">
+            <p class="label">Ingresos</p>
+            <p class="val" id="val-income">$45,000</p>
+          </div>
+          <div class="breakdown-card spent surface-soft">
+            <p class="label">Gastado</p>
+            <p class="val" id="val-spent">$28,100</p>
+          </div>
+          <div class="surface-soft breakdown-card committed">
+            <p class="label">Por pagar</p>
+            <p class="val" id="val-committed">$4,560</p>
+          </div>
+        </div>
+
+        <button type="button" class="btn-soft" id="btn-adjust">Ajustar saldo real</button>
+
+        <h2 class="section-title">Ingresos vs gastos</h2>
+        <div class="surface-soft chart-card" id="flow-chart"></div>
+
+        <h2 class="section-title" style="margin-top:4px">Gastos por categoría</h2>
+        <div class="surface-soft chart-card" id="category-chart"></div>
+
+        <div class="section-head-row">
+          <h2 class="section-title">Últimos movimientos</h2>
+          <button type="button" class="btn-link" id="see-all-movements">Ver todos →</button>
+        </div>
+        <div id="recent-list"></div>
+
+        <h2 class="section-title" style="margin-top:16px">Alertas</h2>
+        <div class="surface-soft alert-row">
+          <div>
+            <p style="font-size:0.875rem;font-weight:700">Uber Eats</p>
+            <p class="text-caption">$1,336 / $1,500</p>
+          </div>
+          <span class="badge-warn">89%</span>
+        </div>
+
+        <div class="surface-soft compras-card" style="margin-top:12px">
+          <div class="compras-icon">🛒</div>
+          <div>
+            <p style="font-size:0.875rem;font-weight:700">Compras</p>
+            <p class="text-caption">3 pendiente · 1 en carrito</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- PRESUPUESTO -->
+      <section class="screen" id="screen-presupuesto">
+        <div class="month-row">
+          <div>
+            <h1 class="text-title">Presupuesto</h1>
+            <p class="text-caption">Conceptos del mes</p>
+          </div>
+          <select class="month-select js-month-select" aria-label="Mes"></select>
+        </div>
+        <div class="seg-tabs" id="budget-tabs">
+          <button type="button" class="active" data-budget="gastos">Gastos</button>
+          <button type="button" data-budget="ingresos">Ingresos</button>
+        </div>
+        <div id="budget-gastos"><div id="expense-concepts"></div></div>
+        <div id="budget-ingresos" class="hidden">
+          <div id="income-concepts"></div>
+          <button type="button" class="btn-primary" style="width:100%;margin-top:8px" id="btn-add-income">+ Registrar ingreso</button>
+        </div>
+      </section>
+
+      <!-- MOVIMIENTOS -->
+      <section class="screen" id="screen-movimientos">
+        <div class="month-row">
+          <div>
+            <h1 class="text-title">Gastos</h1>
+            <p class="text-caption">Movimientos del mes</p>
+          </div>
+          <select class="month-select js-month-select" aria-label="Mes"></select>
+        </div>
+        <div class="seg-tabs" id="mov-tabs">
+          <button type="button" class="active" data-mov="all">Todos</button>
+          <button type="button" data-mov="out">Salidas</button>
+          <button type="button" data-mov="in">Entradas</button>
+        </div>
+        <div class="action-row">
+          <button type="button" class="btn-soft" id="btn-expense" style="width:auto;margin:0">+ Gasto</button>
+          <button type="button" class="btn-primary" id="btn-income-mov">+ Ingreso</button>
+        </div>
+        <div id="mov-list"></div>
+      </section>
+    </div>
+
+    <button type="button" class="fab" id="fab" aria-label="Gasto rápido">+</button>
+
+    <!-- Bottom navigation -->
+    <nav class="bottom-nav" aria-label="Módulos">
+      <button type="button" class="active" data-screen="inicio">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/></svg></span>
+        Inicio
+      </button>
+      <button type="button" data-screen="presupuesto">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/><path d="M12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg></span>
+        Presupuesto
+      </button>
+      <button type="button" data-screen="movimientos">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span>
+        Gastos
+      </button>
+      <button type="button" disabled title="Sin cambios en wireframe">
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span>
+        Compras
+      </button>
+      <button type="button" disabled>
+        <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+        Cuenta
+      </button>
+    </nav>
+
+    <!-- MODAL AJUSTAR -->
+    <div class="overlay" id="modal-adjust">
+      <div class="modal">
+        <h2>Ajustar saldo real</h2>
+        <p class="modal-sub">Si tu banco no cuadra, pon cuánto tienes hoy.</p>
+        <p class="text-micro">Calculado automático</p>
+        <p style="font-size:1.5rem;font-weight:800;margin:8px 0 14px;color:var(--ink)" id="modal-calc">$12,340</p>
+        <label class="field-label">Saldo real (MXN)</label>
+        <input type="number" id="input-manual" value="12800" />
+        <label class="field-label">Nota (opcional)</label>
+        <input type="text" id="input-note" placeholder="Ej. me quedó en HSBC" />
+        <div class="modal-actions">
+          <button type="button" class="btn-soft" style="width:auto" data-close="modal-adjust">Cancelar</button>
+          <button type="button" class="btn-soft" style="width:auto" id="clear-adjust">Quitar ajuste</button>
+          <button type="button" class="btn-primary" id="save-adjust">Guardar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL INGRESO -->
+    <div class="overlay" id="modal-income">
+      <div class="modal">
+        <h2>Ingreso rápido</h2>
+        <p class="modal-sub">Se suma a Ingresos del mes.</p>
+        <label class="field-label">Descripción</label>
+        <input type="text" id="income-desc" value="Nómina junio" />
+        <label class="field-label">Monto MXN</label>
+        <input type="number" id="income-amt" value="45000" />
+        <label class="field-label">Concepto de ingreso</label>
+        <select id="income-concept"></select>
+        <div class="modal-actions">
+          <button type="button" class="btn-soft" style="width:auto" data-close="modal-income">Cancelar</button>
+          <button type="button" class="btn-primary" id="save-income">Guardar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL GASTO — conceptos alineados -->
+    <div class="overlay" id="modal-expense">
+      <div class="modal">
+        <h2>Registrar gasto</h2>
+        <p class="modal-sub">Elige un concepto del presupuesto — categoría y subcategoría van ligadas.</p>
+
+        <label class="field-label">Concepto del presupuesto</label>
+        <select id="expense-concept-select"></select>
+        <div class="concept-preview" id="concept-preview">Housing · Rent → Renta</div>
+
+        <label class="field-label">Descripción (opcional)</label>
+        <input type="text" id="expense-desc" placeholder="Ej. Pago renta junio" />
+
+        <label class="field-label">Monto MXN</label>
+        <input type="number" id="expense-amt" placeholder="0" />
+
+        <p style="margin-top:14px">
+          <button type="button" class="btn-link" id="toggle-create">+ Crear categoría o subcategoría</button>
+        </p>
+
+        <div class="create-panel hidden" id="create-panel">
+          <p class="text-micro" style="margin-bottom:10px">Nuevo concepto (se agrega al presupuesto del mes)</p>
+          <label class="field-label">Categoría</label>
+          <input type="text" id="new-category" placeholder="Ej. Food, Housing, Personal" list="category-list" />
+          <datalist id="category-list"></datalist>
+          <label class="field-label">Subcategoría (opcional)</label>
+          <input type="text" id="new-subcategory" placeholder="Ej. Delivery, Groceries" />
+          <label class="field-label">Nombre del concepto</label>
+          <input type="text" id="new-concept-name" placeholder="Ej. Uber Eats" />
+          <label class="field-label">Tope mensual MXN (opcional)</label>
+          <input type="number" id="new-budget" placeholder="1500" />
+          <button type="button" class="btn-primary" style="width:100%;margin-top:12px" id="save-new-concept">Crear y usar este concepto</button>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-soft" style="width:auto" data-close="modal-expense">Cancelar</button>
+          <button type="button" class="btn-primary" id="save-expense">Guardar gasto</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="proto-help">Gráficas = movimientos del mes · selector sincronizado en las 3 pantallas</p>
+
+  <script>
+    const fmt = (n) => "$" + Math.round(n).toLocaleString("es-MX");
+    const PERIODS = ["2026-05", "2026-06", "2026-07"];
+    let selectedPeriod = "2026-06";
+
+    const MONTH_NAMES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+    function periodLabel(p) {
+      const [y, m] = p.split("-");
+      return `${MONTH_NAMES[Number(m) - 1]} ${y}`;
+    }
+
+    const DATA = {
+      manualAvailableByPeriod: { "2026-06": 12800 },
+      movements: [
+        { period: "2026-06", date: "2026-06-16", desc: "Gas doméstico", amt: 367, type: "out", category: "Housing", cat: "Housing · Gas" },
+        { period: "2026-06", date: "2026-06-15", desc: "Pago HSBC consolidación", amt: 15000, type: "out", category: "Financial Services", cat: "Financial Services · Debt" },
+        { period: "2026-06", date: "2026-06-15", desc: "Luz CFE", amt: 395, type: "out", category: "Housing", cat: "Housing · Electricity" },
+        { period: "2026-06", date: "2026-06-13", desc: "Uber Eats", amt: 404, type: "out", category: "Food", cat: "Food · Delivery" },
+        { period: "2026-06", date: "2026-06-12", desc: "Uber Eats", amt: 355, type: "out", category: "Food", cat: "Food · Delivery" },
+        { period: "2026-06", date: "2026-06-11", desc: "Uber Eats", amt: 578, type: "out", category: "Food", cat: "Food · Delivery" },
+        { period: "2026-06", date: "2026-06-08", desc: "Telmex mayo (atrasado)", amt: 1477, type: "out", category: "Technology", cat: "Technology · Telmex" },
+        { period: "2026-06", date: "2026-06-05", desc: "Nómina", amt: 45000, type: "in", category: "Salary", cat: "Salary · Main Job" },
+        { period: "2026-06", date: "2026-06-03", desc: "Renta", amt: 14500, type: "out", category: "Housing", cat: "Housing · Rent" },
+        { period: "2026-06", date: "2026-06-02", desc: "Auto cuota 1", amt: 6565, type: "out", category: "Transport", cat: "Transport · Car" },
+        { period: "2026-06", date: "2026-06-02", desc: "ProChem Workspace", amt: 513, type: "out", category: "Technology", cat: "Technology · Subscriptions" },
+        { period: "2026-06", date: "2026-06-02", desc: "Cursor", amt: 1075, type: "out", category: "Technology", cat: "Technology · Software" },
+        { period: "2026-06", date: "2026-06-02", desc: "Xbox Game Pass", amt: 399, type: "out", category: "Technology", cat: "Technology · Subscriptions" },
+        { period: "2026-06", date: "2026-06-01", desc: "Medicamento Tradea", amt: 1200, type: "out", category: "Health", cat: "Health · Pharmacy" },
+        { period: "2026-05", date: "2026-05-28", desc: "Nómina mayo", amt: 45000, type: "in", category: "Salary", cat: "Salary · Main Job" },
+        { period: "2026-05", date: "2026-05-14", desc: "Renta mayo", amt: 14500, type: "out", category: "Housing", cat: "Housing · Rent" },
+        { period: "2026-05", date: "2026-05-10", desc: "Despensa", amt: 3200, type: "out", category: "Food", cat: "Food · Groceries" },
+      ],
+      expenseConcepts: [
+        { period: "2026-06", id: "renta", name: "Renta", category: "Housing", subcategory: "Rent", actual: 14500, budget: 14500 },
+        { period: "2026-06", id: "luz", name: "Luz CFE", category: "Housing", subcategory: "Electricity", actual: 395, budget: 260 },
+        { period: "2026-06", id: "gas", name: "Gas doméstico", category: "Housing", subcategory: "Gas", actual: 367, budget: 525 },
+        { period: "2026-06", id: "telmex", name: "Internet Telmex", category: "Technology", subcategory: "Telmex", actual: 0, budget: 828 },
+        { period: "2026-06", id: "agua", name: "Agua", category: "Housing", subcategory: "Utilities", actual: 0, budget: 331 },
+        { period: "2026-06", id: "uber-eats", name: "Uber Eats", category: "Food", subcategory: "Delivery", actual: 1337, budget: 1500 },
+        { period: "2026-06", id: "auto", name: "Auto financiamiento", category: "Transport", subcategory: "Car", actual: 6565, budget: 13131 },
+        { period: "2026-06", id: "hsbc", name: "Pago HSBC", category: "Financial Services", subcategory: "Debt Payment", actual: 15000, budget: 15000 },
+        { period: "2026-05", id: "renta-may", name: "Renta", category: "Housing", subcategory: "Rent", actual: 14500, budget: 14500 },
+        { period: "2026-05", id: "despensa-may", name: "Despensa", category: "Food", subcategory: "Groceries", actual: 3200, budget: 3500 },
+        { period: "2026-07", id: "renta-jul", name: "Renta", category: "Housing", subcategory: "Rent", actual: 0, budget: 14500 },
+        { period: "2026-07", id: "telmex-jul", name: "Internet Telmex", category: "Technology", subcategory: "Telmex", actual: 0, budget: 828 },
+      ],
+      incomeConcepts: [
+        { period: "2026-06", id: "nomina", name: "Nómina principal", category: "Salary", subcategory: "Main Job", actual: 45000, budget: 45000 },
+        { period: "2026-06", id: "freelance", name: "Freelance / proyectos", category: "Freelance", subcategory: "Projects", actual: 0, budget: 8000 },
+        { period: "2026-05", id: "nomina-may", name: "Nómina principal", category: "Salary", subcategory: "Main Job", actual: 45000, budget: 45000 },
+        { period: "2026-07", id: "nomina-jul", name: "Nómina principal", category: "Salary", subcategory: "Main Job", actual: 0, budget: 45000 },
+      ],
+    };
+
+    function movementsForPeriod(period) {
+      return DATA.movements.filter((m) => m.period === period).sort((a, b) => b.date.localeCompare(a.date));
+    }
+    function conceptsForPeriod(list, period) {
+      return list.filter((c) => c.period === period);
+    }
+    function sumByType(movements, type) {
+      return movements.filter((m) => m.type === type).reduce((s, m) => s + m.amt, 0);
+    }
+    function calcCommitted(period) {
+      return conceptsForPeriod(DATA.expenseConcepts, period).reduce(
+        (s, c) => s + Math.max(0, (c.budget || 0) - (c.actual || 0)), 0,
+      );
+    }
+    function categoryBreakdownFromMovements(movements) {
+      const byCat = {};
+      for (const m of movements) {
+        if (m.type !== "out") continue;
+        const cat = m.category || (m.cat ? m.cat.split(" · ")[0] : "Otros");
+        byCat[cat] = (byCat[cat] || 0) + m.amt;
+      }
+      return Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+    }
+    function formatDateShort(iso) {
+      const d = new Date(iso + "T12:00:00");
+      return `${d.getDate()} ${MONTH_NAMES[d.getMonth()].toLowerCase()}`;
+    }
+
+    function initMonthSelects() {
+      document.querySelectorAll(".js-month-select").forEach((sel) => {
+        sel.innerHTML = PERIODS.map((p) =>
+          `<option value="${p}"${p === selectedPeriod ? " selected" : ""}>${periodLabel(p)}</option>`,
+        ).join("");
+        sel.addEventListener("change", () => setPeriod(sel.value));
+      });
+    }
+    function syncMonthSelects() {
+      document.querySelectorAll(".js-month-select").forEach((sel) => {
+        sel.value = selectedPeriod;
+      });
+    }
+    function setPeriod(period) {
+      selectedPeriod = period;
+      syncMonthSelects();
+      renderAll();
+    }
+
+    function conceptLabel(c) {
+      const sub = c.subcategory ? ` · ${c.subcategory}` : "";
+      return `${c.category}${sub} → ${c.name}`;
+    }
+    function groupConcepts(concepts) {
+      const groups = {};
+      for (const c of concepts) {
+        if (!groups[c.category]) groups[c.category] = [];
+        groups[c.category].push(c);
+      }
+      return groups;
+    }
+
+    function renderConceptSelect() {
+      const sel = document.getElementById("expense-concept-select");
+      const concepts = conceptsForPeriod(DATA.expenseConcepts, selectedPeriod);
+      const groups = groupConcepts(concepts);
+      if (!Object.keys(groups).length) {
+        sel.innerHTML = `<option value="">Sin conceptos este mes</option>`;
+        document.getElementById("concept-preview").textContent = "—";
+        return;
+      }
+      sel.innerHTML = Object.entries(groups)
+        .map(([cat, items]) =>
+          `<optgroup label="${cat}">${items.map((c) =>
+            `<option value="${c.id}">${c.subcategory ? c.subcategory + " — " : ""}${c.name}</option>`,
+          ).join("")}</optgroup>`,
+        ).join("");
+      updateConceptPreview();
+      updateCategoryDatalist();
+    }
+    function updateConceptPreview() {
+      const id = document.getElementById("expense-concept-select").value;
+      const c = DATA.expenseConcepts.find((x) => x.id === id);
+      document.getElementById("concept-preview").textContent = c ? conceptLabel(c) : "—";
+    }
+    function updateCategoryDatalist() {
+      const cats = [...new Set(DATA.expenseConcepts.map((c) => c.category))];
+      document.getElementById("category-list").innerHTML = cats.map((c) => `<option value="${c}">`).join("");
+    }
+    function renderIncomeSelect() {
+      const concepts = conceptsForPeriod(DATA.incomeConcepts, selectedPeriod);
+      document.getElementById("income-concept").innerHTML = concepts.length
+        ? concepts.map((c) => `<option value="${c.id}">${c.name}</option>`).join("")
+        : `<option value="">Sin conceptos este mes</option>`;
+    }
+
+    function renderHero() {
+      const movs = movementsForPeriod(selectedPeriod);
+      const income = sumByType(movs, "in");
+      const spent = sumByType(movs, "out");
+      const committed = calcCommitted(selectedPeriod);
+      const calc = income - spent - committed;
+      const manual = DATA.manualAvailableByPeriod[selectedPeriod];
+      const shown = manual != null ? manual : calc;
+
+      document.getElementById("hero-amount").textContent = fmt(shown);
+      document.getElementById("calc-val").textContent = fmt(calc);
+      document.getElementById("modal-calc").textContent = fmt(calc);
+      document.getElementById("input-manual").value = manual ?? calc;
+      const sub = document.getElementById("hero-sub");
+      sub.innerHTML = manual != null
+        ? `Calculado <span id="calc-val">${fmt(calc)}</span> · Ajustado manualmente`
+        : "Ingresos − gastado − por pagar (desde movimientos)";
+
+      const pct = income > 0 ? Math.min(100, Math.round(((spent + committed) / income) * 100)) : 0;
+      const fill = document.getElementById("progress-fill");
+      fill.style.width = pct + "%";
+      fill.className = "progress-fill" + (pct >= 90 ? " danger" : pct >= 75 ? " warn" : "");
+      document.getElementById("progress-label").textContent = pct + "% del ingreso usado";
+      document.getElementById("progress-detail").textContent = fmt(spent + committed) + " / " + fmt(income);
+      document.getElementById("val-income").textContent = fmt(income);
+      document.getElementById("val-spent").textContent = fmt(spent);
+      document.getElementById("val-committed").textContent = fmt(committed);
+
+      renderFlowChart(income, spent);
+      renderCategoryChart(movs);
+    }
+
+    function renderFlowChart(income, spent) {
+      const max = Math.max(income, spent, 1);
+      const incomePct = Math.round((income / max) * 100);
+      const expensePct = Math.round((spent / max) * 100);
+      const net = income - spent;
+      document.getElementById("flow-chart").innerHTML = income === 0 && spent === 0
+        ? `<p class="text-caption">Sin movimientos en ${periodLabel(selectedPeriod)}.</p>`
+        : `
+        <div class="chart-legend">
+          <span class="chart-legend-item"><span class="chart-legend-dot income"></span> Ingresos (movimientos)</span>
+          <span class="chart-legend-item"><span class="chart-legend-dot expense"></span> Gastos (movimientos)</span>
+          <span class="chart-legend-item" style="margin-left:auto">Neto <strong style="color:${net >= 0 ? "var(--income-color)" : "var(--expense-color)"}">${fmt(net)}</strong></span>
+        </div>
+        <div class="compare-row">
+          <div class="compare-head"><span class="compare-label">Ingresos</span><span class="compare-val income">${fmt(income)}</span></div>
+          <div class="compare-bar-bg"><div class="compare-bar-fill income" style="width:${incomePct}%"></div></div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-head"><span class="compare-label">Gastos</span><span class="compare-val expense">${fmt(spent)}</span></div>
+          <div class="compare-bar-bg"><div class="compare-bar-fill expense" style="width:${expensePct}%"></div></div>
+        </div>`;
+    }
+
+    function renderCategoryChart(movs) {
+      const entries = categoryBreakdownFromMovements(movs);
+      const max = entries[0]?.[1] || 1;
+      if (!entries.length) {
+        document.getElementById("category-chart").innerHTML =
+          `<p class="text-caption">Sin gastos en movimientos de ${periodLabel(selectedPeriod)}.</p>`;
+        return;
+      }
+      document.getElementById("category-chart").innerHTML = entries
+        .map(([cat, amt]) => {
+          const pct = Math.max(8, Math.round((amt / max) * 100));
+          return `<div class="cat-row">
+            <span class="cat-name">${cat}</span>
+            <div class="cat-bar-wrap"><div class="cat-bar-bg"><div class="cat-bar-fill" style="width:${pct}%"></div></div></div>
+            <span class="cat-amt">${fmt(amt)}</span>
+          </div>`;
+        }).join("");
+    }
+
+    function barClass(actual, budget, isIncome) {
+      if (budget <= 0) return isIncome ? "warn" : "ok";
+      const pct = (actual / budget) * 100;
+      if (isIncome) return pct >= 100 ? "ok" : pct >= 80 ? "warn" : "over";
+      return pct >= 100 ? "over" : pct >= 85 ? "warn" : "ok";
+    }
+    function conceptRow(c, isIncome) {
+      const pct = c.budget > 0 ? Math.min(100, (c.actual / c.budget) * 100) : 0;
+      const cat = c.subcategory ? `${c.category} · ${c.subcategory}` : c.category;
+      return `<div class="surface-soft concept-row">
+        <div class="concept-head">
+          <div><p class="concept-name">${c.name}</p><p class="text-caption">${cat}</p></div>
+          <p class="concept-amt">${fmt(c.actual)} / ${fmt(c.budget)}</p>
+        </div>
+        <div class="bar-bg"><div class="bar-fill ${barClass(c.actual, c.budget, isIncome)}" style="width:${pct || 4}%"></div></div>
+      </div>`;
+    }
+    function renderConcepts() {
+      const expenses = conceptsForPeriod(DATA.expenseConcepts, selectedPeriod);
+      const incomes = conceptsForPeriod(DATA.incomeConcepts, selectedPeriod);
+      document.getElementById("expense-concepts").innerHTML = expenses.length
+        ? expenses.map((c) => conceptRow(c, false)).join("")
+        : `<p class="text-caption">Sin conceptos de gasto en ${periodLabel(selectedPeriod)}.</p>`;
+      document.getElementById("income-concepts").innerHTML = incomes.length
+        ? incomes.map((c) => conceptRow(c, true)).join("")
+        : `<p class="text-caption">Sin conceptos de ingreso en ${periodLabel(selectedPeriod)}.</p>`;
+    }
+
+    function movementHtml(m) {
+      const tag = m.cat ? `<span class="tag">${m.cat}</span>` : "";
+      return `<div class="surface-soft movement-row">
+        <div><p class="desc">${m.desc}</p><p class="meta">${formatDateShort(m.date)}</p>${tag}</div>
+        <p class="amt ${m.type === "in" ? "in" : "out"}">${m.type === "in" ? "+" : "−"}${fmt(m.amt)}</p>
+      </div>`;
+    }
+
+    function renderMovements(filter) {
+      const movs = movementsForPeriod(selectedPeriod);
+      const list = movs.filter((m) => {
+        if (filter === "in") return m.type === "in";
+        if (filter === "out") return m.type === "out";
+        return true;
+      });
+      document.getElementById("mov-list").innerHTML = list.length
+        ? list.map(movementHtml).join("")
+        : `<p class="text-caption">Sin movimientos en ${periodLabel(selectedPeriod)}.</p>`;
+      const recent = movs.slice(0, 5);
+      document.getElementById("recent-list").innerHTML = recent.length
+        ? recent.map(movementHtml).join("")
+        : `<p class="text-caption">Sin movimientos recientes.</p>`;
+    }
+
+    function renderAll() {
+      renderHero();
+      renderConcepts();
+      renderConceptSelect();
+      renderIncomeSelect();
+      renderMovements(document.querySelector("#mov-tabs button.active")?.dataset.mov || "all");
+    }
+
+    function goToScreen(screen) {
+      document.querySelectorAll(".bottom-nav button[data-screen]").forEach((b) => b.classList.remove("active"));
+      document.querySelector(`.bottom-nav button[data-screen="${screen}"]`)?.classList.add("active");
+      document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
+      document.getElementById("screen-" + screen)?.classList.add("active");
+      document.getElementById("fab").classList.toggle("hidden", screen !== "inicio");
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add("open"); }
+    function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+
+    document.querySelectorAll(".bottom-nav button[data-screen]").forEach((btn) => {
+      btn.addEventListener("click", () => goToScreen(btn.dataset.screen));
+    });
+    document.getElementById("see-all-movements").addEventListener("click", () => {
+      goToScreen("movimientos");
+      document.querySelectorAll("#mov-tabs button").forEach((b) => b.classList.remove("active"));
+      document.querySelector('#mov-tabs button[data-mov="all"]')?.classList.add("active");
+      renderMovements("all");
+    });
+
+    document.querySelectorAll("#budget-tabs button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#budget-tabs button").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById("budget-gastos").classList.toggle("hidden", btn.dataset.budget !== "gastos");
+        document.getElementById("budget-ingresos").classList.toggle("hidden", btn.dataset.budget !== "ingresos");
+      });
+    });
+    document.querySelectorAll("#mov-tabs button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#mov-tabs button").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        renderMovements(btn.dataset.mov);
+      });
+    });
+
+    document.getElementById("expense-concept-select").addEventListener("change", updateConceptPreview);
+    document.getElementById("toggle-create").addEventListener("click", () => {
+      document.getElementById("create-panel").classList.toggle("hidden");
+    });
+    document.getElementById("save-new-concept").addEventListener("click", () => {
+      const category = document.getElementById("new-category").value.trim();
+      const subcategory = document.getElementById("new-subcategory").value.trim();
+      const name = document.getElementById("new-concept-name").value.trim();
+      const budget = Number(document.getElementById("new-budget").value) || 0;
+      if (!category || !name) { alert("Categoría y nombre del concepto son obligatorios."); return; }
+      const id = "custom_" + Date.now();
+      DATA.expenseConcepts.push({ period: selectedPeriod, id, name, category, subcategory: subcategory || undefined, actual: 0, budget });
+      renderConceptSelect(); renderConcepts();
+      document.getElementById("expense-concept-select").value = id;
+      updateConceptPreview();
+      document.getElementById("create-panel").classList.add("hidden");
+      ["new-category","new-subcategory","new-concept-name","new-budget"].forEach((id) => { document.getElementById(id).value = ""; });
+    });
+
+    document.getElementById("btn-adjust").addEventListener("click", () => openModal("modal-adjust"));
+    document.getElementById("btn-add-income").addEventListener("click", () => openModal("modal-income"));
+    document.getElementById("btn-income-mov").addEventListener("click", () => openModal("modal-income"));
+    document.getElementById("btn-expense").addEventListener("click", () => openModal("modal-expense"));
+    document.getElementById("fab").addEventListener("click", () => openModal("modal-expense"));
+    document.querySelectorAll("[data-close]").forEach((el) => {
+      el.addEventListener("click", () => closeModal(el.dataset.close));
+    });
+
+    document.getElementById("save-adjust").addEventListener("click", () => {
+      const v = Number(document.getElementById("input-manual").value);
+      if (!Number.isNaN(v)) DATA.manualAvailableByPeriod[selectedPeriod] = v;
+      renderHero();
+      closeModal("modal-adjust");
+    });
+    document.getElementById("clear-adjust").addEventListener("click", () => {
+      delete DATA.manualAvailableByPeriod[selectedPeriod];
+      renderHero();
+      closeModal("modal-adjust");
+    });
+
+    document.getElementById("save-income").addEventListener("click", () => {
+      const amt = Number(document.getElementById("income-amt").value);
+      const desc = document.getElementById("income-desc").value.trim() || "Ingreso";
+      const cid = document.getElementById("income-concept").value;
+      const c = DATA.incomeConcepts.find((x) => x.id === cid);
+      if (amt > 0) {
+        const today = new Date().toISOString().slice(0, 10);
+        if (c) c.actual += amt;
+        DATA.movements.unshift({
+          period: selectedPeriod, date: today, desc, amt, type: "in",
+          category: c?.category || "Other Income",
+          cat: c ? `${c.category} · ${c.subcategory || ""}`.replace(/ · $/, "") : "",
+        });
+      }
+      renderAll();
+      closeModal("modal-income");
+    });
+
+    document.getElementById("save-expense").addEventListener("click", () => {
+      const amt = Number(document.getElementById("expense-amt").value);
+      const desc = document.getElementById("expense-desc").value.trim();
+      const cid = document.getElementById("expense-concept-select").value;
+      const c = DATA.expenseConcepts.find((x) => x.id === cid);
+      if (!c) return;
+      if (amt <= 0) { alert("Indica un monto."); return; }
+      const today = new Date().toISOString().slice(0, 10);
+      c.actual += amt;
+      DATA.movements.unshift({
+        period: selectedPeriod, date: today, desc: desc || c.name, amt, type: "out",
+        category: c.category,
+        cat: `${c.category} · ${c.subcategory || c.name}`,
+      });
+      renderAll();
+      closeModal("modal-expense");
+      document.getElementById("expense-amt").value = "";
+      document.getElementById("expense-desc").value = "";
+    });
+
+    initMonthSelects();
+    renderAll();
+  </script>
+</body>
+</html>

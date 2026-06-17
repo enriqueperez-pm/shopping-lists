@@ -6,18 +6,20 @@ import { useFinance } from "./FinancialDbProvider";
 import {
   getBudgetConceptsForTypeAndDate,
   applyConceptCategoryToTransaction,
-  groupBudgetConceptsByCategory,
 } from "./finance-linking";
+import { recordRecentConceptId } from "./finance-crud";
+import SearchableConceptPicker from "./components/SearchableConceptPicker";
 
 export default function QuickIncomeModal({ onClose }: { onClose: () => void }) {
-  const { db, refresh } = useFinance();
+  const { db, refresh, selectedPeriod } = useFinance();
   const today = new Date().toISOString().slice(0, 10);
-  const [date, setDate] = useState(today);
+  const defaultDate = today.startsWith(selectedPeriod) ? today : `${selectedPeriod}-01`;
+  const [date, setDate] = useState(defaultDate);
   const concepts = useMemo(
-    () => getBudgetConceptsForTypeAndDate(db, "income", date),
-    [db, date],
+    () => getBudgetConceptsForTypeAndDate(db, "income", date, { selectedPeriod }),
+    [db, date, selectedPeriod],
   );
-  const conceptGroups = useMemo(() => groupBudgetConceptsByCategory(concepts), [concepts]);
+  const recentIds = db.getUserPreferences().recentConceptIds ?? [];
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [conceptId, setConceptId] = useState(concepts[0]?.id ?? "");
@@ -50,13 +52,26 @@ export default function QuickIncomeModal({ onClose }: { onClose: () => void }) {
       originalCurrency: "MXN",
       source: "manual",
       budgetConceptId: conceptId || undefined,
+      linkReviewStatus: "pending",
     });
+    if (conceptId) recordRecentConceptId(db, conceptId);
     refresh();
     onClose();
   };
 
   return (
     <ModalShell open onClose={onClose} title="Ingreso rápido">
+      <label className="block space-y-1">
+        <span className="modal-label">Concepto</span>
+        <SearchableConceptPicker
+          concepts={concepts}
+          value={conceptId}
+          onChange={setConceptId}
+          selectedPeriod={selectedPeriod}
+          recentIds={recentIds}
+          placeholder="Selecciona concepto"
+        />
+      </label>
       <label className="block space-y-1">
         <span className="modal-label">Fecha</span>
         <input
@@ -84,29 +99,6 @@ export default function QuickIncomeModal({ onClose }: { onClose: () => void }) {
           onChange={(e) => setAmount(e.target.value)}
           className="modal-input tabular-nums"
         />
-      </label>
-      <label className="block space-y-1">
-        <span className="modal-label">Concepto</span>
-        <select
-          value={conceptId}
-          onChange={(e) => setConceptId(e.target.value)}
-          className="modal-input bg-white"
-        >
-          {concepts.length === 0 ? (
-            <option value="">Sin conceptos este mes</option>
-          ) : (
-            conceptGroups.map(({ category, concepts: groupConcepts }) => (
-              <optgroup key={category} label={category}>
-                {groupConcepts.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.subcategory ? `${c.subcategory} — ` : ""}
-                    {c.name}
-                  </option>
-                ))}
-              </optgroup>
-            ))
-          )}
-        </select>
       </label>
       <div className="flex gap-2 justify-end pt-1">
         <button type="button" className="btn-soft" onClick={onClose}>

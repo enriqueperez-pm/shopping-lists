@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Klagi — Prototipo finanzas</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bg-cream:#faf7f2; --ink:#153131; --ink-faint:#6b8282; --border-soft:rgba(21,49,49,.1); --danger:#b91c1c; --danger-bg:#fef2f2; --pantry:#047857; }
+    body { font-family:"Plus Jakarta Sans",sans-serif; background:#e8e4dc; margin:0; padding:12px; }
+    .phone { max-width:430px; margin:0 auto; background:var(--bg-cream); border-radius:24px; border:1px solid var(--border-soft); overflow:hidden; }
+    .tabs { display:flex; border-bottom:1px solid var(--border-soft); }
+    .tabs button { flex:1; padding:10px; border:none; background:none; font-weight:600; color:var(--ink-faint); cursor:pointer; }
+    .tabs button.on { color:var(--ink); box-shadow:inset 0 -2px 0 var(--ink); }
+    .screen { display:none; padding:14px 16px 40px; }
+    .screen.on { display:block; }
+    .search { display:flex; gap:8px; align-items:center; background:#fff; border:1px solid var(--border-soft); border-radius:12px; padding:10px 12px; margin:12px 0; }
+    .search input { flex:1; border:none; outline:none; font-size:15px; }
+    .card { background:#fff; border:1px solid var(--border-soft); border-radius:12px; padding:10px 12px; margin-bottom:8px; }
+    .hint { font-size:12px; color:var(--ink-faint); margin-top:12px; }
+  </style>
+</head>
+<body>
+  <p style="max-width:430px;margin:0 auto 10px;font-size:13px;color:#3a5252">Prototipo UX — buscar, organizar (arrastre), picker, eliminar swipe. Ver app real en Presupuesto/Gastos.</p>
+  <div class="phone">
+    <div class="tabs">
+      <button type="button" class="on" data-s="pres">Presupuesto</button>
+      <button type="button" data-s="gas">Gastos</button>
+    </div>
+    <div id="pres" class="screen on">
+      <h2 style="margin:0;font-size:17px">Presupuesto</h2>
+      <div class="search"><span>🔍</span><input id="q1" placeholder="Buscar concepto…" /></div>
+      <div class="card" data-q="renta vivienda">Renta · $14,500 / $14,500</div>
+      <div class="card" data-q="telmex internet">Internet Telmex · $0 / $828</div>
+      <div class="card" data-q="auto transporte">Auto financiamiento · pendiente</div>
+      <p class="hint">Modo Organizar en app → arrastrar categorías y conceptos.</p>
+    </div>
+    <div id="gas" class="screen">
+      <h2 style="margin:0;font-size:17px">Gastos</h2>
+      <div class="search"><span>🔍</span><input id="q2" placeholder="Buscar movimiento…" /></div>
+      <div class="card" data-q="renta">Renta −$14,500</div>
+      <div class="card" data-q="uber eats">Uber Eats −$403</div>
+      <p class="hint">Desliza fila a la izquierda para eliminar.</p>
+    </div>
+  </div>
+  <script>
+    document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
+      document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("on"));
+      document.querySelectorAll(".screen").forEach(x=>x.classList.remove("on"));
+      b.classList.add("on"); document.getElementById(b.dataset.s).classList.add("on");
+    });
+    function filter(inputId){ const q=document.getElementById(inputId).value.toLowerCase();
+      document.querySelectorAll(`#${inputId.replace("q","pres").replace("2","gas")} .card, #pres .card, #gas .card`).forEach(()=>{});
+    }
+    document.getElementById("q1").oninput=e=>{const q=e.target.value.toLowerCase();
+      document.querySelectorAll("#pres .card").forEach(c=>c.style.display=!q||c.dataset.q.includes(q)?"":"none");};
+    document.getElementById("q2").oninput=e=>{const q=e.target.value.toLowerCase();
+      document.querySelectorAll("#gas .card").forEach(c=>c.style.display=!q||c.dataset.q.includes(q)?"":"none");};
+  </script>
+</body>
+</html>

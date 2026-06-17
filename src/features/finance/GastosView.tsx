@@ -3,33 +3,55 @@
 import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
+import SearchBar from "@/components/SearchBar";
+import SwipeableRow from "@/components/SwipeableRow";
 import { useFinance } from "./FinancialDbProvider";
 import { useCashflow } from "./useCashflow";
 import MonthSelector from "./MonthSelector";
 import QuickExpenseModal from "./QuickExpenseModal";
 import QuickIncomeModal from "./QuickIncomeModal";
 import EditMovementModal from "./EditMovementModal";
-import ConceptCreatorModal from "./ConceptCreatorModal";
+import ConceptFormSheet from "./ConceptFormSheet";
 import MovementRow from "./components/MovementRow";
+import FinanceSyncBar from "./components/FinanceSyncBar";
+import { useFinancePreferences } from "./useFinancePreferences";
+import { filterTransactions } from "./budget-search";
 import type { EnhancedTransaction } from "./FinancialDatabase";
 
 type MovFilter = "all" | "out" | "in";
 
 export default function GastosView() {
+  const { db, refresh } = useFinance();
   const cashflow = useCashflow();
-  const [filter, setFilter] = useState<MovFilter>("all");
+  const { prefs, patch } = useFinancePreferences();
+  const [filter, setFilter] = useState<MovFilter>(prefs.gastosFilter ?? "all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [showExpense, setShowExpense] = useState(false);
   const [showIncome, setShowIncome] = useState(false);
   const [creatingConcept, setCreatingConcept] = useState(false);
   const [editingTx, setEditingTx] = useState<EnhancedTransaction | null>(null);
 
+  const setFilterPersist = (next: MovFilter) => {
+    setFilter(next);
+    patch({ gastosFilter: next });
+  };
+
   const list = useMemo(() => {
-    return cashflow.allMovements.filter((tx) => {
+    const byType = cashflow.allMovements.filter((tx) => {
       if (filter === "in") return tx.type === "income";
       if (filter === "out") return tx.type === "expense";
       return true;
     });
-  }, [cashflow.allMovements, filter]);
+    return filterTransactions(byType, searchQuery);
+  }, [cashflow.allMovements, filter, searchQuery]);
+
+  const deleteTx = (tx: EnhancedTransaction) => {
+    if (!window.confirm(`¿Eliminar «${tx.description}»?`)) return;
+    db.deleteTransaction(tx.id);
+    refresh();
+  };
+
+  const isSearching = searchQuery.trim().length > 0;
 
   return (
     <div
@@ -44,25 +66,31 @@ export default function GastosView() {
         <button
           type="button"
           className={filter === "all" ? "app-tab-active" : "app-tab"}
-          onClick={() => setFilter("all")}
+          onClick={() => setFilterPersist("all")}
         >
           Todos
         </button>
         <button
           type="button"
           className={filter === "out" ? "app-tab-active" : "app-tab"}
-          onClick={() => setFilter("out")}
+          onClick={() => setFilterPersist("out")}
         >
           Salidas
         </button>
         <button
           type="button"
           className={filter === "in" ? "app-tab-active" : "app-tab"}
-          onClick={() => setFilter("in")}
+          onClick={() => setFilterPersist("in")}
         >
           Entradas
         </button>
       </div>
+
+      <SearchBar
+        value={searchQuery}
+        onChange={setSearchQuery}
+        placeholder="Buscar movimiento, concepto o monto…"
+      />
 
       <div className="grid grid-cols-2 gap-2">
         <button type="button" className="btn-primary justify-center" onClick={() => setShowExpense(true)}>
@@ -86,17 +114,27 @@ export default function GastosView() {
 
       <div className="space-y-2">
         {list.length === 0 ? (
-          <p className="text-caption">Sin movimientos con este filtro.</p>
+          <p className="text-caption">
+            {isSearching
+              ? `Sin resultados para «${searchQuery.trim()}».`
+              : "Sin movimientos con este filtro."}
+          </p>
         ) : (
-          list.map((tx) => <MovementRow key={tx.id} tx={tx} onEdit={setEditingTx} />)
+          list.map((tx) => (
+            <SwipeableRow key={tx.id} onDelete={() => deleteTx(tx)} deleteLabel="Borrar">
+              <MovementRow tx={tx} onEdit={setEditingTx} />
+            </SwipeableRow>
+          ))
         )}
       </div>
+
+      <FinanceSyncBar />
 
       {showExpense && <QuickExpenseModal onClose={() => setShowExpense(false)} />}
       {showIncome && <QuickIncomeModal onClose={() => setShowIncome(false)} />}
       {editingTx && <EditMovementModal tx={editingTx} onClose={() => setEditingTx(null)} />}
       {creatingConcept && (
-        <ConceptCreatorModal
+        <ConceptFormSheet
           type={filter === "in" ? "income" : "expense"}
           onClose={() => setCreatingConcept(false)}
         />

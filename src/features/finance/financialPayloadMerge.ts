@@ -163,6 +163,12 @@ export function mergeFinancialPayloads(
         [],
       budgetCategoryOrder:
         remoteModule.budgetCategoryOrder ?? localModule.budgetCategoryOrder,
+      budgetConceptOrder:
+        remoteModule.budgetConceptOrder ?? localModule.budgetConceptOrder,
+      userPreferences: {
+        ...(remoteModule.userPreferences ?? {}),
+        ...(localModule.userPreferences ?? {}),
+      },
     },
     banks: remote.banks?.length ? remote.banks : local.banks,
     accounts: remote.accounts?.length ? remote.accounts : local.accounts,

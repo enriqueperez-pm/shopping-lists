@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Plus } from "lucide-react";
 import { useFinance } from "./FinancialDbProvider";
 import MonthSelector from "./MonthSelector";
-import ConceptEditor from "./ConceptEditor";
-import ConceptCreatorModal from "./ConceptCreatorModal";
+import ConceptFormSheet from "./ConceptFormSheet";
 import QuickIncomeModal from "./QuickIncomeModal";
 import PageHeader from "@/components/ui/PageHeader";
+import SearchBar from "@/components/SearchBar";
+import BudgetConceptRow from "./components/BudgetConceptRow";
+import BudgetOrganizerDnd, { sortGroupChildren } from "./components/BudgetOrganizerDnd";
+import FinanceSyncBar from "./components/FinanceSyncBar";
 import {
   copyBudgetConceptsFromPeriod,
   getBudgetCategoryOrder,
@@ -16,8 +19,14 @@ import {
   sortGroupsByCategoryOrder,
 } from "./finance-linking";
 import { useBudgetAnalytics } from "./useBudget";
-import { readBudgetUiState, writeBudgetUiState, isActiveBudgetConcept } from "./budget-ui-state";
+import { isActiveBudgetConcept } from "./budget-ui-state";
+import { useFinancePreferences } from "./useFinancePreferences";
 import { listPendingPayments } from "./period-math";
+import {
+  filterBudgetCategoryGroups,
+  filterConceptRows,
+  sectionKeysMatchingSearch,
+} from "./budget-search";
 import { money } from "@/lib/money";
 import type { BudgetConcept } from "./types";
 import type { BudgetConceptAnalysis } from "./budget-analytics";
@@ -29,102 +38,27 @@ function formatPeriodLabel(period: string) {
   return new Date(y, m - 1, 1).toLocaleDateString("es-MX", { month: "short", year: "numeric" });
 }
 
-function usageTone(isIncome: boolean, pct: number) {
-  if (isIncome) {
-    return pct >= 100 ? "bg-pantry" : pct >= 80 ? "bg-cart" : "bg-danger";
-  }
-  return pct >= 100 ? "bg-danger" : pct >= 85 ? "bg-cart" : "bg-pantry";
-}
-
-function BudgetConceptCard({
-  row,
-  onEdit,
-  muted,
-  periodLabel,
-}: {
-  row: BudgetConceptAnalysis;
-  onEdit: (concept: BudgetConcept) => void;
-  muted?: boolean;
-  periodLabel?: string;
-}) {
-  const isIncome = row.concept.type === "income";
-  const hasBudget = row.budgeted > 0;
-  const pct = hasBudget ? Math.min(999, Math.round((row.actual / row.budgeted) * 100)) : 0;
-  const pctDisplay = hasBudget ? `${pct}%` : "—";
-  const pctBar = hasBudget ? Math.min(100, pct) : 0;
-
-  return (
-    <button
-      type="button"
-      onClick={() => onEdit(row.concept)}
-      className={`w-full text-left rounded-xl border px-3.5 py-3 transition-colors ${
-        muted
-          ? "border-[var(--border-hairline)] bg-[rgba(21,49,49,0.02)]"
-          : "border-[var(--border-soft)] bg-white shadow-card hover:border-[rgba(21,49,49,0.14)]"
-      }`}
-    >
-      <p className="text-sm font-semibold text-ink truncate">
-        {row.concept.name}
-        {periodLabel ? (
-          <span className="text-ink-faint font-medium"> · {periodLabel}</span>
-        ) : null}
-      </p>
-
-      <div className="mt-2 flex items-baseline justify-between gap-2">
-        <p className="text-base font-bold tabular-nums text-ink">
-          {money(row.actual)}
-          <span className="text-ink-faint font-medium mx-1">/</span>
-          <span className="text-ink-muted font-semibold">{money(row.budgeted)}</span>
-        </p>
-        <span
-          className={`text-sm font-bold tabular-nums shrink-0 ${
-            !hasBudget
-              ? "text-ink-faint"
-              : pct >= 100
-                ? isIncome
-                  ? "text-pantry"
-                  : "text-danger"
-                : "text-ink-muted"
-          }`}
-        >
-          {pctDisplay}
-        </span>
-      </div>
-
-      <p className="text-micro text-ink-faint mt-0.5">
-        {isIncome ? "recibido / meta" : "ejercido / presupuesto"}
-        {hasBudget ? ` · ${pctDisplay} del plan` : " · sin presupuesto"}
-      </p>
-
-      {hasBudget ? (
-        <div className="mt-2.5 h-1.5 rounded-full bg-[rgba(21,49,49,0.06)] overflow-hidden">
-          <div
-            className={`h-full rounded-full ${usageTone(isIncome, Math.min(pct, 100))}`}
-            style={{ width: `${Math.max(pctBar, row.actual > 0 ? 4 : 0)}%` }}
-          />
-        </div>
-      ) : null}
-    </button>
-  );
-}
-
 export default function PresupuestoView() {
   const { db, transactions, selectedPeriod, refresh } = useFinance();
+  const { prefs, patch } = useFinancePreferences();
   const analytics = useBudgetAnalytics();
   const [editing, setEditing] = useState<BudgetConcept | null>(null);
   const [creating, setCreating] = useState(false);
-  const [tab, setTab] = useState<BudgetTab>("gastos");
+  const [tab, setTab] = useState<BudgetTab>(prefs.budgetTab ?? "gastos");
   const [showIncome, setShowIncome] = useState(false);
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
-    return readBudgetUiState()?.collapsed ?? {};
-  });
-  const [showEmptyConcepts, setShowEmptyConcepts] = useState(
-    () => readBudgetUiState()?.showEmptyConcepts ?? false,
-  );
+  const collapsed = prefs.collapsedSections ?? {};
+  const showEmptyConcepts = prefs.showEmptyConcepts ?? false;
+  const organizeMode = prefs.organizeMode ?? false;
+  const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    writeBudgetUiState({ collapsed, showEmptyConcepts });
-  }, [collapsed, showEmptyConcepts]);
+  const setTabPersist = (next: BudgetTab) => {
+    setTab(next);
+    patch({ budgetTab: next });
+  };
+
+  const toggleCollapse = (key: string) => {
+    patch({ collapsedSections: { ...collapsed, [key]: !collapsed[key] } });
+  };
 
   const conceptType = tab === "gastos" ? "expense" : "income";
 
@@ -192,9 +126,30 @@ export default function PresupuestoView() {
       .filter((entry): entry is NonNullable<typeof entry> => entry != null);
   }, [db, transactions, selectedPeriod, tab]);
 
-  const toggleCollapse = (key: string) => {
-    setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
+  const filteredCategoryGroups = useMemo(
+    () => filterBudgetCategoryGroups(categoryGroups, searchQuery),
+    [categoryGroups, searchQuery],
+  );
+
+  const filteredOrphanLeaves = useMemo(
+    () => filterConceptRows(activeOrphanLeaves, searchQuery),
+    [activeOrphanLeaves, searchQuery],
+  );
+
+  const filteredPendingRows = useMemo(
+    () =>
+      priorPendingRows.filter((p) =>
+        filterConceptRows([p.row], searchQuery).length > 0,
+      ),
+    [priorPendingRows, searchQuery],
+  );
+
+  const expandKeys = useMemo(
+    () => sectionKeysMatchingSearch(categoryGroups, searchQuery, tab),
+    [categoryGroups, searchQuery, tab],
+  );
+
+  const isSearching = searchQuery.trim().length > 0;
 
   const moveCategory = (parentId: string, direction: "up" | "down") => {
     moveCategoryInOrder(
@@ -216,6 +171,65 @@ export default function PresupuestoView() {
     refresh();
   };
 
+  const renderCategoryHeader = (
+    group: (typeof categoryGroups)[0],
+    index: number,
+  ) => {
+    const key = `budget:${tab}:${group.parent.concept.id}`;
+    const isCollapsed = collapsed[key];
+    const groupBudgeted = group.children.reduce((s, c) => s + c.budgeted, 0);
+    const groupActual = group.children.reduce((s, c) => s + c.actual, 0);
+
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => toggleCollapse(key)}
+          className="flex-1 flex items-center gap-2 min-w-0 text-left py-1"
+          aria-expanded={!isCollapsed}
+        >
+          <ChevronDown
+            size={16}
+            className={`shrink-0 text-ink-faint transition-transform ${
+              isCollapsed ? "-rotate-90" : ""
+            }`}
+          />
+          <div className="min-w-0 flex-1">
+            <h3 className="text-xs font-bold uppercase tracking-[0.06em] text-ink-muted truncate">
+              {group.parent.concept.category}
+            </h3>
+            <p className="text-caption text-ink-faint tabular-nums">
+              {money(groupActual)} / {money(groupBudgeted)} · {group.children.length}{" "}
+              {group.children.length === 1 ? "concepto" : "conceptos"}
+            </p>
+          </div>
+        </button>
+        {!organizeMode ? (
+          <div className="flex shrink-0">
+            <button
+              type="button"
+              className="p-1.5 text-ink-faint hover:text-ink disabled:opacity-30"
+              aria-label="Subir categoría"
+              disabled={index === 0}
+              onClick={() => moveCategory(group.parent.concept.id, "up")}
+            >
+              <ChevronUp size={14} />
+            </button>
+            <button
+              type="button"
+              className="p-1.5 text-ink-faint hover:text-ink disabled:opacity-30"
+              aria-label="Bajar categoría"
+              disabled={index === categoryGroups.length - 1}
+              onClick={() => moveCategory(group.parent.concept.id, "down")}
+            >
+              <ChevronDown size={14} />
+            </button>
+          </div>
+        ) : null}
+      </>
+    );
+  };
+
   return (
     <div
       className="app-scroll-y px-[var(--pad,1rem)] py-3 space-y-4 finance-scroll-pad"
@@ -225,9 +239,18 @@ export default function PresupuestoView() {
         title="Presupuesto"
         subtitle="Conceptos del mes (MXN)"
         actions={
-          <button type="button" className="btn-soft shrink-0" onClick={copyPreviousMonth}>
-            Copiar mes anterior
-          </button>
+          <div className="flex gap-2 shrink-0">
+            <button
+              type="button"
+              className={organizeMode ? "chip-active" : "chip"}
+              onClick={() => patch({ organizeMode: !organizeMode })}
+            >
+              Organizar
+            </button>
+            <button type="button" className="btn-soft" onClick={copyPreviousMonth}>
+              Copiar mes
+            </button>
+          </div>
         }
       />
 
@@ -237,14 +260,14 @@ export default function PresupuestoView() {
         <button
           type="button"
           className={tab === "gastos" ? "app-tab-active" : "app-tab"}
-          onClick={() => setTab("gastos")}
+          onClick={() => setTabPersist("gastos")}
         >
           Gastos
         </button>
         <button
           type="button"
           className={tab === "ingresos" ? "app-tab-active" : "app-tab"}
-          onClick={() => setTab("ingresos")}
+          onClick={() => setTabPersist("ingresos")}
         >
           Ingresos
         </button>
@@ -273,8 +296,14 @@ export default function PresupuestoView() {
         )}
       </div>
 
+      <SearchBar
+        value={searchQuery}
+        onChange={setSearchQuery}
+        placeholder="Buscar concepto o categoría…"
+      />
+
       <div className="space-y-5 pb-2">
-        {priorPendingRows.length > 0 ? (
+        {filteredPendingRows.length > 0 ? (
           <section className="space-y-2">
             <div className="px-0.5">
               <h3 className="text-xs font-bold uppercase tracking-[0.06em] text-ink-muted">
@@ -284,10 +313,11 @@ export default function PresupuestoView() {
                 Siguen pendientes aunque veas {formatPeriodLabel(selectedPeriod)}
               </p>
             </div>
-            {priorPendingRows.map(({ row, originPeriod }) => (
-              <BudgetConceptCard
+            {filteredPendingRows.map(({ row, originPeriod }) => (
+              <BudgetConceptRow
                 key={row.concept.id}
                 row={row}
+                transactions={transactions}
                 onEdit={setEditing}
                 periodLabel={formatPeriodLabel(originPeriod)}
               />
@@ -295,8 +325,12 @@ export default function PresupuestoView() {
           </section>
         ) : null}
 
-        {categoryGroups.length === 0 && activeOrphanLeaves.length === 0 ? (
-          inactiveConcepts.length > 0 ? (
+        {filteredCategoryGroups.length === 0 &&
+        filteredOrphanLeaves.length === 0 &&
+        (!isSearching || filteredPendingRows.length === 0) ? (
+          isSearching ? (
+            <p className="text-caption">Sin resultados para «{searchQuery.trim()}».</p>
+          ) : inactiveConcepts.length > 0 ? (
             <p className="text-caption">
               Ningún concepto con presupuesto o gasto este mes. Revisa los ocultos abajo o asigna
               montos.
@@ -306,66 +340,38 @@ export default function PresupuestoView() {
               Sin conceptos de {tab === "gastos" ? "gasto" : "ingreso"} este mes.
             </p>
           )
+        ) : organizeMode ? (
+          <BudgetOrganizerDnd
+            db={db}
+            selectedPeriod={selectedPeriod}
+            conceptType={conceptType}
+            categoryGroups={filteredCategoryGroups}
+            transactions={transactions}
+            organizeMode={organizeMode}
+            collapsed={collapsed}
+            tab={tab}
+            onEdit={setEditing}
+            onRefresh={refresh}
+            renderCategoryHeader={(group, index) => renderCategoryHeader(group, index)}
+          />
         ) : (
-          categoryGroups.map(({ parent, children }, index) => {
-            const key = `budget:${tab}:${parent.concept.id}`;
-            const isCollapsed = collapsed[key];
-            const groupBudgeted = children.reduce((s, c) => s + c.budgeted, 0);
-            const groupActual = children.reduce((s, c) => s + c.actual, 0);
+          filteredCategoryGroups.map((group, index) => {
+            const key = `budget:${tab}:${group.parent.concept.id}`;
+            const isCollapsed = isSearching && expandKeys.has(key) ? false : collapsed[key];
+            const sortedChildren = sortGroupChildren(db, group, selectedPeriod, conceptType);
 
             return (
-              <section key={parent.concept.id} className="space-y-2">
+              <section key={group.parent.concept.id} className="space-y-2">
                 <div className="flex items-center gap-1 px-0.5">
-                  <button
-                    type="button"
-                    onClick={() => toggleCollapse(key)}
-                    className="flex-1 flex items-center gap-2 min-w-0 text-left py-1"
-                    aria-expanded={!isCollapsed}
-                  >
-                    <ChevronDown
-                      size={16}
-                      className={`shrink-0 text-ink-faint transition-transform ${
-                        isCollapsed ? "-rotate-90" : ""
-                      }`}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-xs font-bold uppercase tracking-[0.06em] text-ink-muted truncate">
-                        {parent.concept.category}
-                      </h3>
-                      <p className="text-caption text-ink-faint tabular-nums">
-                        {money(groupActual)} / {money(groupBudgeted)} · {children.length}{" "}
-                        {children.length === 1 ? "concepto" : "conceptos"}
-                      </p>
-                    </div>
-                  </button>
-                  <div className="flex shrink-0">
-                    <button
-                      type="button"
-                      className="p-1.5 text-ink-faint hover:text-ink disabled:opacity-30"
-                      aria-label="Subir categoría"
-                      disabled={index === 0}
-                      onClick={() => moveCategory(parent.concept.id, "up")}
-                    >
-                      <ChevronUp size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      className="p-1.5 text-ink-faint hover:text-ink disabled:opacity-30"
-                      aria-label="Bajar categoría"
-                      disabled={index === categoryGroups.length - 1}
-                      onClick={() => moveCategory(parent.concept.id, "down")}
-                    >
-                      <ChevronDown size={14} />
-                    </button>
-                  </div>
+                  {renderCategoryHeader(group, index)}
                 </div>
-
                 {!isCollapsed ? (
                   <div className="space-y-2">
-                    {children.map((child) => (
-                      <BudgetConceptCard
+                    {sortedChildren.map((child) => (
+                      <BudgetConceptRow
                         key={child.concept.id}
                         row={child}
+                        transactions={transactions}
                         onEdit={setEditing}
                       />
                     ))}
@@ -376,13 +382,18 @@ export default function PresupuestoView() {
           })
         )}
 
-        {activeOrphanLeaves.length > 0 ? (
+        {filteredOrphanLeaves.length > 0 ? (
           <section className="space-y-2">
             <h3 className="text-xs font-bold uppercase tracking-[0.06em] text-ink-muted px-0.5">
               Sin categoría
             </h3>
-            {activeOrphanLeaves.map((row) => (
-              <BudgetConceptCard key={row.concept.id} row={row} onEdit={setEditing} />
+            {filteredOrphanLeaves.map((row) => (
+              <BudgetConceptRow
+                key={row.concept.id}
+                row={row}
+                transactions={transactions}
+                onEdit={setEditing}
+              />
             ))}
           </section>
         ) : null}
@@ -391,7 +402,7 @@ export default function PresupuestoView() {
           <section className="pt-1">
             <button
               type="button"
-              onClick={() => setShowEmptyConcepts((v) => !v)}
+              onClick={() => patch({ showEmptyConcepts: !showEmptyConcepts })}
               className="w-full flex items-center justify-between gap-2 px-1 py-2 text-left"
               aria-expanded={showEmptyConcepts}
             >
@@ -411,9 +422,10 @@ export default function PresupuestoView() {
             {showEmptyConcepts ? (
               <div className="space-y-2 mt-2">
                 {inactiveConcepts.map((row) => (
-                  <BudgetConceptCard
+                  <BudgetConceptRow
                     key={row.concept.id}
                     row={row}
+                    transactions={transactions}
                     onEdit={setEditing}
                     muted
                   />
@@ -424,28 +436,29 @@ export default function PresupuestoView() {
         ) : null}
       </div>
 
-      <div aria-hidden className="h-4 shrink-0" />
+      <FinanceSyncBar />
 
-      {editing && (
-        <ConceptEditor
+      {editing ? (
+        <ConceptFormSheet
           concept={editing}
+          type={editing.type}
           onClose={() => setEditing(null)}
           onSaved={() => {
             setEditing(null);
             refresh();
           }}
         />
-      )}
+      ) : null}
 
-      {creating && (
-        <ConceptCreatorModal
+      {creating ? (
+        <ConceptFormSheet
           type={conceptType}
           onClose={() => setCreating(false)}
           onSaved={() => refresh()}
         />
-      )}
+      ) : null}
 
-      {showIncome && <QuickIncomeModal onClose={() => setShowIncome(false)} />}
+      {showIncome ? <QuickIncomeModal onClose={() => setShowIncome(false)} /> : null}
     </div>
   );
 }

@@ -133,6 +133,8 @@ export interface FinancialPersistedData {
     transferHistory?: unknown[];
     cashflowSettings?: CashflowSettings;
     budgetCategoryOrder?: Record<string, string[]>;
+    budgetConceptOrder?: Record<string, string[]>;
+    userPreferences?: FinanceUserPreferences;
   };
   settings: {
     version: string;
@@ -194,6 +196,18 @@ export interface CashflowSettings {
   manualAvailableByPeriod?: Record<string, number>;
 }
 
+export type FinanceUserPreferences = {
+  selectedPeriod?: string;
+  budgetTab?: "gastos" | "ingresos";
+  gastosFilter?: "all" | "out" | "in";
+  collapsedSections?: Record<string, boolean>;
+  showEmptyConcepts?: boolean;
+  organizeMode?: boolean;
+  recentConceptIds?: string[];
+  lastCloudSyncAck?: string;
+  updatedAt?: string;
+};
+
 export interface EnhancedTransaction {
   id: string;
   type: 'income' | 'expense' | 'transfer';
@@ -212,7 +226,10 @@ export interface EnhancedTransaction {
   originalAmount?: number;
   originalCurrency?: string;
   subcategory?: string;
-  budgetConceptId?: string; // Asociación con concepto de presupuesto
+  budgetConceptId?: string;
+  linkReviewStatus?: "pending" | "confirmed" | "incorrect";
+  linkReviewedAt?: string;
+  suggestedConceptId?: string;
 }
 
 export class FinancialDatabase {
@@ -724,6 +741,26 @@ export class FinancialDatabase {
   setBudgetCategoryOrderMap(value: Record<string, string[]>): void {
     if (!this.data.moduleData) this.data.moduleData = {};
     this.data.moduleData.budgetCategoryOrder = value;
+    this.saveData();
+  }
+
+  getBudgetConceptOrderMap(): Record<string, string[]> {
+    return this.data.moduleData?.budgetConceptOrder ?? {};
+  }
+
+  setBudgetConceptOrderMap(value: Record<string, string[]>): void {
+    if (!this.data.moduleData) this.data.moduleData = {};
+    this.data.moduleData.budgetConceptOrder = value;
+    this.saveData();
+  }
+
+  getUserPreferences(): FinanceUserPreferences {
+    return this.data.moduleData?.userPreferences ?? {};
+  }
+
+  setUserPreferences(value: FinanceUserPreferences): void {
+    if (!this.data.moduleData) this.data.moduleData = {};
+    this.data.moduleData.userPreferences = { ...value, updatedAt: new Date().toISOString() };
     this.saveData();
   }
 

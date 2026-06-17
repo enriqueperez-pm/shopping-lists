@@ -63,7 +63,6 @@ const BASELINE_TAXONOMY_SEED: BaselineTaxonomySeedRow[] = [
   { category: 'Salud', subcategory: 'Doctor', type: 'expense' },
   { category: 'Salud', subcategory: 'Seguro', type: 'expense' },
   { category: 'Entretenimiento', subcategory: 'Salidas', type: 'expense' },
-  { category: 'Entretenimiento', subcategory: 'Streaming', type: 'expense' },
   { category: 'Tecnología', subcategory: 'Suscripciones', type: 'expense' },
   { category: 'Tecnología', subcategory: 'Software', type: 'expense' },
   { category: 'Tecnología', subcategory: 'Dispositivos', type: 'expense' },
@@ -112,17 +111,16 @@ export function getCanonicalSubcategories(
 }
 
 const MAY_2026_BUDGET_ITEMS: MonthlyBudgetSeedItem[] = [
-  { category: 'Housing', subcategory: 'Rent', amount: 14500, fixed: true },
-  { category: 'Housing', subcategory: 'Utilities', amount: 331, fixed: true },
-  { category: 'Housing', subcategory: 'Gas', amount: 525, fixed: true },
-  { category: 'Housing', subcategory: 'Electricity', amount: 260, fixed: true },
-  { category: 'Transport', subcategory: 'Car', amount: 15386, fixed: true },
-  { category: 'Technology', subcategory: 'Telmex', amount: 828, fixed: true },
-  { category: 'Technology', subcategory: 'Phone', amount: 3487, fixed: true },
-  { category: 'Food', subcategory: 'Comida Brunas', amount: 1000, fixed: false },
+  { category: 'Vivienda', subcategory: 'Renta', amount: 14500, fixed: true },
+  { category: 'Vivienda', subcategory: 'Agua', amount: 331, fixed: true },
+  { category: 'Vivienda', subcategory: 'Gas doméstico', amount: 525, fixed: true },
+  { category: 'Vivienda', subcategory: 'Luz', amount: 260, fixed: true },
+  { category: 'Transporte', subcategory: 'Auto', amount: 15386, fixed: true },
+  { category: 'Vivienda', subcategory: 'Internet', amount: 828, fixed: true },
+  { category: 'Mascotas', subcategory: 'Comida Runa', amount: 1000, fixed: false },
 ];
 
-const getParentConceptKey = (type: 'income' | 'expense', category: string) =>
+export const getParentConceptKey = (type: 'income' | 'expense', category: string) =>
   `${type}::${normalizeValue(category)}`;
 
 const getChildConceptKey = (
@@ -505,8 +503,8 @@ export function findGroceriesConcept(db: FinancialDatabase, period: string) {
       !concept.isParent &&
       concept.type === "expense" &&
       concept.period === period &&
-      normalizeValue(concept.category) === normalizeValue("Food") &&
-      normalizeValue(concept.subcategory || concept.name) === normalizeValue("Groceries"),
+      normalizeValue(concept.category) === normalizeValue("Alimentación") &&
+      normalizeValue(concept.subcategory || concept.name) === normalizeValue("Despensa"),
   );
 }
 
@@ -519,8 +517,8 @@ export function getGroceriesAnalysis(
   const analytics = buildBudgetAnalytics({ concepts, transactions, selectedPeriod: period });
   return analytics.leafAnalyses.find(
     (row) =>
-      normalizeValue(row.concept.category) === normalizeValue("Food") &&
-      normalizeValue(row.concept.subcategory || "") === normalizeValue("Groceries"),
+      normalizeValue(row.concept.category) === normalizeValue("Alimentación") &&
+      normalizeValue(row.concept.subcategory || "") === normalizeValue("Despensa"),
   );
 }
 

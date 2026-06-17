@@ -22,11 +22,13 @@ function normalize(v: string | undefined): string {
   return String(v || "").trim().toLowerCase();
 }
 
+function leafConceptKey(c: BudgetConcept): string {
+  return `${c.period}::${c.type}::${normalize(c.category)}::${normalize(c.subcategory || c.name)}`;
+}
+
 function dedupeBudgetConcepts(concepts: BudgetConcept[]): BudgetConcept[] {
   const parentKey = (period: string, type: string, category: string) =>
     `${period}::${type}::${normalize(category)}`;
-  const leafKey = (c: BudgetConcept) =>
-    `${c.period}::${c.type}::${normalize(c.category)}::${normalize(c.subcategory)}::${normalize(c.name)}`;
 
   const pick = (a: BudgetConcept, b: BudgetConcept) => {
     const aBrain = a.id.startsWith("brain_");
@@ -58,7 +60,7 @@ function dedupeBudgetConcepts(concepts: BudgetConcept[]): BudgetConcept[] {
 
   for (const concept of concepts) {
     if (concept.isParent) continue;
-    const key = leafKey(concept);
+    const key = leafConceptKey(concept);
     const existing = leafCanonical.get(key);
     if (!existing) {
       leafCanonical.set(key, concept);
@@ -89,13 +91,10 @@ function mergeBudgetConcepts(
   remoteConcepts: BudgetConcept[],
   brainPeriods: Set<string>,
 ): BudgetConcept[] {
-  const leafKey = (c: BudgetConcept) =>
-    `${c.period}::${c.type}::${normalize(c.category)}::${normalize(c.subcategory)}::${normalize(c.name)}`;
-
   const remoteById = new Map(remoteConcepts.map((c) => [c.id, c]));
   const remoteByLeaf = new Map<string, BudgetConcept>();
   for (const c of remoteConcepts) {
-    if (!c.isParent) remoteByLeaf.set(leafKey(c), c);
+    if (!c.isParent) remoteByLeaf.set(leafConceptKey(c), c);
   }
 
   const keptRemote = remoteConcepts.filter((c) => !brainPeriods.has(c.period));
@@ -105,7 +104,7 @@ function mergeBudgetConcepts(
   for (const bc of brainConcepts) {
     if (!brainPeriods.has(bc.period)) continue;
     const remote =
-      remoteById.get(bc.id) || (!bc.isParent ? remoteByLeaf.get(leafKey(bc)) : undefined);
+      remoteById.get(bc.id) || (!bc.isParent ? remoteByLeaf.get(leafConceptKey(bc)) : undefined);
     if (remote) {
       const brainManaged = bc.id.startsWith("brain_");
       mergedBrainPeriod.push({
@@ -254,6 +253,14 @@ export function mergeBrainWithRemote(
         remotePayload.moduleData?.budgetCategoryOrder ??
         brainPayload.moduleData?.budgetCategoryOrder ??
         {},
+      budgetConceptOrder:
+        remotePayload.moduleData?.budgetConceptOrder ??
+        brainPayload.moduleData?.budgetConceptOrder ??
+        {},
+      userPreferences: {
+        ...(brainPayload.moduleData?.userPreferences ?? {}),
+        ...(remotePayload.moduleData?.userPreferences ?? {}),
+      },
     },
     banks: remotePayload.banks?.length ? remotePayload.banks : brainPayload.banks,
     accounts: remotePayload.accounts?.length ? remotePayload.accounts : brainPayload.accounts,
