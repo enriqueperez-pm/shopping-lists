@@ -60,7 +60,7 @@ function ReviewChips({
 }
 
 export function linkReviewBadge(status?: LinkReviewStatus, hasLink?: boolean) {
-  if (!hasLink) return { label: "Sin vínculo", className: "text-ink-faint bg-[rgba(21,49,49,0.04)]" };
+  if (!hasLink) return { label: "Sin vínculo", className: "text-ink-faint bg-[rgb(var(--ink-rgb) / 0.04)]" };
   if (status === "confirmed") return { label: "✓", className: "text-pantry bg-[rgba(34,120,90,0.1)]" };
   if (status === "incorrect") return { label: "✗", className: "text-danger bg-[rgba(180,50,50,0.1)]" };
   return { label: "⚠", className: "text-cart bg-[rgba(180,120,40,0.1)]" };
@@ -78,7 +78,7 @@ export default function BudgetLinkDetailPanel(props: Props) {
     const pending = countLinkReviewPending(linked);
 
     return (
-      <div className="mt-2 rounded-xl border border-[var(--border-hairline)] bg-[rgba(21,49,49,0.02)] p-3 space-y-2">
+      <div className="mt-2 rounded-xl border border-[var(--border-hairline)] bg-[rgb(var(--ink-rgb) / 0.02)] p-3 space-y-2">
         <p className="text-caption text-ink-muted">
           {linked.length} {linked.length === 1 ? "gasto" : "gastos"}
           {pending > 0 ? ` · ${pending} sin revisar` : ""}
@@ -126,7 +126,7 @@ export default function BudgetLinkDetailPanel(props: Props) {
 
   if (!concept) {
     return (
-      <div className="mt-2 rounded-xl border border-[var(--border-hairline)] bg-[rgba(21,49,49,0.02)] p-3 space-y-2">
+      <div className="mt-2 rounded-xl border border-[var(--border-hairline)] bg-[rgb(var(--ink-rgb) / 0.02)] p-3 space-y-2">
         <p className="text-caption text-danger">Sin concepto de presupuesto vinculado.</p>
         <ConceptReassignPicker tx={tx} onDone={() => { refresh(); onChanged?.(); }} />
       </div>
@@ -140,7 +140,7 @@ export default function BudgetLinkDetailPanel(props: Props) {
       : null;
 
   return (
-    <div className="mt-2 rounded-xl border border-[var(--border-hairline)] bg-[rgba(21,49,49,0.02)] p-3 space-y-3">
+    <div className="mt-2 rounded-xl border border-[var(--border-hairline)] bg-[rgb(var(--ink-rgb) / 0.02)] p-3 space-y-3">
       <div>
         <p className="text-sm font-semibold text-ink">{concept.name}</p>
         <p className="text-caption text-ink-faint">

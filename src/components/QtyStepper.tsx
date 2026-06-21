@@ -41,7 +41,7 @@ export default function QtyStepper({
         onClick={() => onChange(clamp(value - resolvedStep))}
         disabled={value <= resolvedMin}
         className={`${btn} rounded-md flex items-center justify-center
-          text-ink-faint transition-colors duration-fast hover:text-ink hover:bg-[rgba(21,49,49,0.04)]
+          text-ink-faint transition-colors duration-fast hover:text-ink hover:bg-[rgb(var(--ink-rgb) / 0.04)]
           active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed`}
         aria-label="Menos"
       >
@@ -62,7 +62,7 @@ export default function QtyStepper({
         onClick={() => onChange(clamp(value + resolvedStep))}
         disabled={value >= QTY_MAX}
         className={`${btn} rounded-md flex items-center justify-center
-          text-ink-faint transition-colors duration-fast hover:text-ink hover:bg-[rgba(21,49,49,0.04)]
+          text-ink-faint transition-colors duration-fast hover:text-ink hover:bg-[rgb(var(--ink-rgb) / 0.04)]
           active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed`}
         aria-label="Mas"
       >

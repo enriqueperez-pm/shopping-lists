@@ -20,10 +20,11 @@ const tabs: {
 export default function FinanceBottomNav({ active }: { active: AppModule }) {
   return (
     <nav
-      className="shrink-0 w-full flex border-t border-[var(--border-hairline)] bg-white/95 backdrop-blur-md shadow-[0_-4px_16px_rgba(21,49,49,0.05)] z-40"
+      className="shrink-0 w-full flex border-t border-[var(--border-hairline)] bg-white/95 backdrop-blur-md z-40"
       style={{
         paddingBottom: "var(--safe-bottom, env(safe-area-inset-bottom, 0px))",
         minHeight: "calc(var(--finance-nav-h, 80px) + var(--safe-bottom, env(safe-area-inset-bottom, 0px)))",
+        boxShadow: "0 -4px 16px rgb(var(--ink-rgb) / 0.05)",
       }}
       aria-label="Navegación principal"
     >
@@ -38,8 +39,8 @@ export default function FinanceBottomNav({ active }: { active: AppModule }) {
             aria-current={isActive ? "page" : undefined}
           >
             <span
-              className={`flex items-center justify-center w-8 h-8 rounded-[10px] transition-colors duration-fast
-                ${isActive ? "bg-[rgba(21,49,49,0.06)] text-ink" : ""}`}
+              className={`flex items-center justify-center w-9 h-9 rounded-2xl transition-colors duration-fast
+                ${isActive ? "nav-tab-active-bg" : ""}`}
             >
               <Icon size={18} strokeWidth={isActive ? 2.25 : 1.75} />
             </span>

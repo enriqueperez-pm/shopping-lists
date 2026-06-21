@@ -48,7 +48,7 @@ export default function BudgetConceptRow({
     <div
       className={`rounded-xl border transition-colors ${
         muted
-          ? "border-[var(--border-hairline)] bg-[rgba(21,49,49,0.02)]"
+          ? "border-[var(--border-hairline)] bg-[rgb(var(--ink-rgb) / 0.02)]"
           : "border-[var(--border-soft)] bg-white shadow-card"
       }`}
     >
@@ -117,7 +117,7 @@ export default function BudgetConceptRow({
           </div>
 
           {hasBudget ? (
-            <div className="mt-1.5 h-1 rounded-full bg-[rgba(21,49,49,0.06)] overflow-hidden">
+            <div className="mt-1.5 h-1 rounded-full bg-[rgb(var(--ink-rgb) / 0.06)] overflow-hidden">
               <div
                 className={`h-full rounded-full ${usageTone(isIncome, Math.min(pct, 100))}`}
                 style={{ width: `${Math.min(100, pct)}%` }}
@@ -139,7 +139,7 @@ export default function BudgetConceptRow({
             <div className="absolute right-0 top-full z-20 mt-1 min-w-[140px] rounded-lg border border-[var(--border-soft)] bg-white shadow-card py-1">
               <button
                 type="button"
-                className="w-full text-left px-3 py-2 text-sm hover:bg-[rgba(21,49,49,0.04)] flex items-center gap-2"
+                className="w-full text-left px-3 py-2 text-sm hover:bg-[rgb(var(--ink-rgb) / 0.04)] flex items-center gap-2"
                 onClick={() => {
                   setMenuOpen(false);
                   onEdit(row.concept);

@@ -30,9 +30,9 @@ function stageBadge(stage: ProductStage) {
     return { label: "Comprado", className: "text-saved bg-saved-bg border border-sky-200/60" };
   }
   if (stage === "off_list") {
-    return { label: "Sin lista", className: "text-ink-muted bg-[rgba(21,49,49,0.04)] border border-[var(--border-hairline)]" };
+    return { label: "Sin lista", className: "text-ink-muted bg-[rgb(var(--ink-rgb) / 0.04)] border border-[var(--border-hairline)]" };
   }
-  return { label: "Pendiente", className: "text-list bg-[rgba(21,49,49,0.04)] border border-[var(--border-hairline)]" };
+  return { label: "Pendiente", className: "text-list bg-[rgb(var(--ink-rgb) / 0.04)] border border-[var(--border-hairline)]" };
 }
 
 function money(n: number) {

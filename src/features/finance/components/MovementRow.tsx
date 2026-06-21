@@ -38,7 +38,7 @@ export default function MovementRow({ tx, onEdit }: Props) {
           type="button"
           onClick={() => onEdit?.(tx)}
           disabled={!onEdit}
-          className="flex-1 min-w-0 px-1 py-2.5 flex items-center justify-between gap-3 text-left hover:bg-[rgba(21,49,49,0.03)] transition-colors disabled:hover:bg-transparent"
+          className="flex-1 min-w-0 px-1 py-2.5 flex items-center justify-between gap-3 text-left hover:bg-[rgb(var(--ink-rgb) / 0.03)] transition-colors disabled:hover:bg-transparent"
         >
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 min-w-0">
@@ -57,7 +57,7 @@ export default function MovementRow({ tx, onEdit }: Props) {
                 <span className="text-micro text-ink-faint">Sin concepto</span>
               )}
               {tx.source === "shopping_trip" ? (
-                <span className="px-1.5 py-0.5 rounded bg-[rgba(21,49,49,0.06)] text-ink-faint text-[0.625rem] font-semibold">
+                <span className="px-1.5 py-0.5 rounded bg-[rgb(var(--ink-rgb) / 0.06)] text-ink-faint text-[0.625rem] font-semibold">
                   super
                 </span>
               ) : null}

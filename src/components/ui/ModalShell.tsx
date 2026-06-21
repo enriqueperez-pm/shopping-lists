@@ -59,7 +59,7 @@ export default function ModalShell({
         onClick={(e) => e.stopPropagation()}
       >
         {variant === "sheet" ? (
-          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[rgba(21,49,49,0.12)]" />
+          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[rgb(var(--ink-rgb) / 0.12)]" />
         ) : null}
         {title ? (
           <h2 className={variant === "sheet" ? "text-title mb-3" : "text-title"}>{title}</h2>

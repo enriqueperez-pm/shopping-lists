@@ -16,18 +16,16 @@ export default function DisponibleHero({
   onAdjust,
 }: Props) {
   return (
-    <section className="hero-gradient rounded-2xl p-5 space-y-3">
+    <section className="hero-gradient rounded-3xl p-5 space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-white/85">Disponible</p>
-          <p className="text-[2rem] font-extrabold tabular-nums leading-tight mt-0.5">
+          <p className="text-sm font-medium text-ink/80">Disponible</p>
+          <p className="text-[2rem] font-extrabold tabular-nums leading-tight mt-0.5 text-ink">
             {money(disponible)}
           </p>
-          <p className="text-xs text-white/75 mt-1">
+          <p className="text-xs text-ink/70 mt-1 font-body">
             {manualOverride != null ? (
-              <>
-                Calculado {money(calculated)} · Ajustado manualmente
-              </>
+              <>Calculado {money(calculated)} · Ajustado manualmente</>
             ) : (
               "Ingresos − gastado − por pagar"
             )}
@@ -36,7 +34,7 @@ export default function DisponibleHero({
         <button
           type="button"
           onClick={onAdjust}
-          className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/20 text-white hover:bg-white/30 transition-colors"
+          className="shrink-0 px-3 py-1.5 rounded-2xl text-xs font-semibold bg-ink/10 text-ink hover:bg-ink/15 transition-colors"
         >
           Ajustar
         </button>

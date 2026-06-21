@@ -12,7 +12,7 @@ import type { ShoppingStatus } from "@/lib/types";
 
 const ACTIVE: Record<string, string> = {
   pantry: "text-pantry bg-pantry-light ring-1 ring-pantry/25",
-  list: "text-list bg-[rgba(21,49,49,0.05)] ring-1 ring-list/20",
+  list: "text-list bg-[rgb(var(--ink-rgb) / 0.05)] ring-1 ring-list/20",
   cart: "text-cart bg-cart-light ring-1 ring-cart/25",
   saved: "text-saved bg-saved-bg ring-1 ring-saved/25",
 };

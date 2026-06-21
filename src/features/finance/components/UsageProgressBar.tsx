@@ -46,7 +46,7 @@ export default function UsageProgressBar({
         </span>
       </div>
 
-      <div className="h-2.5 rounded-full bg-[rgba(21,49,49,0.06)] overflow-hidden flex">
+      <div className="h-2.5 rounded-full bg-[rgb(var(--ink-rgb)/0.06)] overflow-hidden flex">
         {spentPct > 0 ? (
           <div
             className="h-full bg-pantry shrink-0"
@@ -56,7 +56,7 @@ export default function UsageProgressBar({
         ) : null}
         {committedPct > 0 ? (
           <div
-            className={`h-full shrink-0 ${tone === "danger" ? "bg-danger" : tone === "warn" ? "bg-cart" : "bg-[rgba(180,140,80,0.85)]"}`}
+            className={`h-full shrink-0 ${tone === "danger" ? "bg-danger" : tone === "warn" ? "bg-cart" : "bg-flujo-gold/85"}`}
             style={{ width: `${committedPct}%` }}
             title={`Por pagar: ${money(committed)}`}
           />
@@ -75,7 +75,7 @@ export default function UsageProgressBar({
             className="inline-flex items-center gap-1 hover:text-ink-muted transition-colors"
             aria-expanded={open}
           >
-            <span className="w-2 h-2 rounded-full bg-[rgba(180,140,80,0.85)] shrink-0" />
+            <span className="w-2 h-2 rounded-full bg-flujo-gold shrink-0" />
             Por pagar {money(committed)} ({committedPct}%)
             <ChevronDown
               size={12}
@@ -84,7 +84,7 @@ export default function UsageProgressBar({
           </button>
         ) : (
           <span className="inline-flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[rgba(180,140,80,0.85)] shrink-0" />
+            <span className="w-2 h-2 rounded-full bg-flujo-gold shrink-0" />
             Por pagar {money(committed)} ({committedPct}%)
           </span>
         )}
@@ -93,10 +93,7 @@ export default function UsageProgressBar({
       {open && hasPendingDetail ? (
         <ul className="border-t border-[var(--border-hairline)] pt-2 space-y-1.5">
           {pendingPayments.map((item) => (
-            <li
-              key={item.conceptId}
-              className="flex justify-between gap-3 text-micro"
-            >
+            <li key={item.conceptId} className="flex justify-between gap-3 text-micro">
               <div className="min-w-0">
                 <p className="text-ink truncate">
                   {item.name}
@@ -107,7 +104,7 @@ export default function UsageProgressBar({
                     </span>
                   ) : null}
                 </p>
-                <p className="text-ink-faint truncate">
+                <p className="text-ink-faint truncate font-body">
                   {item.subcategory ? `${item.category} · ${item.subcategory}` : item.category}
                   {" · "}
                   {money(item.paid)} de {money(item.budgeted)}

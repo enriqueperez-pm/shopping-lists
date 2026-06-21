@@ -130,7 +130,7 @@ export default function CuentaView() {
 
       <div className="surface-soft p-4 space-y-3">
         <div className="flex items-center gap-3">
-          <span className="w-10 h-10 rounded-full bg-[rgba(21,49,49,0.06)] flex items-center justify-center text-ink">
+          <span className="w-10 h-10 rounded-full bg-[rgb(var(--ink-rgb) / 0.06)] flex items-center justify-center text-ink">
             <User size={20} />
           </span>
           <div className="min-w-0">

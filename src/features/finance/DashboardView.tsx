@@ -108,10 +108,10 @@ export default function DashboardView() {
 
       <Link
         href="/compras/lista"
-        className="block surface-soft p-4 hover:bg-[rgba(21,49,49,0.03)] transition-colors"
+        className="block surface-soft p-4 hover:bg-[rgb(var(--ink-rgb) / 0.03)] transition-colors"
       >
         <div className="flex items-start gap-3">
-          <span className="w-9 h-9 rounded-full bg-[rgba(21,49,49,0.06)] flex items-center justify-center text-ink">
+          <span className="w-9 h-9 rounded-full bg-[rgb(var(--ink-rgb) / 0.06)] flex items-center justify-center text-ink">
             <ShoppingCart size={18} />
           </span>
           <div className="min-w-0 flex-1">

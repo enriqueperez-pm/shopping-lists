@@ -101,8 +101,8 @@ export default function SearchableConceptPicker({
               <button
                 type="button"
                 onClick={() => pick("")}
-                className={`w-full text-left px-2.5 py-2 rounded-lg text-sm hover:bg-[rgba(21,49,49,0.04)] ${
-                  !value ? "bg-[rgba(21,49,49,0.06)] font-medium" : ""
+                className={`w-full text-left px-2.5 py-2 rounded-lg text-sm hover:bg-[rgb(var(--ink-rgb) / 0.04)] ${
+                  !value ? "bg-[rgb(var(--ink-rgb) / 0.06)] font-medium" : ""
                 }`}
               >
                 {emptyLabel}
@@ -119,8 +119,8 @@ export default function SearchableConceptPicker({
                     key={`recent-${c.id}`}
                     type="button"
                     onClick={() => pick(c.id)}
-                    className={`w-full text-left px-2.5 py-2 rounded-lg text-sm hover:bg-[rgba(21,49,49,0.04)] ${
-                      value === c.id ? "bg-[rgba(21,49,49,0.06)] font-medium" : ""
+                    className={`w-full text-left px-2.5 py-2 rounded-lg text-sm hover:bg-[rgb(var(--ink-rgb) / 0.04)] ${
+                      value === c.id ? "bg-[rgb(var(--ink-rgb) / 0.06)] font-medium" : ""
                     }`}
                   >
                     {formatConceptPickerLabel(c, selectedPeriod)}
@@ -143,8 +143,8 @@ export default function SearchableConceptPicker({
                       key={c.id}
                       type="button"
                       onClick={() => pick(c.id)}
-                      className={`w-full text-left px-2.5 py-2 rounded-lg text-sm hover:bg-[rgba(21,49,49,0.04)] ${
-                        value === c.id ? "bg-[rgba(21,49,49,0.06)] font-medium" : ""
+                      className={`w-full text-left px-2.5 py-2 rounded-lg text-sm hover:bg-[rgb(var(--ink-rgb) / 0.04)] ${
+                        value === c.id ? "bg-[rgb(var(--ink-rgb) / 0.06)] font-medium" : ""
                       }`}
                     >
                       {formatConceptPickerLabel(c, selectedPeriod)}

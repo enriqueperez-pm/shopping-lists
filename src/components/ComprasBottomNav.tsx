@@ -15,8 +15,11 @@ export default function ComprasBottomNav({ badge }: { badge: number }) {
 
   return (
     <nav
-      className="shrink-0 w-full border-t border-[var(--border-hairline)] bg-white/95 backdrop-blur-md flex items-stretch z-30 shadow-[0_-4px_16px_rgba(21,49,49,0.05)]"
-      style={{ minHeight: "var(--compras-nav-h, 60px)" }}
+      className="shrink-0 w-full border-t border-[var(--border-hairline)] bg-white/95 backdrop-blur-md flex items-stretch z-30"
+      style={{
+        minHeight: "var(--compras-nav-h, 60px)",
+        boxShadow: "0 -4px 16px rgb(var(--ink-rgb) / 0.05)",
+      }}
       aria-label="Navegación de compras"
     >
       {tabs.map(({ key, label, href, Icon }) => {
@@ -30,8 +33,8 @@ export default function ComprasBottomNav({ badge }: { badge: number }) {
             aria-current={isActive ? "page" : undefined}
           >
             <span
-              className={`flex items-center justify-center w-8 h-8 rounded-[10px] transition-colors duration-fast
-                ${isActive ? "bg-[rgba(21,49,49,0.06)] text-ink" : ""}`}
+              className={`flex items-center justify-center w-9 h-9 rounded-2xl transition-colors duration-fast
+                ${isActive ? "nav-tab-active-bg" : ""}`}
             >
               <Icon size={18} strokeWidth={isActive ? 2.25 : 1.75} />
             </span>

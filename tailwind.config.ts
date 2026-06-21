@@ -5,7 +5,9 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', "system-ui", "-apple-system", "sans-serif"],
+        sans: ["var(--font-inter)", "system-ui", "-apple-system", "sans-serif"],
+        body: ["var(--font-roboto)", "system-ui", "sans-serif"],
+        editorial: ["var(--font-playfair)", "Georgia", "serif"],
       },
       fontSize: {
         title: ["1.0625rem", { lineHeight: "1.35", letterSpacing: "-0.02em", fontWeight: "600" }],
@@ -15,28 +17,36 @@ const config: Config = {
         micro: ["0.6875rem", { lineHeight: "1", letterSpacing: "0.02em", fontWeight: "500" }],
       },
       colors: {
+        flujo: {
+          deep: "#1A2238",
+          mint: "#00E676",
+          lavender: "#7C4DFF",
+          gold: "#D4AF37",
+          sapphire: "#20B2AA",
+          bg: "#F8F9FA",
+        },
         ink: {
-          DEFAULT: "#153131",
-          muted: "#3a5252",
-          faint: "#6b8282",
+          DEFAULT: "#1A2238",
+          muted: "#4A5568",
+          faint: "#718096",
         },
         pantry: {
-          DEFAULT: "#047857",
-          light: "#ecfdf5",
+          DEFAULT: "#00E676",
+          light: "#E8FBF0",
         },
         list: {
-          DEFAULT: "#475569",
+          DEFAULT: "#4A5568",
         },
         cart: {
-          DEFAULT: "#92400e",
-          light: "#fffbeb",
+          DEFAULT: "#D4AF37",
+          light: "#FEF9E7",
         },
         saved: {
-          DEFAULT: "#075985",
-          bg: "#f0f9ff",
+          DEFAULT: "#20B2AA",
+          bg: "#E6F7F6",
         },
         trust: {
-          DEFAULT: "#153131",
+          DEFAULT: "#1A2238",
         },
         brand: {
           50: "#f6eff5",
@@ -54,10 +64,9 @@ const config: Config = {
           DEFAULT: "#b91c1c",
           bg: "#fef2f2",
         },
-        // legacy — do not use in new components; primary = ink
         income: {
-          DEFAULT: "#059669",
-          bg: "#ecfdf5",
+          DEFAULT: "#00E676",
+          bg: "#E8FBF0",
         },
         expense: {
           DEFAULT: "#dc2626",
@@ -65,13 +74,14 @@ const config: Config = {
         },
       },
       boxShadow: {
-        soft: "0 1px 2px rgba(21,49,49,0.04), 0 4px 16px rgba(21,49,49,0.04)",
-        float: "0 4px 24px rgba(21,49,49,0.08), 0 1px 3px rgba(21,49,49,0.04)",
-        card: "0 1px 2px rgba(21,49,49,0.04), 0 2px 8px rgba(21,49,49,0.03)",
+        soft: "0 1px 2px rgba(26,34,56,0.04), 0 4px 16px rgba(26,34,56,0.04)",
+        float: "0 4px 24px rgba(26,34,56,0.08), 0 1px 3px rgba(26,34,56,0.04)",
+        card: "0 1px 2px rgba(26,34,56,0.04), 0 2px 8px rgba(26,34,56,0.03)",
       },
       borderRadius: {
-        xl: "14px",
-        "2xl": "18px",
+        xl: "16px",
+        "2xl": "20px",
+        "3xl": "24px",
       },
       transitionDuration: {
         fast: "150ms",
