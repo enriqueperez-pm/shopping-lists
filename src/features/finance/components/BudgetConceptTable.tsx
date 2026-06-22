@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type Ref } from "react";
 import Link from "next/link";
 import { Download } from "lucide-react";
 import { useFinance } from "../FinancialDbProvider";
@@ -30,7 +30,7 @@ type Props = {
   onRowOpen: (row: BudgetConceptAnalysis, pending: number) => void;
   onRegister: (kind: "income" | "expense", conceptId: string) => void;
   onLoadMessage?: (msg: string | null) => void;
-  tableRef?: React.RefObject<HTMLDivElement | null>;
+  tableRef?: Ref<HTMLDivElement>;
 };
 
 export default function BudgetConceptTable({
