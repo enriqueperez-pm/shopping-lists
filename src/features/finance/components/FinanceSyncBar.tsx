@@ -52,7 +52,7 @@ export default function FinanceSyncBar() {
         <p className="text-micro text-danger mt-1 truncate">{cloudSyncError || brainSyncError}</p>
       ) : null}
       <p className="text-micro text-ink-faint mt-0.5">
-        CSV en Drive se actualizan con sync:brain en tu PC
+        Sube a Supabase + snapshot brain. CSV en Drive: sync:brain:pull o watch en tu PC.
       </p>
     </div>
   );

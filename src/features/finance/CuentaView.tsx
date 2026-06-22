@@ -2,12 +2,16 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CloudUpload, Download, LogOut, RefreshCw, Upload, User } from "lucide-react";
+import { CloudUpload, Download, Loader2, LogOut, RefreshCw, Upload, User } from "lucide-react";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import PageHeader from "@/components/ui/PageHeader";
 import { clearLocalFinanceStorage, isFinancialPersistedData } from "./FinancialDatabase";
 import { useFinance } from "./FinancialDbProvider";
 import { downloadBrainCsvZip } from "./brain-sync";
+
+type BrainMessage =
+  | { kind: "success"; text: string }
+  | { kind: "error"; text: string };
 
 export default function CuentaView() {
   const router = useRouter();
@@ -22,10 +26,16 @@ export default function CuentaView() {
     pushToCloud,
     syncBrainFromCloud,
     importBrainCsv,
+    syncInFlight,
   } = useFinance();
   const [busy, setBusy] = useState<string | null>(null);
-  const [brainMessage, setBrainMessage] = useState<string | null>(null);
+  const [brainMessage, setBrainMessage] = useState<BrainMessage | null>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
+
+  const formatSyncTime = (iso: string | null) =>
+    iso
+      ? new Date(iso).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" })
+      : null;
 
   const handleReloadFromCloud = () => {
     if (
@@ -52,11 +62,22 @@ export default function CuentaView() {
     setBrainMessage(null);
     const ok = await pushToCloud();
     setBusy(null);
-    setBrainMessage(
-      ok
-        ? "App subida a la nube y al brain. Los CSV en Drive se actualizan con sync:brain:watch."
-        : null,
-    );
+    if (ok) {
+      const at = new Date().toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
+      const txCount = db.getTransactions().length;
+      setBrainMessage({
+        kind: "success",
+        text: `Subido a la nube (${at}). ${txCount} movimientos en snapshot. Para CSV en Drive: npm run sync:brain:pull en tu PC (o deja sync:brain:watch corriendo).`,
+      });
+    } else {
+      setBrainMessage({
+        kind: "error",
+        text:
+          cloudSyncError ||
+          brainSyncError ||
+          "No se pudo subir. Revisa conexión e inicia sesión con la cuenta del hogar.",
+      });
+    }
   };
 
   const handleSyncBrainFromCloud = async () => {
@@ -64,11 +85,17 @@ export default function CuentaView() {
     setBrainMessage(null);
     const ok = await syncBrainFromCloud();
     setBusy(null);
-    setBrainMessage(
-      ok
-        ? "Brain fusionado con la nube. Tus ediciones recientes en la app se conservaron."
-        : null,
-    );
+    if (ok) {
+      setBrainMessage({
+        kind: "success",
+        text: "Brain fusionado con la nube. Tus ediciones recientes en la app se conservaron.",
+      });
+    } else {
+      setBrainMessage({
+        kind: "error",
+        text: cloudSyncError || brainSyncError || "No se pudo traer el brain desde la nube.",
+      });
+    }
   };
 
   const handleImportBrainCsv = async (files: FileList | null) => {
@@ -85,34 +112,33 @@ export default function CuentaView() {
     const ok = await importBrainCsv(Array.from(files));
     setBusy(null);
     if (csvInputRef.current) csvInputRef.current.value = "";
-    setBrainMessage(ok ? "CSV del brain importados y fusionados con la nube." : null);
+    if (ok) {
+      setBrainMessage({ kind: "success", text: "CSV del brain importados y fusionados con la nube." });
+    } else {
+      setBrainMessage({
+        kind: "error",
+        text: brainSyncError || cloudSyncError || "No se pudieron importar los CSV.",
+      });
+    }
   };
 
   const handleExportBrainCsv = () => {
     const payload = db.exportFullStateObject();
     if (!isFinancialPersistedData(payload)) {
-      setBrainMessage("No hay datos financieros para exportar.");
+      setBrainMessage({ kind: "error", text: "No hay datos financieros para exportar." });
       return;
     }
     downloadBrainCsvZip(payload);
-    setBrainMessage("ZIP descargado. Guarda los CSV en tu carpeta brain/finanzas/data.");
+    setBrainMessage({
+      kind: "success",
+      text: "ZIP descargado. Guarda los CSV en tu carpeta brain/finanzas/data.",
+    });
   };
 
-  const snapshotLabel = brainSnapshotUpdatedAt
-    ? new Date(brainSnapshotUpdatedAt).toLocaleString("es-MX", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      })
-    : "Sin snapshot en la nube";
-
-  const cloudSyncLabel = lastCloudSyncAt
-    ? new Date(lastCloudSyncAt).toLocaleString("es-MX", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      })
-    : "Pendiente";
-
-  const brainDisabled = busy !== null || !isHouseholdMember;
+  const snapshotLabel = formatSyncTime(brainSnapshotUpdatedAt) ?? "Sin snapshot en la nube";
+  const cloudSyncLabel = formatSyncTime(lastCloudSyncAt) ?? "Pendiente";
+  const isBusy = busy !== null || syncInFlight;
+  const brainDisabled = isBusy || !isHouseholdMember;
 
   return (
     <div
@@ -121,7 +147,7 @@ export default function CuentaView() {
     >
       <PageHeader title="Cuenta" subtitle="Sesión y datos del dispositivo" />
 
-      {cloudSyncError ? (
+      {cloudSyncError && !brainMessage ? (
         <div className="surface-soft p-3 border border-cart/30 text-sm">
           <p className="font-medium text-cart">Problema con la nube</p>
           <p className="text-caption mt-0.5">{cloudSyncError}</p>
@@ -159,7 +185,7 @@ export default function CuentaView() {
         <button
           type="button"
           className="btn-soft w-full justify-center gap-2 py-2.5"
-          disabled={busy !== null}
+          disabled={isBusy}
           onClick={handleReloadFromCloud}
         >
           <RefreshCw size={16} />
@@ -170,21 +196,26 @@ export default function CuentaView() {
       <section className="space-y-2">
         <h2 className="text-sm font-semibold text-ink">Brain y nube</h2>
         <p className="text-caption">
-          Cada cambio en la app se sube automáticamente al guardar. También puedes forzar la sync
+          Al guardar un gasto se sube a la nube y al snapshot del brain. Este botón fuerza la subida
           manualmente. Última sync app:{" "}
           <span className="font-medium text-ink-muted">{cloudSyncLabel}</span>
           {" · "}
-          brain: <span className="font-medium text-ink-muted">{snapshotLabel}</span>
+          snapshot: <span className="font-medium text-ink-muted">{snapshotLabel}</span>
         </p>
         <p className="text-caption text-ink-faint">
-          Para que los CSV en Drive se actualicen solos, deja corriendo en tu PC:{" "}
-          <code className="text-micro">npm run sync:brain:watch</code>
+          Los CSV en Google Drive <strong>no</strong> se escriben desde el navegador. En tu PC:{" "}
+          <code className="text-micro">npm run sync:brain:pull</code> (una vez) o{" "}
+          <code className="text-micro">npm run sync:brain:watch</code> (continuo).
         </p>
-        {brainSyncError ? (
+        {brainSyncError && !brainMessage ? (
           <p className="text-caption text-cart">{brainSyncError}</p>
         ) : null}
         {brainMessage ? (
-          <p className="text-caption text-pantry">{brainMessage}</p>
+          <p
+            className={`text-caption ${brainMessage.kind === "success" ? "text-pantry" : "text-cart"}`}
+          >
+            {brainMessage.text}
+          </p>
         ) : null}
         <button
           type="button"
@@ -192,8 +223,12 @@ export default function CuentaView() {
           disabled={brainDisabled}
           onClick={() => void handlePushToCloud()}
         >
-          <CloudUpload size={16} />
-          {busy === "brain-push" ? "Subiendo…" : "Subir cambios de la app al brain"}
+          {busy === "brain-push" || syncInFlight ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : (
+            <CloudUpload size={16} />
+          )}
+          {busy === "brain-push" || syncInFlight ? "Subiendo…" : "Subir a la nube"}
         </button>
         <button
           type="button"
@@ -237,7 +272,7 @@ export default function CuentaView() {
         <button
           type="button"
           className="btn-primary w-full justify-center gap-2 py-2.5"
-          disabled={busy !== null}
+          disabled={isBusy}
           onClick={() => void handleLogout()}
         >
           <LogOut size={16} />

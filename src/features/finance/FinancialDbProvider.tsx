@@ -28,7 +28,6 @@ import { payloadsEqual, reconcileFinancialState } from "./financialReconcile";
 import {
   buildPayloadFromBrainCsv,
   brainCsvInputsFromFiles,
-  exportPayloadToBrainCsv,
   validateBrainCsvInputs,
   type BrainCsvInputs,
 } from "./brain-sync";
@@ -144,12 +143,73 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
     if (period) setSelectedPeriodState(period);
   }, [cloudHydrated, db]);
 
+  const pushMergedToCloud = useCallback(
+    async (
+      payloadUserId: string,
+      merged: FinancialPersistedData,
+      options?: { applyLocalMerge?: boolean; localPayload?: FinancialPersistedData },
+    ): Promise<boolean> => {
+      const d = dbRef.current;
+
+      const snapshotOk = await upsertBrainSnapshot(merged, "app");
+      if (!snapshotOk) {
+        setBrainSyncError("No se pudo guardar el snapshot del brain.");
+        return false;
+      }
+
+      const cloudOk = await upsertUserFinancialPayload(
+        payloadUserId,
+        merged as unknown as Record<string, unknown>,
+      );
+      if (!cloudOk) {
+        setCloudSyncError("No se pudo subir a la nube.");
+        return false;
+      }
+
+      if (
+        options?.applyLocalMerge &&
+        d &&
+        options.localPayload &&
+        !payloadsEqual(options.localPayload, merged)
+      ) {
+        d.importFullState(merged, { skipCloudHook: true });
+        repairBudgetHierarchyInDb(d);
+        repairLegacyEnglishTaxonomy(d);
+        refresh();
+      }
+
+      const now = new Date().toISOString();
+      cloudSyncDirtyRef.current = false;
+      setIsSyncDirty(false);
+      lastLocalPushMsRef.current = Date.now();
+      setLastCloudSyncAt(now);
+      setBrainSnapshotUpdatedAt(now);
+      setBrainSyncError(null);
+      setCloudSyncError(null);
+
+      if (d) {
+        const prefs = d.getUserPreferences();
+        d.setUserPreferences({ ...prefs, lastCloudSyncAck: now });
+      }
+
+      return true;
+    },
+    [refresh],
+  );
+
   const runCloudSync = useCallback(async (reason: string = "sync") => {
     if (cloudSyncInFlightRef.current) return false;
     const d = dbRef.current;
     const uid = userIdRef.current;
     const payloadUserId = resolveCloudPayloadUserId(uid);
-    if (!d || !payloadUserId || !isSupabaseConfigured()) return false;
+    if (!d || !payloadUserId) {
+      setCloudSyncError("Inicia sesión con la cuenta del hogar para sincronizar.");
+      return false;
+    }
+    if (!isSupabaseConfigured()) {
+      setCloudSyncError("Supabase no está configurado.");
+      return false;
+    }
     cloudSyncInFlightRef.current = true;
     setSyncInFlight(true);
     try {
@@ -186,32 +246,18 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
         refresh();
       }
 
-      const payloadOk = await upsertUserFinancialPayload(
-        payloadUserId,
-        merged as unknown as Record<string, unknown>,
-      );
-
-      if (!payloadOk) {
-        cloudSyncDirtyRef.current = true;
-        return false;
-      }
-
-      cloudSyncDirtyRef.current = false;
-      setIsSyncDirty(false);
-      lastLocalPushMsRef.current = Date.now();
-      setLastCloudSyncAt(new Date().toISOString());
-      setBrainSyncError(null);
-      return true;
+      return pushMergedToCloud(payloadUserId, merged);
     } catch (error) {
       console.error(`[Supabase] Sync error (${reason}):`, error);
       cloudSyncDirtyRef.current = true;
       setIsSyncDirty(true);
+      setCloudSyncError("Error al sincronizar con la nube.");
       return false;
     } finally {
       cloudSyncInFlightRef.current = false;
       setSyncInFlight(false);
     }
-  }, [refresh]);
+  }, [pushMergedToCloud, refresh]);
 
   const refreshBrainSnapshotMeta = useCallback(async () => {
     const { row, error } = await fetchBrainSnapshot();
@@ -519,7 +565,14 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
     const d = dbRef.current;
     const uid = userIdRef.current;
     const payloadUserId = resolveCloudPayloadUserId(uid);
-    if (!d || !payloadUserId || !isSupabaseConfigured()) return false;
+    if (!d || !payloadUserId) {
+      setCloudSyncError("Inicia sesión con la cuenta del hogar para sincronizar.");
+      return false;
+    }
+    if (!isSupabaseConfigured()) {
+      setCloudSyncError("Supabase no está configurado.");
+      return false;
+    }
 
     setSyncInFlight(true);
     try {
@@ -549,52 +602,26 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
           : null;
 
       const merged = reconcileFinancialState(localPayload, remotePayload, brainPayload);
-      exportPayloadToBrainCsv(merged);
 
-      const snapshotOk = await upsertBrainSnapshot(merged, "app");
-      if (!snapshotOk) {
-        setBrainSyncError("No se pudo guardar el snapshot del brain.");
-        return false;
+      const ok = await pushMergedToCloud(payloadUserId, merged, {
+        applyLocalMerge: true,
+        localPayload,
+      });
+      if (!ok) {
+        cloudSyncDirtyRef.current = true;
+        setIsSyncDirty(true);
       }
-
-      const cloudOk = await upsertUserFinancialPayload(
-        payloadUserId,
-        merged as unknown as Record<string, unknown>,
-      );
-      if (!cloudOk) {
-        setCloudSyncError("No se pudo subir a la nube.");
-        return false;
-      }
-
-      if (!payloadsEqual(localPayload, merged)) {
-        d.importFullState(merged, { skipCloudHook: true });
-        repairBudgetHierarchyInDb(d);
-        repairLegacyEnglishTaxonomy(d);
-        refresh();
-      }
-
-      const now = new Date().toISOString();
-      cloudSyncDirtyRef.current = false;
-      setIsSyncDirty(false);
-      lastLocalPushMsRef.current = Date.now();
-      setLastCloudSyncAt(now);
-      setBrainSnapshotUpdatedAt(now);
-      setBrainSyncError(null);
-      setCloudSyncError(null);
-
-      const prefs = d.getUserPreferences();
-      d.setUserPreferences({ ...prefs, lastCloudSyncAck: now });
-
-      return true;
+      return ok;
     } catch (error) {
       console.error("[Supabase] saveAndSyncAll:", error);
       cloudSyncDirtyRef.current = true;
       setIsSyncDirty(true);
+      setCloudSyncError("Error al subir a la nube.");
       return false;
     } finally {
       setSyncInFlight(false);
     }
-  }, [refresh]);
+  }, [pushMergedToCloud]);
 
   const pushToCloud = useCallback(async (): Promise<boolean> => {
     return saveAndSyncAll();

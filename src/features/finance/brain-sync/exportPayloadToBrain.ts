@@ -81,8 +81,19 @@ function inferEstado(
   const actual = Math.max(concept.actualAmount || 0, actualFromTx || 0);
   const budgeted = concept.budgetedAmount || 0;
   if (actual <= 0) return "pendiente";
+  if (budgeted > 0 && actual >= budgeted) return "pagado";
   if (budgeted > 0 && actual < budgeted) return "parcial";
   return "pagado";
+}
+
+function resolveEstado(
+  concept: { actualAmount?: number; budgetedAmount?: number; description?: string },
+  actualFromTx: number,
+): string {
+  const inferred = inferEstado(concept, actualFromTx);
+  if (inferred === "pagado" || inferred === "parcial") return inferred;
+  const meta = parseDescriptionMeta(concept.description);
+  return meta.estado || inferred;
 }
 
 function shouldExportConcept(
@@ -121,7 +132,7 @@ export function exportPayloadToBrainCsv(payload: FinancialPersistedData): BrainC
       const fromTx = actualByConcept.get(c.id) ?? 0;
       const ejecutado = Math.max(c.actualAmount || 0, fromTx);
       const meta = parseDescriptionMeta(c.description);
-      const estado = meta.estado || inferEstado(c, fromTx);
+      const estado = resolveEstado(c, fromTx);
       return {
         periodo: c.period,
         id: brainId,
@@ -163,7 +174,7 @@ export function exportPayloadToBrainCsv(payload: FinancialPersistedData): BrainC
         fecha_corte: meta.fecha_corte,
         fecha_limite: meta.fecha_limite,
         fecha_pago: meta.fecha_pago,
-        estado: meta.estado || inferEstado(c, fromTx),
+        estado: resolveEstado(c, fromTx),
         numero_recibo: "",
         archivo_recibo: "",
       };
