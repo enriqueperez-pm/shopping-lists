@@ -11,6 +11,8 @@
     "sync:brain": "node scripts/sync-brain-finanzas.mjs",
     "sync:brain:pull": "node scripts/sync-brain-pull.mjs",
     "sync:brain:watch": "node scripts/sync-brain-watch.mjs",
+    "audit:taxonomy": "node ../../brain/finanzas/scripts/audit-taxonomy.mjs",
+    "recategorize:taxonomy": "node ../../brain/finanzas/scripts/recategorize-taxonomy.mjs",
     "test:brain-merge": "npx tsx scripts/test-brain-merge.ts",
     "test:period-math": "npx tsx scripts/period-math.test.ts"
   },
