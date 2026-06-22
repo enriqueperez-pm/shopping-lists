@@ -10,7 +10,13 @@ import {
 import { recordRecentConceptId } from "./finance-crud";
 import SearchableConceptPicker from "./components/SearchableConceptPicker";
 
-export default function QuickIncomeModal({ onClose }: { onClose: () => void }) {
+export default function QuickIncomeModal({
+  onClose,
+  initialConceptId,
+}: {
+  onClose: () => void;
+  initialConceptId?: string;
+}) {
   const { db, refresh, selectedPeriod } = useFinance();
   const today = new Date().toISOString().slice(0, 10);
   const defaultDate = today.startsWith(selectedPeriod) ? today : `${selectedPeriod}-01`;
@@ -22,13 +28,17 @@ export default function QuickIncomeModal({ onClose }: { onClose: () => void }) {
   const recentIds = db.getUserPreferences().recentConceptIds ?? [];
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
-  const [conceptId, setConceptId] = useState(concepts[0]?.id ?? "");
+  const [conceptId, setConceptId] = useState(initialConceptId ?? concepts[0]?.id ?? "");
 
   useEffect(() => {
+    if (initialConceptId && concepts.some((c) => c.id === initialConceptId)) {
+      setConceptId(initialConceptId);
+      return;
+    }
     if (!concepts.some((c) => c.id === conceptId)) {
       setConceptId(concepts[0]?.id ?? "");
     }
-  }, [concepts, conceptId]);
+  }, [concepts, conceptId, initialConceptId]);
 
   const save = () => {
     const value = Number(amount);

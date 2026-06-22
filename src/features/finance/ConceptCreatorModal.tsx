@@ -7,6 +7,7 @@ import {
   createBudgetConcept,
   getCanonicalCategories,
   getCanonicalSubcategories,
+  getDefaultConceptNameForSubcategory,
   getDistinctCategories,
   getDistinctSubcategories,
 } from "./finance-linking";
@@ -54,13 +55,15 @@ export default function ConceptCreatorModal({ type, onClose, onSaved }: Props) {
         : subcategory.trim() || undefined;
 
   const save = () => {
-    if (!resolvedCategory || !name.trim()) return;
+    if (!resolvedCategory) return;
+    const resolvedName = name.trim() || (resolvedSubcategory ? getDefaultConceptNameForSubcategory(resolvedSubcategory) : "");
+    if (!resolvedName) return;
     createBudgetConcept(db, {
       period: selectedPeriod,
       type,
       category: resolvedCategory,
       subcategory: resolvedSubcategory,
-      name: name.trim(),
+      name: resolvedName,
       budgetedAmount: Number(budgetedAmount) || 0,
       isFixed,
     });
@@ -201,7 +204,7 @@ export default function ConceptCreatorModal({ type, onClose, onSaved }: Props) {
           type="button"
           className="btn-primary"
           onClick={save}
-          disabled={!resolvedCategory || !name.trim()}
+          disabled={!resolvedCategory || (!name.trim() && !resolvedSubcategory)}
         >
           Crear
         </button>

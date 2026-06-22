@@ -3,7 +3,10 @@
 import { useMemo, useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
 import type { BudgetConcept } from "../types";
-import { formatConceptPickerLabel, groupBudgetConceptsByCategory } from "../finance-linking";
+import {
+  formatConceptPickerLabel,
+  groupBudgetConceptsByCategoryAndSubcategory,
+} from "../finance-linking";
 
 type Props = {
   concepts: BudgetConcept[];
@@ -45,7 +48,10 @@ export default function SearchableConceptPicker({
     [concepts, query],
   );
 
-  const groups = useMemo(() => groupBudgetConceptsByCategory(filtered), [filtered]);
+  const groups = useMemo(
+    () => groupBudgetConceptsByCategoryAndSubcategory(filtered),
+    [filtered],
+  );
 
   const recentConcepts = useMemo(() => {
     const seen = new Set<string>();
@@ -92,7 +98,7 @@ export default function SearchableConceptPicker({
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar concepto…"
+              placeholder="Buscar categoría, subcategoría o concepto…"
               className="flex-1 text-sm outline-none bg-transparent placeholder:text-ink-faint"
             />
           </div>
@@ -124,7 +130,6 @@ export default function SearchableConceptPicker({
                     }`}
                   >
                     {formatConceptPickerLabel(c, selectedPeriod)}
-                    <span className="text-ink-faint text-xs ml-1">· {c.category}</span>
                   </button>
                 ))}
               </div>
@@ -133,25 +138,29 @@ export default function SearchableConceptPicker({
             {groups.length === 0 ? (
               <p className="px-2.5 py-3 text-caption text-ink-faint">Sin resultados</p>
             ) : (
-              groups.map(({ category, concepts: groupConcepts }) => (
-                <div key={category} className="mb-1">
-                  <p className="sticky top-0 px-2.5 py-1 text-[0.625rem] font-bold uppercase tracking-wide text-ink-faint bg-white">
+              groups.map(({ category, subcategories }) => (
+                <div key={category} className="mb-2">
+                  <p className="sticky top-0 px-2.5 py-1 text-[0.625rem] font-bold uppercase tracking-wide text-ink-faint bg-white border-b border-[var(--border-hairline)]">
                     {category}
                   </p>
-                  {groupConcepts.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => pick(c.id)}
-                      className={`w-full text-left px-2.5 py-2 rounded-lg text-sm hover:bg-[rgb(var(--ink-rgb) / 0.04)] ${
-                        value === c.id ? "bg-[rgb(var(--ink-rgb) / 0.06)] font-medium" : ""
-                      }`}
-                    >
-                      {formatConceptPickerLabel(c, selectedPeriod)}
-                      {c.subcategory ? (
-                        <span className="text-ink-faint text-xs ml-1">· {c.subcategory}</span>
-                      ) : null}
-                    </button>
+                  {subcategories.map(({ subcategory, concepts: subConcepts }) => (
+                    <div key={`${category}-${subcategory}`} className="mb-1">
+                      <p className="px-2.5 py-1 text-[0.625rem] font-semibold text-ink-muted">
+                        {subcategory}
+                      </p>
+                      {subConcepts.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => pick(c.id)}
+                          className={`w-full text-left px-2.5 py-2 rounded-lg text-sm hover:bg-[rgb(var(--ink-rgb) / 0.04)] ${
+                            value === c.id ? "bg-[rgb(var(--ink-rgb) / 0.06)] font-medium" : ""
+                          }`}
+                        >
+                          {formatConceptPickerLabel(c, selectedPeriod)}
+                        </button>
+                      ))}
+                    </div>
                   ))}
                 </div>
               ))

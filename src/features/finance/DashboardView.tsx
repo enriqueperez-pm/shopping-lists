@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -23,11 +24,29 @@ import CategorySpendChart from "./components/CategorySpendChart";
 import PageHeader from "@/components/ui/PageHeader";
 import AppFab from "@/components/ui/AppFab";
 import RecentMovements from "./components/RecentMovements";
+import DashboardBudgetSection from "./components/DashboardBudgetSection";
 import type { EnhancedTransaction } from "./FinancialDatabase";
 
 function periodLabel(period: string) {
   const [y, m] = period.split("-").map(Number);
   return new Date(y, m - 1, 1).toLocaleDateString("es-MX", { month: "long", year: "numeric" });
+}
+
+function DashboardSection({
+  label,
+  children,
+  className = "",
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={`space-y-3 ${className}`}>
+      <h2 className="dashboard-section-label">{label}</h2>
+      {children}
+    </section>
+  );
 }
 
 export default function DashboardView() {
@@ -57,103 +76,144 @@ export default function DashboardView() {
   const listNeeded = shopping.filter((s) => itemStatus(s) === "needed").length;
   const monthLabel = periodLabel(selectedPeriod);
 
-  return (
-    <div
-      className="app-scroll-y px-[var(--pad,1rem)] py-3 space-y-4 finance-scroll-pad finance-scroll-pad-fab"
-      style={{ "--pad": "clamp(14px, 3.5vw, 22px)" } as React.CSSProperties}
-    >
-      <PageHeader title="Inicio" subtitle="Tu billetera del mes" />
-
-      <MonthSelector />
-
-      <DisponibleHero
-        disponible={cashflow.disponible}
-        calculated={cashflow.calculated}
-        manualOverride={cashflow.manualOverride}
-        onAdjust={() => setShowAdjust(true)}
-      />
-
-      <CashflowBreakdown
-        income={cashflow.income}
-        spent={cashflow.spent}
-        committed={cashflow.committed}
-      />
-
-      <UsageProgressBar
-        spentPct={cashflow.spentPct}
-        committedPct={cashflow.committedPct}
-        totalCommittedPct={cashflow.totalCommittedPct}
-        spent={cashflow.spent}
-        committed={cashflow.committed}
-        income={cashflow.income}
-        pendingPayments={cashflow.pendingPayments}
-        viewingPeriod={selectedPeriod}
-      />
-
-      <section className="surface-soft p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-ink">Ingresos vs gastos</h2>
-        <FlowCompareChart income={cashflow.income} spent={cashflow.spent} periodLabel={monthLabel} />
-      </section>
-
-      <section className="surface-soft p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-ink">Gastos por categoría</h2>
-        <CategorySpendChart entries={cashflow.categoryBreakdown} periodLabel={monthLabel} />
-      </section>
-
-      <RecentMovements
-        movements={cashflow.recentMovements}
-        onSeeAll={() => router.push("/gastos")}
-        onEditMovement={setEditingTx}
-      />
-
-      <Link
-        href="/compras/lista"
-        className="block surface-soft p-4 hover:bg-[rgb(var(--ink-rgb) / 0.03)] transition-colors"
+  const headerActions = (
+    <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+      <MonthSelector variant="inline" />
+      <button
+        type="button"
+        onClick={() => setShowExpense(true)}
+        className="hidden lg:inline-flex btn-primary items-center gap-1.5 px-3 py-2 text-xs"
       >
-        <div className="flex items-start gap-3">
-          <span className="w-9 h-9 rounded-full bg-[rgb(var(--ink-rgb) / 0.06)] flex items-center justify-center text-ink">
-            <ShoppingCart size={18} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-ink">Compras</p>
-            <p className="text-caption">
-              {listNeeded} pendiente · {listCart} en carrito
-            </p>
-            {groceriesRemaining !== null && (
-              <p className="text-micro text-pantry mt-1">
-                Despensa: {money(groceriesRemaining)} restante de {money(groceries?.budgeted ?? 0)}
-              </p>
-            )}
-          </div>
-        </div>
-      </Link>
+        <Plus size={16} strokeWidth={2.5} />
+        Registrar gasto
+      </button>
+    </div>
+  );
 
-      <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-ink">Alertas</h2>
-        {alerts.length === 0 ? (
-          <p className="text-caption">Sin alertas este mes.</p>
-        ) : (
-          alerts.map((a) => (
-            <div key={a.concept.id} className="surface-soft px-3 py-2.5 flex justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-sm font-medium truncate">{a.concept.name}</p>
-                <p className="text-micro text-ink-faint">
-                  {money(a.actual)} / {money(a.budgeted)}
-                </p>
-              </div>
-              <span
-                className={`text-micro font-semibold shrink-0 ${
-                  a.status === "critical" ? "text-danger" : "text-cart"
-                }`}
-              >
-                {Math.round(a.usagePct)}%
-              </span>
+  return (
+    <div className="app-page finance-scroll-pad finance-scroll-pad-fab">
+      <div className="app-page-inner-wide space-y-6">
+        <PageHeader
+          title="Inicio"
+          subtitle="Resumen de tu mes"
+          actions={headerActions}
+        />
+
+        <DashboardSection label="Resumen del mes">
+          <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+            <div className="space-y-3">
+              <DisponibleHero
+                disponible={cashflow.disponible}
+                calculated={cashflow.calculated}
+                manualOverride={cashflow.manualOverride}
+                onAdjust={() => setShowAdjust(true)}
+              />
+              <CashflowBreakdown
+                income={cashflow.income}
+                spent={cashflow.spent}
+                committed={cashflow.committed}
+              />
             </div>
-          ))
-        )}
-      </section>
+            <UsageProgressBar
+              spentPct={cashflow.spentPct}
+              committedPct={cashflow.committedPct}
+              totalCommittedPct={cashflow.totalCommittedPct}
+              spent={cashflow.spent}
+              committed={cashflow.committed}
+              income={cashflow.income}
+              pendingPayments={cashflow.pendingPayments}
+              viewingPeriod={selectedPeriod}
+            />
+          </div>
+        </DashboardSection>
 
-      <AppFab onClick={() => setShowExpense(true)} ariaLabel="Registrar gasto rápido">
+        <DashboardBudgetSection />
+
+        <DashboardSection label="Análisis">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="surface-soft p-4 space-y-3">
+              <h3 className="dashboard-card-title">Ingresos vs gastos</h3>
+              <FlowCompareChart
+                income={cashflow.income}
+                spent={cashflow.spent}
+                periodLabel={monthLabel}
+              />
+            </div>
+            <div className="surface-soft p-4 space-y-3">
+              <h3 className="dashboard-card-title">Gastos por categoría</h3>
+              <CategorySpendChart
+                entries={cashflow.categoryBreakdown}
+                periodLabel={monthLabel}
+              />
+            </div>
+          </div>
+        </DashboardSection>
+
+        <DashboardSection label="Actividad">
+          <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+            <RecentMovements
+              movements={cashflow.recentMovements}
+              onSeeAll={() => router.push("/gastos")}
+              onEditMovement={setEditingTx}
+            />
+            <Link
+              href="/compras/lista"
+              className="block surface-soft p-4 hover:bg-[rgb(var(--ink-rgb) / 0.03)] transition-colors h-fit"
+            >
+              <div className="flex items-start gap-3">
+                <span className="w-9 h-9 rounded-full bg-[rgb(var(--ink-rgb) / 0.06)] flex items-center justify-center text-ink">
+                  <ShoppingCart size={18} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-ink">Compras</p>
+                  <p className="text-caption">
+                    {listNeeded} pendiente · {listCart} en carrito
+                  </p>
+                  {groceriesRemaining !== null && (
+                    <p className="text-micro text-pantry mt-1">
+                      Supermercado: {money(groceriesRemaining)} restante de{" "}
+                      {money(groceries?.budgeted ?? 0)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </Link>
+          </div>
+        </DashboardSection>
+
+        {alerts.length > 0 ? (
+          <DashboardSection label="Alertas">
+            <div className="space-y-2">
+              {alerts.map((a) => (
+                <div
+                  key={a.concept.id}
+                  className="surface-soft px-3 py-2.5 flex justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{a.concept.name}</p>
+                    <p className="text-micro text-ink-faint">
+                      {money(a.actual)} / {money(a.budgeted)}
+                    </p>
+                  </div>
+                  <span
+                    className={`text-micro font-semibold shrink-0 ${
+                      a.status === "critical" ? "text-danger" : "text-cart"
+                    }`}
+                  >
+                    {Math.round(a.usagePct)}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          </DashboardSection>
+        ) : null}
+      </div>
+
+      <AppFab
+        onClick={() => setShowExpense(true)}
+        ariaLabel="Registrar gasto rápido"
+        className="lg:hidden"
+      >
         <Plus size={20} strokeWidth={2.5} />
       </AppFab>
 

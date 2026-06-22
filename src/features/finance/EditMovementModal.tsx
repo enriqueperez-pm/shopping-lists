@@ -6,6 +6,7 @@ import type { EnhancedTransaction } from "./FinancialDatabase";
 import { useFinance } from "./FinancialDbProvider";
 import {
   applyConceptCategoryToTransaction,
+  formatCategoryPath,
   getBudgetConceptsForTypeAndDate,
 } from "./finance-linking";
 import { recordRecentConceptId } from "./finance-crud";
@@ -93,6 +94,7 @@ export default function EditMovementModal({ tx, onClose }: Props) {
   };
 
   const isIncome = tx.type === "income";
+  const selectedConcept = concepts.find((c) => c.id === conceptId);
 
   return (
     <ModalShell open onClose={onClose} title="Editar movimiento" className="space-y-4">
@@ -108,6 +110,9 @@ export default function EditMovementModal({ tx, onClose }: Props) {
             allowEmpty
             emptyLabel="Sin concepto"
           />
+          {selectedConcept ? (
+            <p className="text-caption text-ink-faint">{formatCategoryPath(selectedConcept)}</p>
+          ) : null}
         </label>
       ) : null}
 

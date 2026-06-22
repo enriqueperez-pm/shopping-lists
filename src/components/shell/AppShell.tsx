@@ -13,10 +13,12 @@ export default function AppShell({
   children: ReactNode;
 }) {
   return (
-    <div className="h-screen-safe flex flex-col overflow-hidden bg-app">
-      <SyncStatusBanner />
-      <main className="flex flex-1 min-h-0 flex-col overflow-hidden">{children}</main>
+    <div className="h-screen-safe flex flex-col lg:flex-row overflow-hidden bg-app">
       <FinanceBottomNav active={module} />
+      <div className="order-1 flex flex-1 min-h-0 min-w-0 flex-col overflow-hidden lg:order-2">
+        <SyncStatusBanner />
+        <main className="flex flex-1 min-h-0 flex-col overflow-hidden">{children}</main>
+      </div>
     </div>
   );
 }

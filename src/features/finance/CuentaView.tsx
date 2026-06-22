@@ -141,10 +141,8 @@ export default function CuentaView() {
   const brainDisabled = isBusy || !isHouseholdMember;
 
   return (
-    <div
-      className="app-scroll-y px-[var(--pad,1rem)] py-3 space-y-4 finance-scroll-pad"
-      style={{ "--pad": "clamp(14px, 3.5vw, 22px)" } as React.CSSProperties}
-    >
+    <div className="app-page finance-scroll-pad space-y-4">
+      <div className="app-page-inner-wide space-y-4">
       <PageHeader title="Cuenta" subtitle="Sesión y datos del dispositivo" />
 
       {cloudSyncError && !brainMessage ? (
@@ -279,6 +277,7 @@ export default function CuentaView() {
           {busy === "logout" ? "Saliendo…" : "Cerrar sesión"}
         </button>
       </section>
+      </div>
     </div>
   );
 }

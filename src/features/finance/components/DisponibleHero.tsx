@@ -16,11 +16,11 @@ export default function DisponibleHero({
   onAdjust,
 }: Props) {
   return (
-    <section className="hero-gradient rounded-3xl p-5 space-y-3">
+    <section className="hero-gradient rounded-3xl p-5 lg:p-6 space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-ink/80">Disponible</p>
-          <p className="text-[2rem] font-extrabold tabular-nums leading-tight mt-0.5 text-ink">
+          <p className="text-[2rem] lg:text-[2.25rem] font-extrabold tabular-nums leading-tight mt-0.5 text-ink">
             {money(disponible)}
           </p>
           <p className="text-xs text-ink/70 mt-1 font-body">

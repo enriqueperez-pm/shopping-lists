@@ -1,6 +1,7 @@
 ﻿import type { BudgetConcept } from "./types";
 import type { EnhancedTransaction, FinancialDatabase } from "./FinancialDatabase";
 import { buildBudgetAnalytics } from "./budget-analytics";
+import { BASELINE_TAXONOMY_SEED } from "./taxonomy-seed.generated";
 
 export interface TaxonomyCategoryNode {
   id: string;
@@ -21,12 +22,6 @@ export interface TransactionTrace {
   categoryPath: string;
 }
 
-interface BaselineTaxonomySeedRow {
-  category: string;
-  subcategory: string;
-  type: 'income' | 'expense';
-}
-
 interface MonthlyBudgetSeedItem {
   category: string;
   subcategory: string;
@@ -40,53 +35,6 @@ const createCategoryId = () => `cat_${Date.now()}_${Math.random().toString(36).s
 const createConceptId = () => `concept_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
 export const normalizeValue = (value: string) => value.trim().toLowerCase();
-
-const BASELINE_TAXONOMY_SEED: BaselineTaxonomySeedRow[] = [
-  { category: 'Vivienda', subcategory: 'Renta', type: 'expense' },
-  { category: 'Vivienda', subcategory: 'Luz', type: 'expense' },
-  { category: 'Vivienda', subcategory: 'Agua', type: 'expense' },
-  { category: 'Vivienda', subcategory: 'Gas doméstico', type: 'expense' },
-  { category: 'Vivienda', subcategory: 'Mantenimiento', type: 'expense' },
-  { category: 'Vivienda', subcategory: 'Internet', type: 'expense' },
-  { category: 'Vivienda', subcategory: 'Teléfono móvil', type: 'expense' },
-  { category: 'Transporte', subcategory: 'Auto', type: 'expense' },
-  { category: 'Transporte', subcategory: 'Gasolina', type: 'expense' },
-  { category: 'Transporte', subcategory: 'Uber/Taxi', type: 'expense' },
-  { category: 'Transporte', subcategory: 'Transporte público', type: 'expense' },
-  { category: 'Transporte', subcategory: 'Estacionamiento', type: 'expense' },
-  { category: 'Alimentación', subcategory: 'Despensa', type: 'expense' },
-  { category: 'Alimentación', subcategory: 'Delivery', type: 'expense' },
-  { category: 'Alimentación', subcategory: 'Restaurantes', type: 'expense' },
-  { category: 'Alimentación', subcategory: 'Café', type: 'expense' },
-  { category: 'Salud', subcategory: 'Farmacia', type: 'expense' },
-  { category: 'Salud', subcategory: 'Gym', type: 'expense' },
-  { category: 'Salud', subcategory: 'Doctor', type: 'expense' },
-  { category: 'Salud', subcategory: 'Seguro', type: 'expense' },
-  { category: 'Entretenimiento', subcategory: 'Salidas', type: 'expense' },
-  { category: 'Tecnología', subcategory: 'Suscripciones', type: 'expense' },
-  { category: 'Tecnología', subcategory: 'Software', type: 'expense' },
-  { category: 'Tecnología', subcategory: 'Dispositivos', type: 'expense' },
-  { category: 'Servicios financieros', subcategory: 'Impuestos', type: 'expense' },
-  { category: 'Servicios financieros', subcategory: 'Pago de deuda', type: 'expense' },
-  { category: 'Servicios financieros', subcategory: 'Comisiones', type: 'expense' },
-  { category: 'Personal', subcategory: 'Misceláneos', type: 'expense' },
-  { category: 'Personal', subcategory: 'Apoyo hogar', type: 'expense' },
-  { category: 'Personal', subcategory: 'Ropa', type: 'expense' },
-  { category: 'Personal', subcategory: 'Aseo personal', type: 'expense' },
-  { category: 'Personal', subcategory: 'Regalos', type: 'expense' },
-  { category: 'Mascotas', subcategory: 'Paseos', type: 'expense' },
-  { category: 'Mascotas', subcategory: 'Comida Runa', type: 'expense' },
-  { category: 'Mascotas', subcategory: 'Veterinario', type: 'expense' },
-  { category: 'Mascotas', subcategory: 'Aseo', type: 'expense' },
-  { category: 'Ahorro', subcategory: 'Metas', type: 'expense' },
-  { category: 'Ahorro', subcategory: 'Fondo de emergencia', type: 'expense' },
-  { category: 'Trabajo', subcategory: 'Herramientas', type: 'expense' },
-  { category: 'Trabajo', subcategory: 'Educación', type: 'expense' },
-  { category: 'Trabajo', subcategory: 'Oficina', type: 'expense' },
-  { category: 'Otros', subcategory: 'Misceláneos', type: 'expense' },
-  { category: 'Ingresos', subcategory: 'Nómina', type: 'income' },
-  { category: 'Ingresos', subcategory: 'Freelance', type: 'income' },
-];
 
 export function getCanonicalCategories(type: 'income' | 'expense'): string[] {
   return [
@@ -184,10 +132,16 @@ export function formatConceptPickerLabel(
   concept: BudgetConcept,
   referencePeriod?: string,
 ): string {
-  if (referencePeriod && concept.period !== referencePeriod) {
-    return `${formatPeriodShort(concept.period)} · ${concept.name}`;
-  }
-  return concept.name;
+  const periodPrefix =
+    referencePeriod && concept.period !== referencePeriod
+      ? `${formatPeriodShort(concept.period)} · `
+      : "";
+  const name =
+    concept.subcategory &&
+    normalizeValue(concept.name) !== normalizeValue(concept.subcategory)
+      ? `${concept.subcategory} · ${concept.name}`
+      : concept.name;
+  return `${periodPrefix}${name}`;
 }
 
 export function ensureCategoryPath(
@@ -504,6 +458,7 @@ export function findGroceriesConcept(db: FinancialDatabase, period: string) {
       concept.type === "expense" &&
       concept.period === period &&
       normalizeValue(concept.category) === normalizeValue("Alimentación") &&
+      normalizeValue(concept.subcategory || concept.name) === normalizeValue("Supermercado") ||
       normalizeValue(concept.subcategory || concept.name) === normalizeValue("Despensa"),
   );
 }
@@ -518,6 +473,7 @@ export function getGroceriesAnalysis(
   return analytics.leafAnalyses.find(
     (row) =>
       normalizeValue(row.concept.category) === normalizeValue("Alimentación") &&
+      normalizeValue(row.concept.subcategory || "") === normalizeValue("Supermercado") ||
       normalizeValue(row.concept.subcategory || "") === normalizeValue("Despensa"),
   );
 }
@@ -683,6 +639,42 @@ export function groupBudgetConceptsByCategory(
       category,
       concepts: rows.sort((a, b) => a.name.localeCompare(b.name, 'es')),
     }));
+}
+
+export function groupBudgetConceptsByCategoryAndSubcategory(
+  concepts: BudgetConcept[],
+): Array<{ category: string; subcategories: Array<{ subcategory: string; concepts: BudgetConcept[] }> }> {
+  const byCategory = new Map<string, Map<string, BudgetConcept[]>>();
+
+  for (const concept of concepts) {
+    const sub = concept.subcategory?.trim() || 'Sin subcategoría';
+    const catMap = byCategory.get(concept.category) ?? new Map<string, BudgetConcept[]>();
+    const list = catMap.get(sub) ?? [];
+    list.push(concept);
+    catMap.set(sub, list);
+    byCategory.set(concept.category, catMap);
+  }
+
+  return [...byCategory.entries()]
+    .sort(([a], [b]) => a.localeCompare(b, 'es'))
+    .map(([category, subMap]) => ({
+      category,
+      subcategories: [...subMap.entries()]
+        .sort(([a], [b]) => a.localeCompare(b, 'es'))
+        .map(([subcategory, rows]) => ({
+          subcategory,
+          concepts: rows.sort((a, b) => a.name.localeCompare(b.name, 'es')),
+        })),
+    }));
+}
+
+export function getDefaultConceptNameForSubcategory(subcategory: string): string {
+  return subcategory.trim();
+}
+
+export function formatCategoryPath(concept: Pick<BudgetConcept, 'category' | 'subcategory' | 'name'>): string {
+  const parts = [concept.category, concept.subcategory, concept.name].filter(Boolean);
+  return parts.join(' / ');
 }
 
 export function ensurePeriodConceptHierarchy(db: FinancialDatabase, period: string) {

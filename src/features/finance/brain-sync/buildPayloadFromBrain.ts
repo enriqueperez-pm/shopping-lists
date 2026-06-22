@@ -38,6 +38,12 @@ function nowIso(): string {
 }
 
 function brainIdFromTransaction(row: Record<string, string>): string | null {
+  const cat = (row.categoria || "").trim();
+  const sub = (row.subcategoria || "").trim();
+  if (cat === "Entretenimiento" && sub === "Salidas") return "salidas";
+  if (cat === "Alimentación" && sub === "Supermercado") return "despensa";
+  if (cat === "Alimentación" && sub === "Delivery") return "uber-eats";
+
   const c = (row.concepto || "").toLowerCase();
   if (c.includes("tradea")) return "medicamento-tradea";
   if (c.includes("auto")) return "auto";
@@ -55,7 +61,7 @@ function brainIdFromTransaction(row: Record<string, string>): string | null {
   if (c.includes("at&t luis") || c.includes("5546108055")) return "telefono-luis";
   if (c.includes("at&t") || c.includes("teléfono") || c.includes("telefono")) return "telefono-fer";
   if (c.includes("chedraui") || c.includes("despensa") || c.includes("supermercado")) return "despensa";
-  if (c.includes("mog") || (c.includes("salida") && !c.includes("salidas"))) return "salidas";
+  if (c.includes("mog") || c.includes("taco") || c.includes("restaur") || (c.includes("salida") && !c.includes("salidas"))) return "salidas";
   if (c.includes("nomina") || c.includes("nómina")) return "nomina";
   return null;
 }

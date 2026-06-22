@@ -43,6 +43,9 @@
     --scroll-bottom-inset: 1.25rem;
     --scroll-fab-extra: 3.75rem;
     --scroll-trip-bar-extra: 5.5rem;
+    --sidebar-w: 15rem;
+    --content-max: 42rem;
+    --content-max-wide: 56rem;
     --duration-fast: 150ms;
     --duration-normal: 200ms;
     --duration-toast: 220ms;
@@ -319,6 +322,13 @@
     scroll-padding-bottom: calc(var(--scroll-bottom-inset) + var(--scroll-fab-extra));
   }
 
+  @media (min-width: 1024px) {
+    .finance-scroll-pad-fab {
+      padding-bottom: var(--scroll-bottom-inset);
+      scroll-padding-bottom: var(--scroll-bottom-inset);
+    }
+  }
+
   .finance-scroll-pad-compact {
     padding-bottom: var(--scroll-bottom-inset);
     scroll-padding-bottom: var(--scroll-bottom-inset);
@@ -330,6 +340,50 @@
     overflow-y: auto;
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .app-page {
+    @apply app-scroll-y px-[var(--pad,1rem)] py-3;
+    --pad: clamp(14px, 3.5vw, 22px);
+  }
+
+  .app-page-inner {
+    width: 100%;
+    max-width: var(--content-max);
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .app-page-inner-wide {
+    width: 100%;
+    max-width: var(--content-max-wide);
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .dashboard-section-label {
+    @apply text-micro uppercase tracking-wider text-ink-faint font-semibold;
+  }
+
+  .dashboard-card-title {
+    @apply text-sm font-semibold text-ink;
+  }
+
+  @media (min-width: 1024px) {
+    :root {
+      --finance-nav-h: 0px;
+      --fab-bottom: calc(1.5rem + var(--safe-bottom));
+      --scroll-bottom-inset: 1.5rem;
+    }
+
+    .app-page-inner,
+    .app-page-inner-wide {
+      max-width: var(--content-max-wide);
+    }
+
+    .page-header-band {
+      @apply rounded-3xl;
+    }
   }
 
   .compare-bar-bg {
@@ -433,6 +487,19 @@
   .nav-tab-active-bg {
     background: rgb(0 230 118 / 0.12);
     color: var(--ink);
+  }
+
+  .finance-nav {
+    box-shadow: 0 -4px 16px rgb(var(--ink-rgb) / 0.05);
+    min-height: calc(var(--finance-nav-h, 80px) + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+  }
+
+  @media (min-width: 1024px) {
+    .finance-nav {
+      box-shadow: none;
+      min-height: 0;
+      padding-bottom: 0;
+    }
   }
 }
 
