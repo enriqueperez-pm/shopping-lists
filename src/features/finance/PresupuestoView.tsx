@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Sparkles } from "lucide-react";
 import { useFinance } from "./FinancialDbProvider";
 import MonthSelector from "./MonthSelector";
 import ConceptFormSheet from "./ConceptFormSheet";
@@ -22,6 +22,8 @@ import { useBudgetAnalytics } from "./useBudget";
 import { isActiveBudgetConcept } from "./budget-ui-state";
 import { useFinancePreferences } from "./useFinancePreferences";
 import { listPendingPayments } from "./period-math";
+import { dedupeLeafAnalysesForPeriod, listCategoriesFromConcepts } from "./budget-concept-keys";
+import { cleanupDuplicateConcepts } from "./finance-crud";
 import {
   filterBudgetCategoryGroups,
   filterConceptRows,
@@ -46,6 +48,7 @@ export default function PresupuestoView() {
   const [creating, setCreating] = useState(false);
   const [tab, setTab] = useState<BudgetTab>(prefs.budgetTab ?? "gastos");
   const [showIncome, setShowIncome] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const collapsed = prefs.collapsedSections ?? {};
   const showEmptyConcepts = prefs.showEmptyConcepts ?? false;
   const organizeMode = prefs.organizeMode ?? false;
@@ -53,6 +56,7 @@ export default function PresupuestoView() {
 
   const setTabPersist = (next: BudgetTab) => {
     setTab(next);
+    setCategoryFilter("all");
     patch({ budgetTab: next });
   };
 
@@ -62,9 +66,11 @@ export default function PresupuestoView() {
 
   const conceptType = tab === "gastos" ? "expense" : "income";
 
-  const { categoryGroups, activeOrphanLeaves, inactiveConcepts } = useMemo(() => {
+  const { categoryGroups, activeOrphanLeaves, inactiveConcepts, categories } = useMemo(() => {
     const parents = analytics.parentAnalyses.filter((row) => row.concept.type === conceptType);
-    const leaves = analytics.leafAnalyses.filter((row) => row.concept.type === conceptType);
+    const leaves = dedupeLeafAnalysesForPeriod(analytics.leafAnalyses, selectedPeriod).filter(
+      (row) => row.concept.type === conceptType,
+    );
 
     const inactive: BudgetConceptAnalysis[] = [];
 
@@ -96,8 +102,9 @@ export default function PresupuestoView() {
       categoryGroups: sortedGroups,
       activeOrphanLeaves: activeOrphans,
       inactiveConcepts: inactive,
+      categories: listCategoriesFromConcepts(analytics.periodConcepts, conceptType),
     };
-  }, [analytics.parentAnalyses, analytics.leafAnalyses, conceptType, db, selectedPeriod]);
+  }, [analytics.parentAnalyses, analytics.leafAnalyses, analytics.periodConcepts, conceptType, db, selectedPeriod]);
 
   const priorPendingRows = useMemo(() => {
     if (tab !== "gastos") return [];
@@ -126,15 +133,17 @@ export default function PresupuestoView() {
       .filter((entry): entry is NonNullable<typeof entry> => entry != null);
   }, [db, transactions, selectedPeriod, tab]);
 
-  const filteredCategoryGroups = useMemo(
-    () => filterBudgetCategoryGroups(categoryGroups, searchQuery),
-    [categoryGroups, searchQuery],
-  );
+  const filteredCategoryGroups = useMemo(() => {
+    const base = filterBudgetCategoryGroups(categoryGroups, searchQuery);
+    if (categoryFilter === "all") return base;
+    return base.filter((group) => group.parent.concept.category === categoryFilter);
+  }, [categoryGroups, searchQuery, categoryFilter]);
 
-  const filteredOrphanLeaves = useMemo(
-    () => filterConceptRows(activeOrphanLeaves, searchQuery),
-    [activeOrphanLeaves, searchQuery],
-  );
+  const filteredOrphanLeaves = useMemo(() => {
+    const rows = filterConceptRows(activeOrphanLeaves, searchQuery);
+    if (categoryFilter === "all") return rows;
+    return rows.filter((row) => row.concept.category === categoryFilter);
+  }, [activeOrphanLeaves, searchQuery, categoryFilter]);
 
   const filteredPendingRows = useMemo(
     () =>
@@ -248,6 +257,17 @@ export default function PresupuestoView() {
             <button type="button" className="btn-soft" onClick={copyPreviousMonth}>
               Copiar mes
             </button>
+            <button
+              type="button"
+              className="btn-soft"
+              onClick={() => {
+                cleanupDuplicateConcepts(db, selectedPeriod);
+                refresh();
+              }}
+              title="Fusionar conceptos duplicados del mes"
+            >
+              <Sparkles size={14} />
+            </button>
           </div>
         }
       />
@@ -270,6 +290,28 @@ export default function PresupuestoView() {
           Ingresos
         </button>
       </div>
+
+      {categories.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            className={categoryFilter === "all" ? "chip-active" : "chip"}
+            onClick={() => setCategoryFilter("all")}
+          >
+            Todas
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              className={categoryFilter === cat ? "chip-active" : "chip"}
+              onClick={() => setCategoryFilter(cat)}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-2">
         <button
@@ -311,6 +353,7 @@ export default function PresupuestoView() {
                 Siguen pendientes aunque veas {formatPeriodLabel(selectedPeriod)}
               </p>
             </div>
+            <div className="finance-list">
             {filteredPendingRows.map(({ row, originPeriod }) => (
               <BudgetConceptRow
                 key={row.concept.id}
@@ -318,8 +361,10 @@ export default function PresupuestoView() {
                 transactions={transactions}
                 onEdit={setEditing}
                 periodLabel={formatPeriodLabel(originPeriod)}
+                variant="list"
               />
             ))}
+            </div>
           </section>
         ) : null}
 
@@ -364,13 +409,14 @@ export default function PresupuestoView() {
                   {renderCategoryHeader(group, index)}
                 </div>
                 {!isCollapsed ? (
-                  <div className="space-y-2">
+                  <div className="finance-list">
                     {sortedChildren.map((child) => (
                       <BudgetConceptRow
                         key={child.concept.id}
                         row={child}
                         transactions={transactions}
                         onEdit={setEditing}
+                        variant="list"
                       />
                     ))}
                   </div>
@@ -385,14 +431,17 @@ export default function PresupuestoView() {
             <h3 className="text-xs font-bold uppercase tracking-[0.06em] text-ink-muted px-0.5">
               Sin categoría
             </h3>
-            {filteredOrphanLeaves.map((row) => (
-              <BudgetConceptRow
-                key={row.concept.id}
-                row={row}
-                transactions={transactions}
-                onEdit={setEditing}
-              />
-            ))}
+            <div className="finance-list">
+              {filteredOrphanLeaves.map((row) => (
+                <BudgetConceptRow
+                  key={row.concept.id}
+                  row={row}
+                  transactions={transactions}
+                  onEdit={setEditing}
+                  variant="list"
+                />
+              ))}
+            </div>
           </section>
         ) : null}
 
@@ -418,7 +467,7 @@ export default function PresupuestoView() {
               />
             </button>
             {showEmptyConcepts ? (
-              <div className="space-y-2 mt-2">
+              <div className="finance-list mt-2">
                 {inactiveConcepts.map((row) => (
                   <BudgetConceptRow
                     key={row.concept.id}
@@ -426,6 +475,7 @@ export default function PresupuestoView() {
                     transactions={transactions}
                     onEdit={setEditing}
                     muted
+                    variant="list"
                   />
                 ))}
               </div>

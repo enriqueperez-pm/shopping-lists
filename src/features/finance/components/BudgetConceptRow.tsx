@@ -17,6 +17,7 @@ type Props = {
   periodLabel?: string;
   dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>;
   organizeMode?: boolean;
+  variant?: "card" | "list";
 };
 
 function usageTone(isIncome: boolean, pct: number) {
@@ -34,6 +35,7 @@ export default function BudgetConceptRow({
   periodLabel,
   dragHandleProps,
   organizeMode,
+  variant = "list",
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -46,11 +48,15 @@ export default function BudgetConceptRow({
 
   return (
     <div
-      className={`rounded-xl border transition-colors ${
-        muted
-          ? "border-[var(--border-hairline)] bg-[rgb(var(--ink-rgb) / 0.02)]"
-          : "border-[var(--border-soft)] bg-white shadow-card"
-      }`}
+      className={
+        variant === "list"
+          ? "border-b border-[var(--border-hairline)] last:border-b-0"
+          : `rounded-xl border transition-colors ${
+              muted
+                ? "border-[var(--border-hairline)] bg-[rgb(var(--ink-rgb) / 0.02)]"
+                : "border-[var(--border-soft)] bg-white shadow-card"
+            }`
+      }
     >
       <div className="flex items-center gap-1 px-2 py-2.5">
         {organizeMode ? (

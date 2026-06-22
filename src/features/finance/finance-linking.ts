@@ -2,6 +2,7 @@
 import type { EnhancedTransaction, FinancialDatabase } from "./FinancialDatabase";
 import { buildBudgetAnalytics } from "./budget-analytics";
 import { BASELINE_TAXONOMY_SEED } from "./taxonomy-seed.generated";
+import { canonicalConceptKey, dedupeBudgetConceptList } from "./budget-concept-keys";
 
 export interface TaxonomyCategoryNode {
   id: string;
@@ -97,30 +98,48 @@ export function getBudgetConceptsForTypeAndDate(
   },
 ): BudgetConcept[] {
   const targetPeriod = date.slice(0, 7);
+  const refPeriod = options?.selectedPeriod ?? targetPeriod;
   const all = getBudgetConcepts(db).filter((concept) => concept.type === type && !concept.isParent);
-  const periodSet = new Set<string>([targetPeriod]);
 
-  if (options?.selectedPeriod) periodSet.add(options.selectedPeriod);
+  const currentPeriod = dedupeBudgetConceptList(
+    all.filter((concept) => concept.period === refPeriod),
+    { preferredPeriod: refPeriod, samePeriodOnly: true },
+  );
+
+  const result = [...currentPeriod];
+  const logicalKeys = new Set(currentPeriod.map((c) => canonicalConceptKey(c)));
+
   if (options?.currentConceptId) {
     const linked = all.find((concept) => concept.id === options.currentConceptId);
-    if (linked) periodSet.add(linked.period);
-  }
-  if (options?.includePriorPeriodsWithBudget !== false) {
-    for (const concept of all) {
-      if (concept.period <= targetPeriod && (concept.budgetedAmount || 0) > 0) {
-        periodSet.add(concept.period);
-      }
+    if (linked && !result.some((c) => c.id === linked.id)) {
+      result.push(linked);
+      logicalKeys.add(canonicalConceptKey(linked));
     }
   }
 
-  return all
-    .filter((concept) => periodSet.has(concept.period))
-    .sort(
-      (a, b) =>
-        a.period.localeCompare(b.period) ||
-        a.category.localeCompare(b.category, 'es') ||
-        a.name.localeCompare(b.name, 'es'),
+  if (options?.includePriorPeriodsWithBudget !== false) {
+    const prior = dedupeBudgetConceptList(
+      all.filter(
+        (concept) =>
+          concept.period < refPeriod &&
+          (concept.budgetedAmount || 0) > 0 &&
+          !logicalKeys.has(canonicalConceptKey({ ...concept, period: refPeriod })),
+      ),
+      { preferredPeriod: refPeriod, samePeriodOnly: false },
     );
+    for (const concept of prior) {
+      const key = `${concept.period}::${canonicalConceptKey({ ...concept, period: refPeriod })}`;
+      if (result.some((c) => `${c.period}::${canonicalConceptKey(c)}` === key)) continue;
+      result.push(concept);
+    }
+  }
+
+  return result.sort(
+    (a, b) =>
+      a.period.localeCompare(b.period) ||
+      a.category.localeCompare(b.category, "es") ||
+      a.name.localeCompare(b.name, "es"),
+  );
 }
 
 export function formatPeriodShort(period: string): string {
@@ -663,7 +682,9 @@ export function groupBudgetConceptsByCategoryAndSubcategory(
         .sort(([a], [b]) => a.localeCompare(b, 'es'))
         .map(([subcategory, rows]) => ({
           subcategory,
-          concepts: rows.sort((a, b) => a.name.localeCompare(b.name, 'es')),
+          concepts: dedupeBudgetConceptList(rows, { samePeriodOnly: true }).sort((a, b) =>
+            a.name.localeCompare(b.name, 'es'),
+          ),
         })),
     }));
 }
@@ -882,13 +903,13 @@ export function copyBudgetConceptsFromPeriod(
   if (changed) {
     db.setModuleData('budgetConcepts', concepts);
   }
+  repairBudgetHierarchyInDb(db, toPeriod);
 }
 
 const periodParentKey = (period: string, type: 'income' | 'expense', category: string) =>
   `${period}::${getParentConceptKey(type, category)}`;
 
-const leafConceptKey = (concept: BudgetConcept) =>
-  `${concept.period}::${concept.type}::${normalizeValue(concept.category)}::${normalizeValue(concept.subcategory || concept.name)}`;
+const leafConceptKey = (concept: BudgetConcept) => canonicalConceptKey(concept);
 
 function pickCanonicalConcept(a: BudgetConcept, b: BudgetConcept): BudgetConcept {
   const aBrain = a.id.startsWith('brain_');

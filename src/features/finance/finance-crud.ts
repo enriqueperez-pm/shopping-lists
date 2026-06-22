@@ -332,3 +332,13 @@ export function recordRecentConceptId(db: FinancialDatabase, conceptId: string) 
   const recent = [conceptId, ...(prefs.recentConceptIds ?? []).filter((id) => id !== conceptId)].slice(0, 10);
   db.setUserPreferences({ ...prefs, recentConceptIds: recent });
 }
+
+/** Fusiona duplicados del periodo y remapea transacciones. Devuelve cuántos conceptos se eliminaron. */
+export function cleanupDuplicateConcepts(db: FinancialDatabase, period?: string): number {
+  const countLeaves = (list: BudgetConcept[]) =>
+    list.filter((c) => !c.isParent && (!period || c.period === period)).length;
+  const before = countLeaves(getBudgetConcepts(db));
+  repairBudgetHierarchyInDb(db, period);
+  const after = countLeaves(getBudgetConcepts(db));
+  return Math.max(0, before - after);
+}

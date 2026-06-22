@@ -47,21 +47,21 @@ export default function MonthSelector({ variant = "card" }: Props) {
 
   if (variant === "inline") {
     return (
-      <div className="flex items-center gap-0.5 rounded-xl border border-white/20 bg-white/10 px-1 py-0.5">
+      <div className="flex items-center gap-0.5 rounded-xl border border-[var(--border-hairline)] bg-[rgb(var(--ink-rgb)/0.03)] px-1 py-0.5">
         <button
           type="button"
-          className="p-1 rounded-lg hover:bg-white/10 text-white/80"
+          className="p-1 rounded-lg hover:bg-[rgb(var(--ink-rgb)/0.06)] text-ink-faint"
           onClick={() => setSelectedPeriod(shiftMonth(selectedPeriod, -1))}
           aria-label="Mes anterior"
         >
           <ChevronLeft size={16} />
         </button>
-        <span className="text-xs font-semibold capitalize text-white min-w-[7.5rem] text-center">
+        <span className="text-xs font-semibold capitalize text-ink min-w-[7.5rem] text-center">
           {labelMonth(selectedPeriod)}
         </span>
         <button
           type="button"
-          className="p-1 rounded-lg hover:bg-white/10 text-white/80"
+          className="p-1 rounded-lg hover:bg-[rgb(var(--ink-rgb)/0.06)] text-ink-faint"
           onClick={() => setSelectedPeriod(shiftMonth(selectedPeriod, 1))}
           aria-label="Mes siguiente"
         >

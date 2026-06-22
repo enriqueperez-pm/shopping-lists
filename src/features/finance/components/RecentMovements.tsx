@@ -7,9 +7,32 @@ type Props = {
   movements: EnhancedTransaction[];
   onSeeAll?: () => void;
   onEditMovement?: (tx: EnhancedTransaction) => void;
+  /** Sin wrapper de sección; filas dentro de finance-list */
+  embedded?: boolean;
 };
 
-export default function RecentMovements({ movements, onSeeAll, onEditMovement }: Props) {
+export default function RecentMovements({
+  movements,
+  onSeeAll,
+  onEditMovement,
+  embedded,
+}: Props) {
+  const list = (
+    <>
+      {movements.length === 0 ? (
+        <p className={`text-caption ${embedded ? "px-3 py-4" : ""}`}>Sin movimientos recientes.</p>
+      ) : (
+        movements.map((tx) => (
+          <MovementRow key={tx.id} tx={tx} onEdit={onEditMovement} variant="list" />
+        ))
+      )}
+    </>
+  );
+
+  if (embedded) {
+    return list;
+  }
+
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between gap-2">
@@ -20,15 +43,7 @@ export default function RecentMovements({ movements, onSeeAll, onEditMovement }:
           </button>
         ) : null}
       </div>
-      {movements.length === 0 ? (
-        <p className="text-caption">Sin movimientos recientes.</p>
-      ) : (
-        <div className="space-y-2">
-          {movements.map((tx) => (
-            <MovementRow key={tx.id} tx={tx} onEdit={onEditMovement} />
-          ))}
-        </div>
-      )}
+      <div className="finance-list">{list}</div>
     </section>
   );
 }

@@ -369,6 +369,48 @@
     @apply text-sm font-semibold text-ink;
   }
 
+  .finance-list {
+    @apply bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl overflow-hidden;
+  }
+
+  .finance-list-row {
+    @apply flex items-center gap-2 min-h-[3rem] px-3 py-2.5 border-b border-[var(--border-hairline)] last:border-b-0
+      hover:bg-[rgb(var(--ink-rgb)/0.02)] transition-colors text-left w-full;
+  }
+
+  .finance-list-row-highlight {
+    @apply bg-flujo-mint/10;
+  }
+
+  .finance-list-group-label {
+    @apply px-3 py-2 text-[0.625rem] font-bold uppercase tracking-[0.06em] text-ink-faint
+      bg-[rgb(var(--ink-rgb)/0.02)] border-b border-[var(--border-hairline)];
+  }
+
+  .finance-summary-strip {
+    @apply grid grid-cols-2 sm:grid-cols-4 gap-px bg-[var(--border-hairline)] rounded-xl overflow-hidden
+      border border-[var(--border-hairline)];
+  }
+
+  .finance-summary-cell {
+    @apply bg-[var(--bg-surface)] px-3 py-2.5 min-w-0;
+  }
+
+  .finance-summary-cell-primary {
+    @apply bg-[var(--income-bg)] sm:col-span-1;
+  }
+
+  .finance-sticky-cta {
+    @apply fixed left-0 right-0 z-30 px-[var(--pad,1rem)] pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 lg:hidden;
+    bottom: calc(var(--finance-nav-h, 80px) + var(--safe-bottom, 0px));
+    background: linear-gradient(to top, var(--bg-cream) 70%, transparent);
+  }
+
+  .finance-filter-chip {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold
+      bg-ink/10 text-ink;
+  }
+
   @media (min-width: 1024px) {
     :root {
       --finance-nav-h: 0px;

@@ -6,9 +6,17 @@ type Props = {
   income: number;
   spent: number;
   periodLabel: string;
+  onIncomeClick?: () => void;
+  onExpenseClick?: () => void;
 };
 
-export default function FlowCompareChart({ income, spent, periodLabel }: Props) {
+export default function FlowCompareChart({
+  income,
+  spent,
+  periodLabel,
+  onIncomeClick,
+  onExpenseClick,
+}: Props) {
   const max = Math.max(income, spent, 1);
   const incomePct = Math.round((income / max) * 100);
   const expensePct = Math.round((spent / max) * 100);
@@ -23,11 +31,11 @@ export default function FlowCompareChart({ income, spent, periodLabel }: Props) 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-micro">
         <span className="inline-flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-[var(--income-color)]" />
-          Ingresos (movimientos)
+          Ingresos
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-[var(--expense-color)]" />
-          Gastos (movimientos)
+          Gastos
         </span>
         <span className="ml-auto font-semibold">
           Neto{" "}
@@ -37,9 +45,16 @@ export default function FlowCompareChart({ income, spent, periodLabel }: Props) 
         </span>
       </div>
       <div className="space-y-2">
-        <div>
+        <button
+          type="button"
+          className={`w-full text-left rounded-lg p-1 -m-1 transition-colors ${
+            onIncomeClick ? "hover:bg-[rgb(var(--ink-rgb)/0.04)] cursor-pointer" : ""
+          }`}
+          onClick={onIncomeClick}
+          disabled={!onIncomeClick}
+        >
           <div className="flex justify-between text-xs mb-1">
-            <span className="text-ink-faint">Ingresos</span>
+            <span className="text-ink-faint">Ingresos · tap para filtrar</span>
             <span className="font-semibold tabular-nums text-[var(--income-color)]">
               {money(income)}
             </span>
@@ -47,10 +62,17 @@ export default function FlowCompareChart({ income, spent, periodLabel }: Props) 
           <div className="compare-bar-bg">
             <div className="compare-bar-fill income" style={{ width: `${incomePct}%` }} />
           </div>
-        </div>
-        <div>
+        </button>
+        <button
+          type="button"
+          className={`w-full text-left rounded-lg p-1 -m-1 transition-colors ${
+            onExpenseClick ? "hover:bg-[rgb(var(--ink-rgb)/0.04)] cursor-pointer" : ""
+          }`}
+          onClick={onExpenseClick}
+          disabled={!onExpenseClick}
+        >
           <div className="flex justify-between text-xs mb-1">
-            <span className="text-ink-faint">Gastos</span>
+            <span className="text-ink-faint">Gastos · tap para filtrar</span>
             <span className="font-semibold tabular-nums text-[var(--expense-color)]">
               {money(spent)}
             </span>
@@ -58,7 +80,7 @@ export default function FlowCompareChart({ income, spent, periodLabel }: Props) 
           <div className="compare-bar-bg">
             <div className="compare-bar-fill expense" style={{ width: `${expensePct}%` }} />
           </div>
-        </div>
+        </button>
       </div>
     </div>
   );
