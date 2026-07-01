@@ -6,7 +6,6 @@ import { useFinance } from "./FinancialDbProvider";
 import { resolveBudgetConceptId } from "./finance-linking";
 import { isCanonicalPair } from "./taxonomy-canonical";
 import CategorySubcategoryPicker from "./components/CategorySubcategoryPicker";
-import { isCanonicalPair } from "./taxonomy-canonical";
 
 export default function QuickExpenseModal({
   onClose,
