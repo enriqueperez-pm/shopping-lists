@@ -142,7 +142,7 @@ export default function CuentaView() {
 
   return (
     <div className="app-page finance-scroll-pad space-y-4">
-      <div className="app-page-inner-wide space-y-4">
+      <div className="app-page-inner-finance space-y-4">
       <PageHeader title="Cuenta" subtitle="Sesión y datos del dispositivo" />
 
       {cloudSyncError && !brainMessage ? (

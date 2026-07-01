@@ -102,7 +102,7 @@ export default function DashboardView() {
 
   return (
     <div className="app-page finance-scroll-pad finance-scroll-pad-fab">
-      <div className="app-page-inner-wide space-y-4 pb-24 lg:pb-4">
+      <div className="app-page-inner-finance space-y-4 pb-24 lg:pb-4">
         <PageHeader title="Inicio" subtitle={monthLabel} band={false} actions={headerActions} />
 
         <FinanceSummaryStrip

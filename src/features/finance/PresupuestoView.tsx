@@ -241,7 +241,7 @@ export default function PresupuestoView() {
 
   return (
     <div className="app-page finance-scroll-pad space-y-4">
-      <div className="app-page-inner-wide space-y-4">
+      <div className="app-page-inner-finance space-y-4">
       <PageHeader
         title="Presupuesto"
         subtitle="Conceptos del mes (MXN)"

@@ -366,9 +366,9 @@ export default function MovementsTable({
   };
 
   return (
-    <div className="rounded-xl border border-[var(--border-hairline)] overflow-hidden bg-white">
-      <div className="overflow-x-auto max-h-[min(70vh,640px)] overflow-y-auto">
-        <table className="w-full min-w-[1100px] border-collapse text-sm">
+    <div className="finance-table-shell">
+      <div className="finance-table-scroll">
+        <table className="w-full min-w-[1000px] border-collapse text-sm">
           <thead className="sticky top-0 z-20 bg-[rgb(var(--ink-rgb)/0.04)] border-b border-[var(--border-hairline)]">
             <tr className="text-[0.625rem] uppercase tracking-wide text-ink-faint">
               <th className="px-2 py-2 w-8 sticky left-0 z-[21] bg-[rgb(var(--ink-rgb)/0.04)]">

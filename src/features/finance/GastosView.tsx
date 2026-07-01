@@ -96,8 +96,9 @@ export default function GastosView() {
   const isSearching = searchQuery.trim().length > 0;
 
   return (
-    <div className="app-page finance-scroll-pad space-y-4">
-      <div className="app-page-inner-wide space-y-4">
+    <div className="app-page finance-scroll-pad finance-page-fill space-y-4 lg:space-y-0">
+      <div className="app-page-inner-finance space-y-4 lg:space-y-3">
+        <div className="shrink-0 space-y-4">
         <PageHeader title="Gastos" subtitle="Tabla de movimientos · edición inline" />
 
         <MonthSelector />
@@ -188,35 +189,40 @@ export default function GastosView() {
             </p>
           )}
         </div>
+        </div>
 
         {list.length === 0 ? (
-          <p className="text-caption px-3 py-4 surface-soft rounded-xl">
+          <p className="text-caption px-3 py-4 surface-soft rounded-xl shrink-0">
             {isSearching
               ? `Sin resultados para «${searchQuery.trim()}».`
               : "Sin movimientos con este filtro."}
           </p>
         ) : (
-          <MovementsTable
-            rows={list}
-            selectedIds={selectedIds}
-            onToggleSelect={toggleSelect}
-            onToggleSelectAll={toggleSelectAll}
-            allSelected={allSelected}
-            groupByCategory={groupByCategory}
-            categoryFilterActive={categoryFilter !== "all"}
-          />
+          <div className="finance-table-fill">
+            <MovementsTable
+              rows={list}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
+              onToggleSelectAll={toggleSelectAll}
+              allSelected={allSelected}
+              groupByCategory={groupByCategory}
+              categoryFilterActive={categoryFilter !== "all"}
+            />
+          </div>
         )}
 
-        {selectionMode && selectedIds.size > 0 ? (
-          <BulkMovementBar
-            selectedIds={[...selectedIds]}
-            selectedTxs={selectedTxs}
-            onClear={exitSelection}
-            onDone={exitSelection}
-          />
-        ) : null}
+        <div className="shrink-0 space-y-4">
+          {selectionMode && selectedIds.size > 0 ? (
+            <BulkMovementBar
+              selectedIds={[...selectedIds]}
+              selectedTxs={selectedTxs}
+              onClear={exitSelection}
+              onDone={exitSelection}
+            />
+          ) : null}
 
-        <FinanceSyncBar />
+          <FinanceSyncBar />
+        </div>
       </div>
 
       {showExpense && <QuickExpenseModal onClose={() => setShowExpense(false)} />}
