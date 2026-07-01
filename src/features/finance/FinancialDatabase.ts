@@ -569,7 +569,13 @@ export class FinancialDatabase {
   }
 
   deleteTransaction(id: string): void {
-    this.data.transactions = this.data.transactions.filter(t => t.id !== id);
+    this.deleteTransactions([id]);
+  }
+
+  deleteTransactions(ids: string[]): void {
+    if (!ids.length) return;
+    const idSet = new Set(ids);
+    this.data.transactions = this.data.transactions.filter((t) => !idSet.has(t.id));
     this.saveData();
   }
 

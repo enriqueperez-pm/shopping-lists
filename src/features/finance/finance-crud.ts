@@ -327,6 +327,54 @@ export function repairLegacyEnglishTaxonomy(db: FinancialDatabase): boolean {
   return changed;
 }
 
+export function bulkAssignConcept(
+  db: FinancialDatabase,
+  txIds: string[],
+  conceptId: string,
+): number {
+  const concept = getBudgetConcepts(db).find((c) => c.id === conceptId && !c.isParent);
+  if (!concept) return 0;
+
+  let count = 0;
+  for (const id of txIds) {
+    const tx = db.getTransactions().find((t) => t.id === id);
+    if (!tx) continue;
+    const txType = tx.type === "income" ? "income" : "expense";
+    if (txType !== concept.type) continue;
+
+    const cats = applyConceptCategoryToTransaction(db, {
+      type: txType,
+      budgetConceptId: conceptId,
+      category: concept.category,
+      subcategory: concept.subcategory,
+    });
+
+    if (
+      db.updateTransaction(id, {
+        budgetConceptId: conceptId,
+        category: cats.category ?? tx.category,
+        subcategory: cats.subcategory,
+        linkReviewStatus: "pending",
+      })
+    ) {
+      count += 1;
+    }
+  }
+
+  if (count > 0) recordRecentConceptId(db, conceptId);
+  return count;
+}
+
+export function bulkConfirmLink(db: FinancialDatabase, txIds: string[]): number {
+  let count = 0;
+  for (const id of txIds) {
+    const tx = db.getTransactions().find((t) => t.id === id);
+    if (!tx?.budgetConceptId) continue;
+    if (setTransactionLinkReview(db, id, "confirmed")) count += 1;
+  }
+  return count;
+}
+
 export function recordRecentConceptId(db: FinancialDatabase, conceptId: string) {
   const prefs = db.getUserPreferences();
   const recent = [conceptId, ...(prefs.recentConceptIds ?? []).filter((id) => id !== conceptId)].slice(0, 10);

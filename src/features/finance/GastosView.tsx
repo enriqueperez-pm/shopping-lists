@@ -12,6 +12,7 @@ import QuickExpenseModal from "./QuickExpenseModal";
 import QuickIncomeModal from "./QuickIncomeModal";
 import EditMovementModal from "./EditMovementModal";
 import MovementRow from "./components/MovementRow";
+import BulkMovementBar from "./components/BulkMovementBar";
 import BudgetConceptCrudPanel from "./components/BudgetConceptCrudPanel";
 import FinanceSyncBar from "./components/FinanceSyncBar";
 import { useFinancePreferences } from "./useFinancePreferences";
@@ -42,6 +43,8 @@ export default function GastosView() {
   const [showExpense, setShowExpense] = useState(false);
   const [showIncome, setShowIncome] = useState(false);
   const [editingTx, setEditingTx] = useState<EnhancedTransaction | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
 
   const conceptCategoryById = useMemo(() => {
     const map = new Map<string, string>();
@@ -80,6 +83,35 @@ export default function GastosView() {
     return filterTransactions(byCategory, searchQuery);
   }, [cashflow.allMovements, filter, categoryFilter, searchQuery, conceptCategoryById]);
 
+  const selectedTxs = useMemo(
+    () => list.filter((tx) => selectedIds.has(tx.id)),
+    [list, selectedIds],
+  );
+
+  const allSelected = list.length > 0 && list.every((tx) => selectedIds.has(tx.id));
+
+  const exitSelection = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelect = (tx: EnhancedTransaction) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(tx.id)) next.delete(tx.id);
+      else next.add(tx.id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+      return;
+    }
+    setSelectedIds(new Set(list.map((tx) => tx.id)));
+  };
+
   const deleteTx = (tx: EnhancedTransaction) => {
     if (!window.confirm(`¿Eliminar «${tx.description}»?`)) return;
     db.deleteTransaction(tx.id);
@@ -99,14 +131,20 @@ export default function GastosView() {
           <button
             type="button"
             className={viewTab === "movimientos" ? "app-tab-active" : "app-tab"}
-            onClick={() => setViewTab("movimientos")}
+            onClick={() => {
+              setViewTab("movimientos");
+              exitSelection();
+            }}
           >
             Movimientos
           </button>
           <button
             type="button"
             className={viewTab === "conceptos" ? "app-tab-active" : "app-tab"}
-            onClick={() => setViewTab("conceptos")}
+            onClick={() => {
+              setViewTab("conceptos");
+              exitSelection();
+            }}
           >
             Conceptos
           </button>
@@ -187,7 +225,33 @@ export default function GastosView() {
               </button>
             </div>
 
-            <div className="finance-list">
+            <div className="flex items-center justify-between gap-2">
+              {selectionMode ? (
+                <label className="flex items-center gap-2 text-caption cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleSelectAll}
+                    className="h-4 w-4 rounded border-[var(--border-hairline)] accent-[var(--flujo-mint)]"
+                  />
+                  Seleccionar todos ({list.length})
+                </label>
+              ) : (
+                <span className="text-caption text-ink-faint">{list.length} movimientos</span>
+              )}
+              <button
+                type="button"
+                className={selectionMode ? "btn-link text-xs" : "btn-soft text-xs py-1.5 px-2.5"}
+                onClick={() => {
+                  if (selectionMode) exitSelection();
+                  else setSelectionMode(true);
+                }}
+              >
+                {selectionMode ? "Cancelar selección" : "Seleccionar"}
+              </button>
+            </div>
+
+            <div className="finance-list divide-y-0">
               {list.length === 0 ? (
                 <p className="text-caption px-3 py-4">
                   {isSearching
@@ -196,12 +260,33 @@ export default function GastosView() {
                 </p>
               ) : (
                 list.map((tx) => (
-                  <SwipeableRow key={tx.id} onDelete={() => deleteTx(tx)} deleteLabel="Borrar">
-                    <MovementRow tx={tx} onEdit={setEditingTx} variant="list" />
+                  <SwipeableRow
+                    key={tx.id}
+                    variant="list"
+                    onDelete={() => deleteTx(tx)}
+                    deleteLabel="Borrar"
+                  >
+                    <MovementRow
+                      tx={tx}
+                      onEdit={selectionMode ? undefined : setEditingTx}
+                      variant="list"
+                      selectable={selectionMode}
+                      selected={selectedIds.has(tx.id)}
+                      onToggleSelect={toggleSelect}
+                    />
                   </SwipeableRow>
                 ))
               )}
             </div>
+
+            {selectionMode && selectedIds.size > 0 ? (
+              <BulkMovementBar
+                selectedIds={[...selectedIds]}
+                selectedTxs={selectedTxs}
+                onClear={exitSelection}
+                onDone={exitSelection}
+              />
+            ) : null}
           </>
         )}
 
@@ -210,7 +295,9 @@ export default function GastosView() {
 
       {showExpense && <QuickExpenseModal onClose={() => setShowExpense(false)} />}
       {showIncome && <QuickIncomeModal onClose={() => setShowIncome(false)} />}
-      {editingTx && <EditMovementModal tx={editingTx} onClose={() => setEditingTx(null)} />}
+      {editingTx && !selectionMode && (
+        <EditMovementModal tx={editingTx} onClose={() => setEditingTx(null)} />
+      )}
     </div>
   );
 }

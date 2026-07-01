@@ -13,12 +13,14 @@ export default function SwipeableRow({
   onCycleState,
   deleteLabel = "Eliminar",
   cycleLabel = "Estado",
+  variant = "card",
 }: {
   children: React.ReactNode;
   onDelete: () => void;
   onCycleState?: () => void;
   deleteLabel?: string;
   cycleLabel?: string;
+  variant?: "card" | "list";
 }) {
   const [offset, setOffset] = useState(0);
   const startX = useRef(0);
@@ -77,10 +79,20 @@ export default function SwipeableRow({
     setOffset(0);
   }, [onDelete, onCycleState]);
 
+  const outerClass =
+    variant === "list"
+      ? "relative overflow-hidden rounded-none border-b border-[var(--border-hairline)] last:border-b-0"
+      : "relative overflow-hidden rounded-xl";
+
+  const contentClass =
+    variant === "list"
+      ? "relative z-[1] bg-[var(--bg-surface)] transition-transform duration-fast ease-out motion-reduce:transition-none touch-pan-y"
+      : "relative z-[1] bg-[var(--bg-surface)] transition-transform duration-fast ease-out motion-reduce:transition-none";
+
   return (
-    <div className="relative overflow-hidden rounded-xl">
+    <div className={outerClass}>
       <div
-        className="absolute inset-y-0 right-0 flex items-center justify-end gap-1.5 px-3 bg-danger-bg/90"
+        className="absolute inset-y-0 right-0 z-0 flex items-center justify-end gap-1.5 px-3 bg-danger-bg"
         style={{ width: MAX_SWIPE }}
         aria-hidden
       >
@@ -89,7 +101,7 @@ export default function SwipeableRow({
       </div>
       {onCycleState && (
         <div
-          className="absolute inset-y-0 left-0 flex items-center justify-start gap-1.5 px-3 bg-pantry-light/95"
+          className="absolute inset-y-0 left-0 z-0 flex items-center justify-start gap-1.5 px-3 bg-pantry-light/95"
           style={{ width: MAX_SWIPE }}
           aria-hidden
         >
@@ -98,8 +110,8 @@ export default function SwipeableRow({
         </div>
       )}
       <div
-        className="relative transition-transform duration-fast ease-out motion-reduce:transition-none"
-        style={{ transform: `translateX(${offset}px)` }}
+        className={contentClass}
+        style={{ transform: offset ? `translateX(${offset}px)` : undefined }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
