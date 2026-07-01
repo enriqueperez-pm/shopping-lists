@@ -223,7 +223,7 @@ export function buildPayloadFromBrainCsv(inputs: BrainCsvInputs): BrainPayloadRe
         id: `brain_tx_income_${row.fecha_pago}_${brainId}`,
         type: "income",
         description: row.concepto_es,
-        amount: ejecutado,
+        amount: roundMoney(ejecutado),
         category: row.categoria,
         subcategory: row.subcategoria || undefined,
         date: row.fecha_pago,
@@ -232,6 +232,8 @@ export function buildPayloadFromBrainCsv(inputs: BrainCsvInputs): BrainPayloadRe
         source: "import",
         currency: "MXN",
         budgetConceptId: cid,
+        accountId: accountIdFromRow({ cuenta: row.cuenta, concepto: row.concepto_es }, "import"),
+        linkReviewStatus: "confirmed" as const,
       });
     }
   }
