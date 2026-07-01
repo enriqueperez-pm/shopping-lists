@@ -11,11 +11,12 @@ import {
 } from "./finance-crud";
 import {
   createBudgetConcept,
+} from "./finance-linking";
+import {
   getCanonicalCategories,
   getCanonicalSubcategories,
-  getDistinctCategories,
-  getDistinctSubcategories,
-} from "./finance-linking";
+  isCanonicalPair,
+} from "./taxonomy-canonical";
 
 type Props = {
   concept?: BudgetConcept | null;
@@ -29,14 +30,9 @@ export default function ConceptFormSheet({ concept, type, onClose, onSaved }: Pr
   const isEdit = Boolean(concept);
 
   const canonicalCategories = useMemo(() => getCanonicalCategories(type), [type]);
-  const legacyCategories = useMemo(() => getDistinctCategories(db, type), [db, type]);
-  const existingCategories = useMemo(
-    () => [...new Set([...canonicalCategories, ...legacyCategories])].sort((a, b) => a.localeCompare(b, "es")),
-    [canonicalCategories, legacyCategories],
-  );
 
   const [name, setName] = useState(concept?.name ?? "");
-  const [category, setCategory] = useState(concept?.category ?? existingCategories[0] ?? "");
+  const [category, setCategory] = useState(concept?.category ?? canonicalCategories[0] ?? "");
   const [subcategory, setSubcategory] = useState(concept?.subcategory ?? "");
   const [budgetedAmount, setBudgetedAmount] = useState(String(concept?.budgetedAmount ?? ""));
   const [isFixed, setIsFixed] = useState(concept?.isFixed ?? false);
@@ -44,13 +40,15 @@ export default function ConceptFormSheet({ concept, type, onClose, onSaved }: Pr
 
   const subcategories = useMemo(() => {
     if (!category) return [];
-    const canonical = getCanonicalSubcategories(type, category);
-    const legacy = getDistinctSubcategories(db, type, category);
-    return [...new Set([...canonical, ...legacy])].sort((a, b) => a.localeCompare(b, "es"));
-  }, [db, type, category]);
+    return getCanonicalSubcategories(type, category);
+  }, [type, category]);
 
   const save = () => {
-    if (!name.trim() || !category.trim()) return;
+    if (!name.trim() || !category.trim() || !subcategory.trim()) return;
+    if (!isCanonicalPair(type, category, subcategory)) {
+      window.alert("Solo taxonomía canónica.");
+      return;
+    }
 
     if (isEdit && concept) {
       updateBudgetConcept(db, concept.id, {
@@ -118,7 +116,7 @@ export default function ConceptFormSheet({ concept, type, onClose, onSaved }: Pr
           }}
           className="modal-input bg-white"
         >
-          {existingCategories.map((cat) => (
+          {canonicalCategories.map((cat) => (
             <option key={cat} value={cat}>
               {cat}
             </option>

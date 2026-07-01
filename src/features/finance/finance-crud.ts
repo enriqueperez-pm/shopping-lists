@@ -7,9 +7,15 @@ import {
   ensurePeriodConceptHierarchy,
   getBudgetConcepts,
   getParentConceptKey,
-  normalizeValue,
   repairBudgetHierarchyInDb,
+  resolveBudgetConceptId,
 } from "./finance-linking";
+import { canonicalConceptKey } from "./budget-concept-keys";
+import {
+  buildCategoriesTreeFromSeed,
+  resolveCanonicalPair,
+} from "./taxonomy-canonical";
+import { actualByConceptFromAllTransactions } from "./period-math";
 
 export type LinkReviewStatus = "pending" | "confirmed" | "incorrect";
 
@@ -243,88 +249,136 @@ export function moveConceptToCategory(
   return Boolean(updateBudgetConcept(db, conceptId, { category: targetCategory, subcategory: targetSubcategory }));
 }
 
-const LEGACY_PAIR_MAP: Record<string, [string, string]> = {
-  "Housing|Rent": ["Vivienda", "Renta"],
-  "Housing|Electricity": ["Vivienda", "Luz"],
-  "Housing|Utilities": ["Vivienda", "Agua"],
-  "Housing|Gas": ["Vivienda", "Gas doméstico"],
-  "Housing|Maintenance": ["Vivienda", "Mantenimiento"],
-  "Housing|Internet": ["Vivienda", "Internet"],
-  "Technology|Telmex": ["Vivienda", "Internet"],
-  "Technology|Phone": ["Vivienda", "Teléfono móvil"],
-  "Technology|Subscriptions": ["Tecnología", "Suscripciones"],
-  "Technology|Software": ["Tecnología", "Software"],
-  "Technology|Devices": ["Tecnología", "Dispositivos"],
-  "Transport|Car": ["Transporte", "Auto"],
-  "Transport|Gas": ["Transporte", "Gasolina"],
-  "Transport|Uber/Taxi": ["Transporte", "Uber/Taxi"],
-  "Transport|Public Transit": ["Transporte", "Transporte público"],
-  "Transport|Parking": ["Transporte", "Estacionamiento"],
-  "Food|Groceries": ["Alimentación", "Supermercado"],
-  "Food|Delivery": ["Alimentación", "Delivery"],
-  "Food|Comida Brunas": ["Mascotas", "Comida Runa"],
-  "Food|Restaurants": ["Entretenimiento", "Salidas"],
-  "Food|Coffee": ["Alimentación", "Café"],
-  "Alimentación|Despensa": ["Alimentación", "Supermercado"],
-  "Alimentación|Restaurantes": ["Entretenimiento", "Salidas"],
-  "Health|Pharmacy": ["Salud", "Farmacia"],
-  "Health|Gym": ["Salud", "Gym"],
-  "Health|Doctor": ["Salud", "Doctor"],
-  "Health|Insurance": ["Salud", "Seguro"],
-  "Entertainment|Outings": ["Entretenimiento", "Salidas"],
-  "Entertainment|Streaming": ["Tecnología", "Suscripciones"],
-  "Entretenimiento|Streaming": ["Tecnología", "Suscripciones"],
-  "Entertainment|Events": ["Entretenimiento", "Salidas"],
-  "Entertainment|Games": ["Entretenimiento", "Salidas"],
-  "Financial Services|Taxes": ["Servicios financieros", "Impuestos"],
-  "Financial Services|Debt Payment": ["Servicios financieros", "Pago de deuda"],
-  "Financial Services|Commissions": ["Servicios financieros", "Comisiones"],
-  "Personal|Miscellaneous": ["Personal", "Misceláneos"],
-  "Personal|Clothing": ["Personal", "Ropa"],
-  "Personal|Grooming": ["Personal", "Aseo personal"],
-  "Personal|Gifts": ["Personal", "Regalos"],
-  "Pets|Other": ["Mascotas", "Paseos"],
-  "Pets|Food": ["Mascotas", "Comida Runa"],
-  "Pets|Vet": ["Mascotas", "Veterinario"],
-  "Pets|Grooming": ["Mascotas", "Aseo"],
-  "Savings|Goals": ["Ahorro", "Metas"],
-  "Savings|Emergency Fund": ["Ahorro", "Fondo de emergencia"],
-  "Work|Tools": ["Trabajo", "Herramientas"],
-  "Work|Education": ["Trabajo", "Educación"],
-  "Work|Office Supplies": ["Trabajo", "Oficina"],
-  "Other|Miscellaneous": ["Otros", "Misceláneos"],
-  "Salary|Main Job": ["Ingresos", "Nómina"],
-  "Freelance|Projects": ["Ingresos", "Freelance"],
-};
-
-function mapLegacyPair(category: string, subcategory: string): [string, string] | null {
-  return LEGACY_PAIR_MAP[`${category}|${subcategory || ""}`] ?? null;
+export interface EnforceCanonicalResult {
+  conceptsRemapped: number;
+  transactionsRemapped: number;
+  conceptsRemoved: number;
+  transactionsMarkedIncorrect: number;
 }
 
-export function repairLegacyEnglishTaxonomy(db: FinancialDatabase): boolean {
-  let changed = false;
+export function enforceCanonicalTaxonomy(db: FinancialDatabase): EnforceCanonicalResult {
+  const result: EnforceCanonicalResult = {
+    conceptsRemapped: 0,
+    transactionsRemapped: 0,
+    conceptsRemoved: 0,
+    transactionsMarkedIncorrect: 0,
+  };
 
-  const concepts = getBudgetConcepts(db).map((c) => {
-    const mapped = mapLegacyPair(c.category, c.subcategory || "");
+  let concepts = getBudgetConcepts(db).map((c) => {
+    if (c.isParent) return c;
+    const mapped = resolveCanonicalPair(c.type, c.category, c.subcategory || "");
     if (!mapped) return c;
-    changed = true;
-    return { ...c, category: mapped[0], subcategory: mapped[1], updatedAt: nowIso() };
+    if (mapped.category === c.category && mapped.subcategory === (c.subcategory || "")) return c;
+    result.conceptsRemapped += 1;
+    return { ...c, category: mapped.category, subcategory: mapped.subcategory, updatedAt: nowIso() };
   });
-  if (changed) db.setModuleData("budgetConcepts", concepts);
+  db.setModuleData("budgetConcepts", concepts);
 
   for (const tx of db.getTransactions()) {
-    const mapped = mapLegacyPair(tx.category, tx.subcategory || "");
-    if (!mapped) continue;
-    if (db.updateTransaction(tx.id, { category: mapped[0], subcategory: mapped[1] })) {
-      changed = true;
+    if (tx.type !== "income" && tx.type !== "expense") continue;
+    const txType = tx.type === "income" ? "income" : "expense";
+    const mapped = resolveCanonicalPair(txType, tx.category, tx.subcategory || "");
+    if (!mapped) {
+      db.updateTransaction(tx.id, { linkReviewStatus: "incorrect" });
+      result.transactionsMarkedIncorrect += 1;
+      continue;
+    }
+    if (mapped.category === tx.category && mapped.subcategory === (tx.subcategory || "")) continue;
+    if (db.updateTransaction(tx.id, { category: mapped.category, subcategory: mapped.subcategory })) {
+      result.transactionsRemapped += 1;
     }
   }
 
-  if (changed) {
-    dedupeBudgetConceptsInDb(db);
-    repairBudgetHierarchyInDb(db);
+  dedupeBudgetConceptsInDb(db);
+  repairBudgetHierarchyInDb(db);
+
+  concepts = getBudgetConcepts(db);
+  const txs = db.getTransactions();
+  const txCountByConcept = new Map<string, number>();
+  for (const tx of txs) {
+    if (!tx.budgetConceptId) continue;
+    txCountByConcept.set(tx.budgetConceptId, (txCountByConcept.get(tx.budgetConceptId) ?? 0) + 1);
   }
-  return changed;
+
+  const brainKeys = new Set<string>();
+  for (const c of concepts) {
+    if (c.isParent || !c.id.startsWith("brain_")) continue;
+    brainKeys.add(`${c.period}::${c.type}::${canonicalConceptKey(c)}`);
+  }
+
+  const toRemove = new Set<string>();
+  for (const c of concepts) {
+    if (c.isParent) continue;
+    const key = `${c.period}::${c.type}::${canonicalConceptKey(c)}`;
+    const isAppOrphan =
+      (c.id.startsWith("concept_") || c.id.includes("app-")) &&
+      (txCountByConcept.get(c.id) ?? 0) === 0;
+    const isDuplicateOfBrain =
+      !c.id.startsWith("brain_") && brainKeys.has(key) && (txCountByConcept.get(c.id) ?? 0) === 0;
+    if (isAppOrphan || isDuplicateOfBrain) toRemove.add(c.id);
+  }
+
+  if (toRemove.size > 0) {
+    db.setModuleData(
+      "budgetConcepts",
+      concepts.filter((c) => !toRemove.has(c.id)),
+    );
+    result.conceptsRemoved = toRemove.size;
+  }
+
+  db.setModuleData("categoriesTree", buildCategoriesTreeFromSeed());
+  return result;
+}
+
+export function repairLegacyEnglishTaxonomy(db: FinancialDatabase): boolean {
+  const r = enforceCanonicalTaxonomy(db);
+  return r.conceptsRemapped + r.transactionsRemapped + r.conceptsRemoved > 0;
+}
+
+/** Sincroniza actualAmount en conceptos desde transacciones (cache derivada). */
+export function syncActualAmountsFromTransactions(
+  db: FinancialDatabase,
+): number {
+  const concepts = getBudgetConcepts(db);
+  const actualByConcept = actualByConceptFromAllTransactions(db.getTransactions());
+  let updated = 0;
+  const next = concepts.map((c) => {
+    if (c.isParent) return c;
+    const actual = actualByConcept.get(c.id) ?? 0;
+    if (c.actualAmount === actual) return c;
+    updated += 1;
+    return { ...c, actualAmount: actual, updatedAt: nowIso() };
+  });
+  if (updated > 0) db.setModuleData("budgetConcepts", next);
+  return updated;
+}
+
+export function bulkAssignCategory(
+  db: FinancialDatabase,
+  txIds: string[],
+  category: string,
+  subcategory: string,
+): number {
+  let count = 0;
+  for (const id of txIds) {
+    const tx = db.getTransactions().find((t) => t.id === id);
+    if (!tx || (tx.type !== "income" && tx.type !== "expense")) continue;
+    const txType = tx.type === "income" ? "income" : "expense";
+    const period = tx.date.slice(0, 7);
+    const conceptId = resolveBudgetConceptId(db, period, txType, category, subcategory);
+
+    if (
+      db.updateTransaction(id, {
+        category,
+        subcategory,
+        budgetConceptId: conceptId,
+        linkReviewStatus: conceptId ? "confirmed" : "pending",
+      })
+    ) {
+      count += 1;
+    }
+  }
+  return count;
 }
 
 export function bulkAssignConcept(

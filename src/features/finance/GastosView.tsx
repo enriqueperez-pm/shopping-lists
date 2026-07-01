@@ -4,55 +4,32 @@ import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 import SearchBar from "@/components/SearchBar";
-import SwipeableRow from "@/components/SwipeableRow";
-import { useFinance } from "./FinancialDbProvider";
 import { useCashflow } from "./useCashflow";
 import MonthSelector from "./MonthSelector";
 import QuickExpenseModal from "./QuickExpenseModal";
 import QuickIncomeModal from "./QuickIncomeModal";
-import EditMovementModal from "./EditMovementModal";
-import MovementRow from "./components/MovementRow";
+import MovementsTable from "./components/MovementsTable";
 import BulkMovementBar from "./components/BulkMovementBar";
-import BudgetConceptCrudPanel from "./components/BudgetConceptCrudPanel";
 import FinanceSyncBar from "./components/FinanceSyncBar";
 import { useFinancePreferences } from "./useFinancePreferences";
 import { filterTransactions } from "./budget-search";
-import { getBudgetConcepts } from "./finance-linking";
 import { movementCategoryLabel } from "./cashflow-analytics";
+import { computeMovementAggregates } from "./components/movements-table-utils";
 import type { EnhancedTransaction } from "./FinancialDatabase";
 
 type MovFilter = "all" | "out" | "in";
-type ViewTab = "movimientos" | "conceptos";
-
-function movementCategory(tx: EnhancedTransaction, conceptCategoryById: Map<string, string>): string {
-  if (tx.budgetConceptId) {
-    const fromConcept = conceptCategoryById.get(tx.budgetConceptId);
-    if (fromConcept) return fromConcept;
-  }
-  return movementCategoryLabel(tx) ?? tx.category;
-}
 
 export default function GastosView() {
-  const { db, refresh } = useFinance();
   const cashflow = useCashflow();
   const { prefs, patch } = useFinancePreferences();
-  const [viewTab, setViewTab] = useState<ViewTab>("movimientos");
   const [filter, setFilter] = useState<MovFilter>(prefs.gastosFilter ?? "all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showExpense, setShowExpense] = useState(false);
   const [showIncome, setShowIncome] = useState(false);
-  const [editingTx, setEditingTx] = useState<EnhancedTransaction | null>(null);
+  const [groupByCategory, setGroupByCategory] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
-
-  const conceptCategoryById = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const c of getBudgetConcepts(db)) {
-      if (!c.isParent) map.set(c.id, c.category);
-    }
-    return map;
-  }, [db]);
 
   const setFilterPersist = (next: MovFilter) => {
     setFilter(next);
@@ -65,10 +42,10 @@ export default function GastosView() {
     for (const tx of cashflow.allMovements) {
       if (filter === "in" && tx.type !== "income") continue;
       if (filter === "out" && tx.type !== "expense") continue;
-      set.add(movementCategory(tx, conceptCategoryById));
+      set.add(movementCategoryLabel(tx) ?? tx.category);
     }
     return [...set].sort((a, b) => a.localeCompare(b, "es"));
-  }, [cashflow.allMovements, filter, conceptCategoryById]);
+  }, [cashflow.allMovements, filter]);
 
   const list = useMemo(() => {
     const byType = cashflow.allMovements.filter((tx) => {
@@ -79,9 +56,11 @@ export default function GastosView() {
     const byCategory =
       categoryFilter === "all"
         ? byType
-        : byType.filter((tx) => movementCategory(tx, conceptCategoryById) === categoryFilter);
+        : byType.filter((tx) => (movementCategoryLabel(tx) ?? tx.category) === categoryFilter);
     return filterTransactions(byCategory, searchQuery);
-  }, [cashflow.allMovements, filter, categoryFilter, searchQuery, conceptCategoryById]);
+  }, [cashflow.allMovements, filter, categoryFilter, searchQuery]);
+
+  const summary = useMemo(() => computeMovementAggregates(list), [list]);
 
   const selectedTxs = useMemo(
     () => list.filter((tx) => selectedIds.has(tx.id)),
@@ -96,6 +75,7 @@ export default function GastosView() {
   };
 
   const toggleSelect = (tx: EnhancedTransaction) => {
+    if (!selectionMode) setSelectionMode(true);
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(tx.id)) next.delete(tx.id);
@@ -109,13 +89,8 @@ export default function GastosView() {
       setSelectedIds(new Set());
       return;
     }
+    setSelectionMode(true);
     setSelectedIds(new Set(list.map((tx) => tx.id)));
-  };
-
-  const deleteTx = (tx: EnhancedTransaction) => {
-    if (!window.confirm(`¿Eliminar «${tx.description}»?`)) return;
-    db.deleteTransaction(tx.id);
-    refresh();
   };
 
   const isSearching = searchQuery.trim().length > 0;
@@ -123,181 +98,129 @@ export default function GastosView() {
   return (
     <div className="app-page finance-scroll-pad space-y-4">
       <div className="app-page-inner-wide space-y-4">
-        <PageHeader title="Gastos" subtitle="Movimientos y conceptos del mes" />
+        <PageHeader title="Gastos" subtitle="Tabla de movimientos · edición inline" />
 
         <MonthSelector />
 
-        <div className="flex border-b border-[var(--border-hairline)]">
+        <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border-hairline)]">
           <button
             type="button"
-            className={viewTab === "movimientos" ? "app-tab-active" : "app-tab"}
-            onClick={() => {
-              setViewTab("movimientos");
-              exitSelection();
-            }}
+            className={filter === "all" ? "app-tab-active" : "app-tab"}
+            onClick={() => setFilterPersist("all")}
           >
-            Movimientos
+            Todos
           </button>
           <button
             type="button"
-            className={viewTab === "conceptos" ? "app-tab-active" : "app-tab"}
-            onClick={() => {
-              setViewTab("conceptos");
-              exitSelection();
-            }}
+            className={filter === "out" ? "app-tab-active" : "app-tab"}
+            onClick={() => setFilterPersist("out")}
           >
-            Conceptos
+            Salidas
+          </button>
+          <button
+            type="button"
+            className={filter === "in" ? "app-tab-active" : "app-tab"}
+            onClick={() => setFilterPersist("in")}
+          >
+            Entradas
+          </button>
+          <button
+            type="button"
+            className={groupByCategory ? "chip-active ml-auto" : "chip ml-auto"}
+            onClick={() => setGroupByCategory((v) => !v)}
+          >
+            Agrupar por categoría
           </button>
         </div>
 
-        {viewTab === "conceptos" ? (
-          <BudgetConceptCrudPanel />
+        {movementCategories.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              className={categoryFilter === "all" ? "chip-active" : "chip"}
+              onClick={() => setCategoryFilter("all")}
+            >
+              Todas las categorías
+            </button>
+            {movementCategories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                className={categoryFilter === cat ? "chip-active" : "chip"}
+                onClick={() => setCategoryFilter(cat)}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        <SearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Buscar movimiento, descripción o monto…"
+        />
+
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <button
+            type="button"
+            className="btn-primary justify-center"
+            onClick={() => setShowExpense(true)}
+          >
+            <Plus size={14} />
+            Gasto
+          </button>
+          <button
+            type="button"
+            className="btn-soft justify-center"
+            onClick={() => setShowIncome(true)}
+          >
+            <Plus size={14} />
+            Ingreso
+          </button>
+          {selectionMode ? (
+            <button type="button" className="btn-soft text-xs col-span-2" onClick={exitSelection}>
+              Cancelar selección ({selectedIds.size})
+            </button>
+          ) : (
+            <p className="col-span-2 text-caption text-ink-faint self-center px-1">
+              {summary.count} filas · click celda para editar
+            </p>
+          )}
+        </div>
+
+        {list.length === 0 ? (
+          <p className="text-caption px-3 py-4 surface-soft rounded-xl">
+            {isSearching
+              ? `Sin resultados para «${searchQuery.trim()}».`
+              : "Sin movimientos con este filtro."}
+          </p>
         ) : (
-          <>
-            <div className="flex border-b border-[var(--border-hairline)]">
-              <button
-                type="button"
-                className={filter === "all" ? "app-tab-active" : "app-tab"}
-                onClick={() => setFilterPersist("all")}
-              >
-                Todos
-              </button>
-              <button
-                type="button"
-                className={filter === "out" ? "app-tab-active" : "app-tab"}
-                onClick={() => setFilterPersist("out")}
-              >
-                Salidas
-              </button>
-              <button
-                type="button"
-                className={filter === "in" ? "app-tab-active" : "app-tab"}
-                onClick={() => setFilterPersist("in")}
-              >
-                Entradas
-              </button>
-            </div>
-
-            {movementCategories.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  type="button"
-                  className={categoryFilter === "all" ? "chip-active" : "chip"}
-                  onClick={() => setCategoryFilter("all")}
-                >
-                  Todas las categorías
-                </button>
-                {movementCategories.map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    className={categoryFilter === cat ? "chip-active" : "chip"}
-                    onClick={() => setCategoryFilter(cat)}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-
-            <SearchBar
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Buscar movimiento, concepto o monto…"
-            />
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                className="btn-primary justify-center"
-                onClick={() => setShowExpense(true)}
-              >
-                <Plus size={14} />
-                Gasto
-              </button>
-              <button
-                type="button"
-                className="btn-soft justify-center"
-                onClick={() => setShowIncome(true)}
-              >
-                <Plus size={14} />
-                Ingreso
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between gap-2">
-              {selectionMode ? (
-                <label className="flex items-center gap-2 text-caption cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={allSelected}
-                    onChange={toggleSelectAll}
-                    className="h-4 w-4 rounded border-[var(--border-hairline)] accent-[var(--flujo-mint)]"
-                  />
-                  Seleccionar todos ({list.length})
-                </label>
-              ) : (
-                <span className="text-caption text-ink-faint">{list.length} movimientos</span>
-              )}
-              <button
-                type="button"
-                className={selectionMode ? "btn-link text-xs" : "btn-soft text-xs py-1.5 px-2.5"}
-                onClick={() => {
-                  if (selectionMode) exitSelection();
-                  else setSelectionMode(true);
-                }}
-              >
-                {selectionMode ? "Cancelar selección" : "Seleccionar"}
-              </button>
-            </div>
-
-            <div className="finance-list divide-y-0">
-              {list.length === 0 ? (
-                <p className="text-caption px-3 py-4">
-                  {isSearching
-                    ? `Sin resultados para «${searchQuery.trim()}».`
-                    : "Sin movimientos con este filtro."}
-                </p>
-              ) : (
-                list.map((tx) => (
-                  <SwipeableRow
-                    key={tx.id}
-                    variant="list"
-                    onDelete={() => deleteTx(tx)}
-                    deleteLabel="Borrar"
-                  >
-                    <MovementRow
-                      tx={tx}
-                      onEdit={selectionMode ? undefined : setEditingTx}
-                      variant="list"
-                      selectable={selectionMode}
-                      selected={selectedIds.has(tx.id)}
-                      onToggleSelect={toggleSelect}
-                    />
-                  </SwipeableRow>
-                ))
-              )}
-            </div>
-
-            {selectionMode && selectedIds.size > 0 ? (
-              <BulkMovementBar
-                selectedIds={[...selectedIds]}
-                selectedTxs={selectedTxs}
-                onClear={exitSelection}
-                onDone={exitSelection}
-              />
-            ) : null}
-          </>
+          <MovementsTable
+            rows={list}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onToggleSelectAll={toggleSelectAll}
+            allSelected={allSelected}
+            groupByCategory={groupByCategory}
+            categoryFilterActive={categoryFilter !== "all"}
+          />
         )}
+
+        {selectionMode && selectedIds.size > 0 ? (
+          <BulkMovementBar
+            selectedIds={[...selectedIds]}
+            selectedTxs={selectedTxs}
+            onClear={exitSelection}
+            onDone={exitSelection}
+          />
+        ) : null}
 
         <FinanceSyncBar />
       </div>
 
       {showExpense && <QuickExpenseModal onClose={() => setShowExpense(false)} />}
       {showIncome && <QuickIncomeModal onClose={() => setShowIncome(false)} />}
-      {editingTx && !selectionMode && (
-        <EditMovementModal tx={editingTx} onClose={() => setEditingTx(null)} />
-      )}
     </div>
   );
 }

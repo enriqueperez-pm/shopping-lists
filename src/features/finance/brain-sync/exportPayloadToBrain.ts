@@ -1,4 +1,5 @@
 import type { FinancialPersistedData } from "../FinancialDatabase";
+import { actualByConceptFromAllTransactions, resolveAmountMxn } from "../period-math";
 import { rowsToCsv } from "./parseCsv";
 import type { BrainCsvExport } from "./types";
 
@@ -75,11 +76,11 @@ function parseDescriptionMeta(description: string | undefined) {
 }
 
 function inferEstado(
-  concept: { actualAmount?: number; budgetedAmount?: number },
+  _concept: { actualAmount?: number; budgetedAmount?: number },
   actualFromTx: number,
 ): string {
-  const actual = Math.max(concept.actualAmount || 0, actualFromTx || 0);
-  const budgeted = concept.budgetedAmount || 0;
+  const actual = actualFromTx || 0;
+  const budgeted = _concept.budgetedAmount || 0;
   if (actual <= 0) return "pendiente";
   if (budgeted > 0 && actual >= budgeted) return "pagado";
   if (budgeted > 0 && actual < budgeted) return "parcial";
@@ -114,14 +115,7 @@ export function exportPayloadToBrainCsv(payload: FinancialPersistedData): BrainC
   );
   const transactions = payload.transactions ?? [];
 
-  const actualByConcept = new Map<string, number>();
-  for (const tx of transactions) {
-    if (!tx.budgetConceptId) continue;
-    actualByConcept.set(
-      tx.budgetConceptId,
-      (actualByConcept.get(tx.budgetConceptId) ?? 0) + Number(tx.amount || 0),
-    );
-  }
+  const actualByConcept = actualByConceptFromAllTransactions(transactions);
 
   const presupuestoRows = concepts
     .filter((c) => c.type === "expense")
@@ -130,7 +124,7 @@ export function exportPayloadToBrainCsv(payload: FinancialPersistedData): BrainC
     .map((c) => {
       const brainId = slugFromConceptId(c.id) || c.id.replace(/^concept_/, "app-");
       const fromTx = actualByConcept.get(c.id) ?? 0;
-      const ejecutado = Math.max(c.actualAmount || 0, fromTx);
+      const ejecutado = fromTx;
       const meta = parseDescriptionMeta(c.description);
       const estado = resolveEstado(c, fromTx);
       return {
@@ -159,7 +153,7 @@ export function exportPayloadToBrainCsv(payload: FinancialPersistedData): BrainC
     .map((c) => {
       const brainId = slugFromConceptId(c.id) || c.id.replace(/^concept_/, "app-");
       const fromTx = actualByConcept.get(c.id) ?? 0;
-      const ejecutado = Math.max(c.actualAmount || 0, fromTx);
+      const ejecutado = fromTx;
       const meta = parseDescriptionMeta(c.description);
       return {
         periodo: c.period,
@@ -189,7 +183,7 @@ export function exportPayloadToBrainCsv(payload: FinancialPersistedData): BrainC
       concepto: tx.description,
       categoria: tx.category,
       subcategoria: tx.subcategory || "",
-      monto_mxn: tx.amount,
+      monto_mxn: resolveAmountMxn(tx),
       cuenta: "",
       notas: tx.notes || "",
       periodo: (tx.date || "").slice(0, 7),

@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import ModalShell from "@/components/ui/ModalShell";
 import { useFinance } from "../FinancialDbProvider";
-import { bulkAssignConcept, bulkConfirmLink } from "../finance-crud";
-import { getBudgetConceptsForTypeAndDate } from "../finance-linking";
+import { bulkAssignCategory } from "../finance-crud";
 import type { EnhancedTransaction } from "../FinancialDatabase";
-import SearchableConceptPicker from "./SearchableConceptPicker";
+import CategorySubcategoryPicker from "./CategorySubcategoryPicker";
 
 type Props = {
   selectedIds: string[];
@@ -16,30 +15,16 @@ type Props = {
 };
 
 export default function BulkMovementBar({ selectedIds, selectedTxs, onClear, onDone }: Props) {
-  const { db, refresh, selectedPeriod } = useFinance();
+  const { db, refresh } = useFinance();
   const [showAssign, setShowAssign] = useState(false);
-  const [conceptId, setConceptId] = useState("");
+  const [category, setCategory] = useState("");
+  const [subcategory, setSubcategory] = useState("");
 
   const count = selectedIds.length;
   const hasIncome = selectedTxs.some((t) => t.type === "income");
   const hasExpense = selectedTxs.some((t) => t.type !== "income");
   const mixedTypes = hasIncome && hasExpense;
-
   const assignType = hasExpense ? "expense" : "income";
-  const assignDate =
-    selectedTxs.map((t) => t.date.slice(0, 10)).sort()[0] ?? `${selectedPeriod}-01`;
-
-  const concepts = useMemo(
-    () =>
-      getBudgetConceptsForTypeAndDate(db, assignType, assignDate, {
-        selectedPeriod,
-        currentConceptId: conceptId || undefined,
-      }),
-    [db, assignType, assignDate, selectedPeriod, conceptId],
-  );
-
-  const recentIds = db.getUserPreferences().recentConceptIds ?? [];
-  const withConcept = selectedTxs.filter((t) => t.budgetConceptId).length;
 
   const handleDelete = () => {
     if (!window.confirm(`¿Eliminar ${count} movimiento${count === 1 ? "" : "s"}?`)) return;
@@ -48,30 +33,21 @@ export default function BulkMovementBar({ selectedIds, selectedTxs, onClear, onD
     onDone();
   };
 
-  const handleConfirm = () => {
-    const updated = bulkConfirmLink(db, selectedIds);
-    if (updated === 0) {
-      window.alert("Ningún movimiento seleccionado tiene concepto asignado.");
-      return;
-    }
-    refresh();
-    onDone();
-  };
-
   const handleAssign = () => {
-    if (!conceptId) return;
-    const updated = bulkAssignConcept(db, selectedIds, conceptId);
+    if (!category || !subcategory) return;
+    const updated = bulkAssignCategory(db, selectedIds, category, subcategory);
     if (updated === 0) {
       window.alert(
         mixedTypes
           ? "No se pudo asignar: mezclaste ingresos y gastos. Selecciona solo un tipo."
-          : "No se pudo asignar el concepto.",
+          : "No se pudo asignar la categoría.",
       );
       return;
     }
     refresh();
     setShowAssign(false);
-    setConceptId("");
+    setCategory("");
+    setSubcategory("");
     onDone();
   };
 
@@ -91,16 +67,7 @@ export default function BulkMovementBar({ selectedIds, selectedTxs, onClear, onD
             disabled={mixedTypes}
             title={mixedTypes ? "Selecciona solo gastos o solo ingresos" : undefined}
           >
-            Asignar concepto
-          </button>
-          <button
-            type="button"
-            className="btn-soft text-xs py-1.5 px-2.5"
-            onClick={handleConfirm}
-            disabled={withConcept === 0}
-            title={withConcept === 0 ? "Primero asigna un concepto" : undefined}
-          >
-            Confirmar ({withConcept})
+            Asignar categoría
           </button>
           <button type="button" className="btn-soft text-xs py-1.5 px-2.5 text-danger" onClick={handleDelete}>
             Eliminar
@@ -112,23 +79,27 @@ export default function BulkMovementBar({ selectedIds, selectedTxs, onClear, onD
       </div>
 
       {showAssign ? (
-        <ModalShell open onClose={() => setShowAssign(false)} title="Asignar concepto" className="space-y-4">
+        <ModalShell open onClose={() => setShowAssign(false)} title="Asignar categoría" className="space-y-4">
           <p className="text-caption text-ink-muted">
-            Aplica a {count} movimiento{count === 1 ? "" : "s"} ({assignType === "expense" ? "gastos" : "ingresos"}).
+            {count} movimiento{count === 1 ? "" : "s"} · {assignType === "expense" ? "Gastos" : "Ingresos"}
           </p>
-          <SearchableConceptPicker
-            concepts={concepts}
-            value={conceptId}
-            onChange={setConceptId}
-            selectedPeriod={selectedPeriod}
-            recentIds={recentIds}
-            placeholder="Buscar concepto…"
+          <CategorySubcategoryPicker
+            type={assignType}
+            category={category}
+            subcategory={subcategory}
+            onCategoryChange={setCategory}
+            onSubcategoryChange={setSubcategory}
           />
           <div className="flex gap-2 justify-end">
             <button type="button" className="btn-soft" onClick={() => setShowAssign(false)}>
               Cancelar
             </button>
-            <button type="button" className="btn-primary" disabled={!conceptId} onClick={handleAssign}>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={handleAssign}
+              disabled={!category || !subcategory}
+            >
               Aplicar
             </button>
           </div>

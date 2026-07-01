@@ -21,6 +21,7 @@ import FlowCompareChart from "./components/FlowCompareChart";
 import CategorySpendChart from "./components/CategorySpendChart";
 import PageHeader from "@/components/ui/PageHeader";
 import FinanceSummaryStrip from "./components/FinanceSummaryStrip";
+import AccountBalanceStrip from "./components/AccountBalanceStrip";
 import FinanceListSection from "./components/FinanceListSection";
 import FinanceListRow from "./components/FinanceListRow";
 import BudgetConceptTable, { type BudgetTableTab } from "./components/BudgetConceptTable";
@@ -111,6 +112,8 @@ export default function DashboardView() {
           committed={cashflow.committed}
           onDisponibleClick={() => setShowAdjust(true)}
         />
+
+        <AccountBalanceStrip />
 
         <div className="space-y-1.5 px-0.5">
           <div className="flex justify-between text-micro text-ink-faint">
@@ -317,16 +320,10 @@ export default function DashboardView() {
 
       {showExpense && <QuickExpenseModal onClose={() => setShowExpense(false)} />}
       {quickAction?.kind === "income" ? (
-        <QuickIncomeModal
-          initialConceptId={quickAction.conceptId}
-          onClose={() => setQuickAction(null)}
-        />
+        <QuickIncomeModal onClose={() => setQuickAction(null)} />
       ) : null}
       {quickAction?.kind === "expense" ? (
-        <QuickExpenseModal
-          initialConceptId={quickAction.conceptId}
-          onClose={() => setQuickAction(null)}
-        />
+        <QuickExpenseModal onClose={() => setQuickAction(null)} />
       ) : null}
       {editingTx && <EditMovementModal tx={editingTx} onClose={() => setEditingTx(null)} />}
       {showAdjust && (

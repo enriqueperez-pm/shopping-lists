@@ -1,6 +1,8 @@
 import type { FinancialPersistedData } from "../FinancialDatabase";
 import { parseCsv } from "./parseCsv";
 import type { BrainCsvInputs, BrainPayloadResult } from "./types";
+import { MASTER_ACCOUNTS, MASTER_BANKS, resolveAccountIdFromName } from "../account-balance";
+import { roundMoney } from "../period-math";
 
 type BudgetConcept = {
   id: string;
@@ -116,6 +118,16 @@ function buildCategoriesTreeFromConcepts(concepts: BudgetConcept[], ts: string) 
   return nodes;
 }
 
+function accountIdFromRow(row: Record<string, string>, source: string): string | undefined {
+  const fromCuenta = resolveAccountIdFromName(row.cuenta);
+  if (fromCuenta) return fromCuenta;
+  if (source === "import") return "acc_mercado_pago";
+  const desc = (row.concepto || "").toLowerCase();
+  if (desc.includes("hsbc")) return "acc_hsbc";
+  if (desc.includes("deel") || desc.includes("nómina") || desc.includes("nomina")) return "acc_deel";
+  return undefined;
+}
+
 export function buildPayloadFromBrainCsv(inputs: BrainCsvInputs): BrainPayloadResult {
   const presupuesto = parseCsv(inputs.presupuesto);
   const ingresos = inputs.ingresos ? parseCsv(inputs.ingresos) : [];
@@ -130,19 +142,22 @@ export function buildPayloadFromBrainCsv(inputs: BrainCsvInputs): BrainPayloadRe
     const period = row.periodo;
     const brainId = brainIdFromTransaction(row);
     const txId = `brain_tx_${row.fecha}_${idx}`;
+    const source = row.fuente === "manual" ? "manual" : "import";
     return {
       id: txId,
       type: (row.tipo === "income" ? "income" : "expense") as "income" | "expense",
       description: row.concepto,
-      amount: num(row.monto_mxn),
+      amount: roundMoney(num(row.monto_mxn)),
       category: row.categoria,
       subcategory: row.subcategoria || undefined,
       date: row.fecha,
       timestamp: `${row.fecha}T12:00:00.000Z`,
       notes: row.notas || undefined,
-      source: (row.fuente === "manual" ? "manual" : "import") as "manual" | "import",
+      source: source as "manual" | "import",
       currency: "MXN",
       budgetConceptId: brainId ? conceptId(period, brainId) : undefined,
+      accountId: accountIdFromRow(row, source),
+      linkReviewStatus: brainId ? ("confirmed" as const) : undefined,
     };
   });
 
@@ -191,7 +206,7 @@ export function buildPayloadFromBrainCsv(inputs: BrainCsvInputs): BrainPayloadRe
       category: row.categoria,
       subcategory: row.subcategoria || undefined,
       budgetedAmount: planeado,
-      actualAmount: Math.max(ejecutado, fromTx),
+      actualAmount: roundMoney(fromTx),
       currency: "MXN",
       period,
       type: "income",
@@ -264,7 +279,7 @@ export function buildPayloadFromBrainCsv(inputs: BrainCsvInputs): BrainPayloadRe
       category: row.categoria,
       subcategory: row.subcategoria || undefined,
       budgetedAmount: planeado,
-      actualAmount: Math.max(ejecutado, fromTx),
+      actualAmount: roundMoney(fromTx),
       currency: "MXN",
       period,
       type: "expense",
@@ -295,27 +310,8 @@ export function buildPayloadFromBrainCsv(inputs: BrainCsvInputs): BrainPayloadRe
 
   const payload: FinancialPersistedData = {
     transactions,
-    banks: [
-      {
-        id: "bank_1",
-        name: "Banco Principal",
-        code: "001",
-        color: "#2563eb",
-        custom: false,
-      },
-    ],
-    accounts: [
-      {
-        id: "acc_1",
-        bankId: "bank_1",
-        name: "Cuenta Principal",
-        type: "checking",
-        number: "****1234",
-        currency: "MXN",
-        color: "#059669",
-        custom: false,
-      },
-    ],
+    banks: MASTER_BANKS,
+    accounts: MASTER_ACCOUNTS,
     categories: {
       income: [
         {

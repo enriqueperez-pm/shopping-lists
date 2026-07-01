@@ -3,9 +3,7 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { EnhancedTransaction } from "../FinancialDatabase";
-import { formatMovementDate } from "../cashflow-analytics";
-import { buildTransactionTrace } from "../finance-linking";
-import { useFinance } from "../FinancialDbProvider";
+import { formatMovementDate, movementCategoryLabel } from "../cashflow-analytics";
 import { money } from "@/lib/money";
 import BudgetLinkDetailPanel, { linkReviewBadge } from "./BudgetLinkDetailPanel";
 
@@ -26,11 +24,11 @@ export default function MovementRow({
   selected = false,
   onToggleSelect,
 }: Props) {
-  const { db } = useFinance();
   const [expanded, setExpanded] = useState(false);
-  const trace = buildTransactionTrace(db, tx);
   const isIncome = tx.type === "income";
-  const conceptName = trace.conceptName;
+  const categoryLabel = movementCategoryLabel(tx);
+  const showBadge =
+    tx.linkReviewStatus === "pending" || tx.linkReviewStatus === "incorrect" || !tx.budgetConceptId;
   const badge = linkReviewBadge(tx.linkReviewStatus, Boolean(tx.budgetConceptId));
 
   const wrapperClass =
@@ -79,19 +77,19 @@ export default function MovementRow({
           <div className="min-w-0 flex-1 text-left">
             <div className="flex items-center gap-2 min-w-0">
               <p className="text-sm font-medium truncate">{tx.description}</p>
-              <span
-                className={`inline-flex px-1.5 py-0.5 rounded text-[0.625rem] font-semibold shrink-0 ${badge.className}`}
-              >
-                {badge.label}
-              </span>
+              {showBadge ? (
+                <span
+                  className={`inline-flex px-1.5 py-0.5 rounded text-[0.625rem] font-semibold shrink-0 ${badge.className}`}
+                >
+                  {badge.label}
+                </span>
+              ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
               <span className="text-micro text-ink-faint">{formatMovementDate(tx.date)}</span>
-              {conceptName ? (
-                <span className="text-micro text-ink-muted truncate max-w-[180px]">{conceptName}</span>
-              ) : (
-                <span className="text-micro text-ink-faint">Sin concepto</span>
-              )}
+              {categoryLabel ? (
+                <span className="text-micro text-ink-muted truncate max-w-[200px]">{categoryLabel}</span>
+              ) : null}
             </div>
           </div>
           <p

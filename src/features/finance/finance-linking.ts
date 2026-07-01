@@ -2,6 +2,10 @@
 import type { EnhancedTransaction, FinancialDatabase } from "./FinancialDatabase";
 import { buildBudgetAnalytics } from "./budget-analytics";
 import { BASELINE_TAXONOMY_SEED } from "./taxonomy-seed.generated";
+import {
+  getCanonicalCategories as getCanonicalCategoriesFromSeed,
+  getCanonicalSubcategories as getCanonicalSubcategoriesFromSeed,
+} from "./taxonomy-canonical";
 import { canonicalConceptKey, dedupeBudgetConceptList } from "./budget-concept-keys";
 
 export interface TaxonomyCategoryNode {
@@ -38,25 +42,88 @@ const createConceptId = () => `concept_${Date.now()}_${Math.random().toString(36
 export const normalizeValue = (value: string) => value.trim().toLowerCase();
 
 export function getCanonicalCategories(type: 'income' | 'expense'): string[] {
-  return [
-    ...new Set(
-      BASELINE_TAXONOMY_SEED.filter((row) => row.type === type).map((row) => row.category),
-    ),
-  ].sort((a, b) => a.localeCompare(b, 'es'));
+  return getCanonicalCategoriesFromSeed(type);
 }
 
 export function getCanonicalSubcategories(
   type: 'income' | 'expense',
   category: string,
 ): string[] {
-  const categoryLower = normalizeValue(category);
-  return [
-    ...new Set(
-      BASELINE_TAXONOMY_SEED.filter(
-        (row) => row.type === type && normalizeValue(row.category) === categoryLower,
-      ).map((row) => row.subcategory),
-    ),
-  ].sort((a, b) => a.localeCompare(b, 'es'));
+  return getCanonicalSubcategoriesFromSeed(type, category);
+}
+
+export function resolveBudgetConceptId(
+  db: FinancialDatabase,
+  period: string,
+  type: 'income' | 'expense',
+  category: string,
+  subcategory: string,
+): string | undefined {
+  const catNorm = normalizeValue(category);
+  const subNorm = normalizeValue(subcategory);
+  const concepts = getBudgetConcepts(db).filter(
+    (c) =>
+      !c.isParent &&
+      c.type === type &&
+      c.period === period &&
+      normalizeValue(c.category) === catNorm &&
+      normalizeValue(c.subcategory || '') === subNorm,
+  );
+  if (concepts.length === 1) return concepts[0].id;
+  if (concepts.length > 1) {
+    const brainMatch = concepts.find((c) => c.id.startsWith('brain_'));
+    return brainMatch?.id ?? concepts[0].id;
+  }
+  return undefined;
+}
+
+const MERCHANT_TAXONOMY: Array<{ match: RegExp; category: string; subcategory: string }> = [
+  { match: /uber\s*eats/i, category: 'Alimentación', subcategory: 'Delivery' },
+  { match: /oxxo/i, category: 'Alimentación', subcategory: 'Tienda' },
+  { match: /maruri/i, category: 'Alimentación', subcategory: 'Tienda' },
+  { match: /cin[eé]polis/i, category: 'Entretenimiento', subcategory: 'Salidas' },
+  { match: /web\s*tickets/i, category: 'Entretenimiento', subcategory: 'Salidas' },
+  { match: /fondo\s*emergencia|apartado/i, category: 'Ahorro', subcategory: 'Fondo de emergencia' },
+];
+
+export function inferCategoryFromDescription(description: string): { category: string; subcategory: string } | null {
+  for (const row of MERCHANT_TAXONOMY) {
+    if (row.match.test(description)) {
+      return { category: row.category, subcategory: row.subcategory };
+    }
+  }
+  return null;
+}
+
+export function repairMovementTaxonomy(db: FinancialDatabase): number {
+  let count = 0;
+  for (const tx of db.getTransactions()) {
+    if (tx.type !== 'expense' && tx.type !== 'income') continue;
+    const txType = tx.type === 'income' ? 'income' : 'expense';
+    let category = tx.category;
+    let subcategory = tx.subcategory || '';
+    const inferred = inferCategoryFromDescription(tx.description);
+    if (inferred && (!category || category === 'Other')) {
+      category = inferred.category;
+      subcategory = inferred.subcategory;
+    }
+    const period = tx.date.slice(0, 7);
+    const conceptId =
+      tx.budgetConceptId ??
+      resolveBudgetConceptId(db, period, txType, category, subcategory);
+    const updates: Partial<EnhancedTransaction> = {
+      category,
+      subcategory,
+    };
+    if (conceptId && !tx.budgetConceptId) {
+      updates.budgetConceptId = conceptId;
+      updates.linkReviewStatus = 'confirmed';
+    } else if (conceptId) {
+      updates.linkReviewStatus = tx.linkReviewStatus ?? 'confirmed';
+    }
+    if (db.updateTransaction(tx.id, updates)) count += 1;
+  }
+  return count;
 }
 
 const MAY_2026_BUDGET_ITEMS: MonthlyBudgetSeedItem[] = [

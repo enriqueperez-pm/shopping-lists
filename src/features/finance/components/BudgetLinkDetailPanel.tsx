@@ -11,6 +11,7 @@ import {
   type LinkReviewStatus,
 } from "../finance-crud";
 import { getBudgetConcepts } from "../finance-linking";
+import { actualByConceptFromAllTransactions } from "../period-math";
 import { money } from "@/lib/money";
 import SearchableConceptPicker from "./SearchableConceptPicker";
 
@@ -134,9 +135,10 @@ export default function BudgetLinkDetailPanel(props: Props) {
   }
 
   const linkedTx = getTransactionsForConcept(allTx, concept.id);
+  const computedActual = actualByConceptFromAllTransactions(allTx).get(concept.id) ?? 0;
   const usagePct =
     concept.budgetedAmount > 0
-      ? Math.round((concept.actualAmount / concept.budgetedAmount) * 100)
+      ? Math.round((computedActual / concept.budgetedAmount) * 100)
       : null;
 
   return (
@@ -148,7 +150,7 @@ export default function BudgetLinkDetailPanel(props: Props) {
           {concept.subcategory ? ` · ${concept.subcategory}` : ""}
         </p>
         <p className="text-caption tabular-nums mt-1">
-          Plan {money(concept.budgetedAmount)} · Ejercido {money(concept.actualAmount)}
+          Plan {money(concept.budgetedAmount)} · Ejercido {money(computedActual)}
           {usagePct != null ? ` · ${usagePct}%` : ""}
         </p>
       </div>

@@ -15,7 +15,9 @@
     "recategorize:taxonomy": "node ../../brain/finanzas/scripts/recategorize-taxonomy.mjs",
     "generate:taxonomy-seed": "node ../../brain/finanzas/scripts/generate-taxonomy-seed.mjs",
     "test:brain-merge": "npx tsx scripts/test-brain-merge.ts",
-    "test:period-math": "npx tsx scripts/period-math.test.ts"
+    "test:period-math": "npx tsx scripts/period-math.test.ts",
+    "test:finance": "npx tsx scripts/period-math.test.ts && npx tsx scripts/taxonomy-canonical.test.ts && npx tsx scripts/budget-analytics.test.ts && npx tsx scripts/account-balance.test.ts && npx tsx scripts/financial-integrity.test.ts && npx tsx scripts/movements-table.test.ts",
+    "repair:canonical-taxonomy": "node scripts/repair-canonical-taxonomy.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

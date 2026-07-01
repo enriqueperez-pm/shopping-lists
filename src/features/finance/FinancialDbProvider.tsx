@@ -37,8 +37,9 @@ import {
   ensurePeriodConceptHierarchy,
   repairBudgetHierarchyInDb,
   getBudgetConcepts,
+  repairMovementTaxonomy,
 } from "./finance-linking";
-import { repairLegacyEnglishTaxonomy } from "./finance-crud";
+import { repairLegacyEnglishTaxonomy, syncActualAmountsFromTransactions } from "./finance-crud";
 import { setFinanceDb } from "./finance-bridge";
 import { HOUSEHOLD_MEMBER_IDS, HOUSEHOLD_PAYLOAD_USER_ID, resolveCloudPayloadUserId } from "@/lib/household";
 import { getBrowserSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
@@ -120,6 +121,8 @@ export default function FinancialDbProvider({ children }: { children: ReactNode 
     ensurePeriodConceptHierarchy(db, selectedPeriod);
     repairBudgetHierarchyInDb(db, selectedPeriod);
     repairLegacyEnglishTaxonomy(db);
+    repairMovementTaxonomy(db);
+    syncActualAmountsFromTransactions(db);
     setTransactions(db.getTransactions(selectedPeriod));
   }, [db, selectedPeriod]);
 

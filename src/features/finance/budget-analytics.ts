@@ -1,5 +1,10 @@
 import type { BudgetConcept } from "./types";
 import type { EnhancedTransaction } from "./FinancialDatabase";
+import {
+  actualByConceptFromAllTransactions,
+  roundMoney,
+  resolveAmountMxn,
+} from "./period-math";
 
 type CurrencyCode = 'USD' | 'MXN' | 'EUR';
 
@@ -48,9 +53,6 @@ interface BuildBudgetAnalyticsInput {
 const isConceptInPeriod = (concept: BudgetConcept, selectedPeriod: string) =>
   selectedPeriod === 'all' || concept.period === selectedPeriod;
 
-const isTransactionInPeriod = (transaction: EnhancedTransaction, selectedPeriod: string) =>
-  selectedPeriod === 'all' || transaction.date.startsWith(selectedPeriod);
-
 const resolveTransactionAmountForCurrency = (
   transaction: EnhancedTransaction,
   targetCurrency: CurrencyCode,
@@ -60,15 +62,14 @@ const resolveTransactionAmountForCurrency = (
   const sourceAmount = transaction.originalAmount ?? transaction.amount;
 
   if (sourceCurrency === targetCurrency) {
-    return sourceAmount;
+    return roundMoney(sourceAmount);
   }
 
   if (convert) {
-    return convert(sourceAmount, sourceCurrency, targetCurrency);
+    return roundMoney(convert(sourceAmount, sourceCurrency, targetCurrency));
   }
 
-  // Fallback controlado: si no hay convertidor disponible, mantener amount en USD.
-  return transaction.amount;
+  return roundMoney(transaction.amount);
 };
 
 const evaluateStatus = (
@@ -101,13 +102,14 @@ const asAnalysis = (
   txCount: number
 ): BudgetConceptAnalysis => {
   const budgeted = concept.budgetedAmount || 0;
-  const variance = actual - budgeted;
-  const usagePct = budgeted > 0 ? (actual / budgeted) * 100 : 0;
+  const roundedActual = roundMoney(actual);
+  const variance = roundMoney(roundedActual - budgeted);
+  const usagePct = budgeted > 0 ? (roundedActual / budgeted) * 100 : 0;
   const variancePct = budgeted > 0 ? (variance / budgeted) * 100 : 0;
 
   return {
     concept,
-    actual,
+    actual: roundedActual,
     budgeted,
     variance,
     variancePct,
@@ -125,24 +127,26 @@ export function buildBudgetAnalytics({
   convert,
 }: BuildBudgetAnalyticsInput): BudgetAnalyticsResult {
   const periodConcepts = concepts.filter((concept) => isConceptInPeriod(concept, selectedPeriod));
-  const periodTransactions = transactions.filter((transaction) =>
-    isTransactionInPeriod(transaction, selectedPeriod)
-  );
+  const actualByConcept = actualByConceptFromAllTransactions(transactions);
 
   const leafConcepts = periodConcepts.filter((concept) => !concept.isParent);
   const parentConcepts = periodConcepts.filter((concept) => concept.isParent && !concept.parentId);
 
   const leafAnalyses = leafConcepts.map((concept) => {
-    const linked = periodTransactions.filter(
+    const linked = transactions.filter(
       (transaction) =>
         transaction.budgetConceptId === concept.id &&
         transaction.type === concept.type,
     );
-    const actual = linked.reduce(
-      (sum, transaction) =>
-        sum + resolveTransactionAmountForCurrency(transaction, concept.currency, convert),
-      0
-    );
+    const actualFromMap = actualByConcept.get(concept.id) ?? 0;
+    const actual =
+      concept.currency === "MXN"
+        ? actualFromMap
+        : linked.reduce(
+            (sum, transaction) =>
+              sum + resolveTransactionAmountForCurrency(transaction, concept.currency, convert),
+            0,
+          );
 
     return asAnalysis(concept, actual, linked.length);
   });

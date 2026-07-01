@@ -1,16 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import ModalShell from "@/components/ui/ModalShell";
 import type { EnhancedTransaction } from "./FinancialDatabase";
 import { useFinance } from "./FinancialDbProvider";
-import {
-  applyConceptCategoryToTransaction,
-  formatCategoryPath,
-  getBudgetConceptsForTypeAndDate,
-} from "./finance-linking";
-import { recordRecentConceptId } from "./finance-crud";
-import SearchableConceptPicker from "./components/SearchableConceptPicker";
+import { resolveBudgetConceptId } from "./finance-linking";
+import { isCanonicalPair } from "./taxonomy-canonical";
+import CategorySubcategoryPicker from "./components/CategorySubcategoryPicker";
+import { MASTER_ACCOUNTS, MASTER_BANKS } from "./account-balance";
 
 type Props = {
   tx: EnhancedTransaction;
@@ -20,13 +17,20 @@ type Props = {
 export default function EditMovementModal({ tx, onClose }: Props) {
   const { db, refresh, selectedPeriod } = useFinance();
   const txType = tx.type === "income" ? "income" : "expense";
-  const banks = useMemo(() => db.getBanks(), [db]);
-  const accounts = useMemo(() => db.getAccounts(), [db]);
-  const recentIds = db.getUserPreferences().recentConceptIds ?? [];
+  const banks = useMemo(() => {
+    const existing = db.getBanks();
+    return existing.length > 0 ? existing : MASTER_BANKS;
+  }, [db]);
+  const accounts = useMemo(() => {
+    const existing = db.getAccounts();
+    return existing.length > 0 ? existing : MASTER_ACCOUNTS;
+  }, [db]);
+
   const [date, setDate] = useState(tx.date.slice(0, 10));
   const [description, setDescription] = useState(tx.description);
   const [amount, setAmount] = useState(String(tx.originalAmount ?? tx.amount));
-  const [conceptId, setConceptId] = useState(tx.budgetConceptId ?? "");
+  const [category, setCategory] = useState(tx.category);
+  const [subcategory, setSubcategory] = useState(tx.subcategory ?? "");
   const [bankId, setBankId] = useState(tx.bankId ?? "");
   const [accountId, setAccountId] = useState(tx.accountId ?? "");
 
@@ -35,36 +39,15 @@ export default function EditMovementModal({ tx, onClose }: Props) {
     [accounts, bankId],
   );
 
-  const concepts = useMemo(
-    () =>
-      getBudgetConceptsForTypeAndDate(db, txType, date, {
-        selectedPeriod,
-        currentConceptId: conceptId || tx.budgetConceptId,
-      }),
-    [db, txType, date, selectedPeriod, conceptId, tx.budgetConceptId],
-  );
-
-  useEffect(() => {
-    if (!conceptId && concepts[0]) setConceptId(concepts[0].id);
-  }, [concepts, conceptId]);
-
-  useEffect(() => {
-    if (accountId && !accounts.some((a) => a.id === accountId)) {
-      setAccountId("");
-    }
-  }, [accounts, accountId]);
-
   const save = () => {
     const value = Number(amount);
-    if (!date || !description.trim() || !value) return;
-
-    const concept = concepts.find((c) => c.id === conceptId);
-    const cats = applyConceptCategoryToTransaction(db, {
-      type: txType,
-      budgetConceptId: conceptId || undefined,
-      category: concept?.category ?? tx.category,
-      subcategory: concept?.subcategory ?? tx.subcategory,
-    });
+    if (!date || !description.trim() || !value || !category || !subcategory) return;
+    if (!isCanonicalPair(txType, category, subcategory)) {
+      window.alert("Categoría no válida. Elige de la taxonomía canónica.");
+      return;
+    }
+    const period = date.slice(0, 7);
+    const conceptId = resolveBudgetConceptId(db, period, txType, category, subcategory);
 
     db.updateTransaction(tx.id, {
       date,
@@ -73,15 +56,14 @@ export default function EditMovementModal({ tx, onClose }: Props) {
       originalAmount: value,
       originalCurrency: tx.originalCurrency ?? "MXN",
       currency: tx.currency ?? "MXN",
-      category: cats.category ?? tx.category,
-      subcategory: cats.subcategory,
-      budgetConceptId: conceptId || undefined,
+      category,
+      subcategory,
+      budgetConceptId: conceptId,
       bankId: bankId || undefined,
       accountId: accountId || undefined,
-      linkReviewStatus: conceptId ? "pending" : tx.linkReviewStatus,
+      linkReviewStatus: conceptId ? "confirmed" : "pending",
       source: tx.source === "shopping_trip" ? "shopping_trip" : "manual",
     });
-    if (conceptId) recordRecentConceptId(db, conceptId);
     refresh();
     onClose();
   };
@@ -93,29 +75,8 @@ export default function EditMovementModal({ tx, onClose }: Props) {
     onClose();
   };
 
-  const isIncome = tx.type === "income";
-  const selectedConcept = concepts.find((c) => c.id === conceptId);
-
   return (
     <ModalShell open onClose={onClose} title="Editar movimiento" className="space-y-4">
-      {concepts.length > 0 ? (
-        <label className="block space-y-1">
-          <span className="modal-label">Concepto de presupuesto</span>
-          <SearchableConceptPicker
-            concepts={concepts}
-            value={conceptId}
-            onChange={setConceptId}
-            selectedPeriod={selectedPeriod}
-            recentIds={recentIds}
-            allowEmpty
-            emptyLabel="Sin concepto"
-          />
-          {selectedConcept ? (
-            <p className="text-caption text-ink-faint">{formatCategoryPath(selectedConcept)}</p>
-          ) : null}
-        </label>
-      ) : null}
-
       <label className="block space-y-1">
         <span className="modal-label">Fecha</span>
         <input
@@ -144,6 +105,13 @@ export default function EditMovementModal({ tx, onClose }: Props) {
           className="modal-input tabular-nums"
         />
       </label>
+      <CategorySubcategoryPicker
+        type={txType}
+        category={category}
+        subcategory={subcategory}
+        onCategoryChange={setCategory}
+        onSubcategoryChange={setSubcategory}
+      />
       {banks.length > 0 ? (
         <label className="block space-y-1">
           <span className="modal-label">Banco</span>
@@ -193,7 +161,7 @@ export default function EditMovementModal({ tx, onClose }: Props) {
             type="button"
             className="btn-primary"
             onClick={save}
-            disabled={!date || !description.trim() || !Number(amount)}
+            disabled={!date || !description.trim() || !Number(amount) || !category || !subcategory}
           >
             Guardar
           </button>
