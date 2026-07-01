@@ -33,7 +33,7 @@ export function runFinancialIntegrityChecks(payload: FinancialPersistedData): In
     (c) => !c.isParent,
   );
   const transactions = dedupeTransactionFingerprints(payload.transactions ?? []);
-  const manualOverrides = payload.settings?.manualAvailableByPeriod ?? {};
+  const manualOverrides = payload.moduleData?.cashflowSettings?.manualAvailableByPeriod ?? {};
 
   for (const c of concepts) {
     if (!isCanonicalPair(c.type, c.category, c.subcategory || "")) {
